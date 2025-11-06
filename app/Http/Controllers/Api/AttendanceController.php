@@ -4,27 +4,32 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\EmployeeType;
+use App\Models\Employee; 
 use Carbon\Carbon;
+use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
-use App\Models\Employee;
-use DB;
-use PDO;
-use App\Models\EmployeeType;
+
 use App\Exports\AttendanceExport;
 use Maatwebsite\Excel\Facades\Excel;
+
+
 class AttendanceController extends Controller
 {
-	public function exportAttendance(Request $request)
+    public function exportAttendance(Request $request)
     {
         $from_date = $request->input('from_date');
         $to_date = $request->input('to_date');
         $employee_type = $request->input('employee_type');
+        $employee_id   = $request->input('employee_id');
+        $status        = $request->input('status');
 
-        return Excel::download(new AttendanceExport($from_date, $to_date, $employee_type), 'attendance.xlsx');
-	}
-public function punchIn(Request $request)
+        return Excel::download(new AttendanceExport($from_date, $to_date, $employee_type, $employee_id, $status), 'attendance_summary_' . now()->format('d_m_Y_H_i_s') . '.xlsx');
+    }
+
+    public function punchIn(Request $request)
     {
         $employeeId = Auth::id();
         $employeeCode = Auth::user()->employee_code ?? null;
@@ -295,10 +300,11 @@ public function punchIn(Request $request)
         }
     }
 
+
     public function getsummary(Request $request)
     {
         try {
-             $request->validate([
+            $request->validate([
                 'from_date' => 'required|date_format:d/m/Y',
                 'to_date'   => 'nullable|date_format:d/m/Y|after_or_equal:from_date',
             ]);
@@ -320,7 +326,7 @@ public function punchIn(Request $request)
                 ], 401);
             }
 
-            
+
             $records = Attendance::where('employee_id', $employeeId)
                 ->whereBetween('date', [$fromDate, $toDate])
                 ->get();
@@ -336,14 +342,14 @@ public function punchIn(Request $request)
 
             $data = $records->map(function ($record) {
                 return [
-                    'date' => \Carbon\Carbon::parse($record->date)->format('d/m/Y'),
+                    'date' => $record->date,
                     'punch_in' => $record->punch_in,
                     'punch_out' => $record->punch_out,
                     'total_active_hours' => $record->total_active_hours,
-		    'status' => $record->status,
-		    'leave_type' => $record->leave_type,
                     'starting_remarks' => $record->starting_remarks,
                     'ending_remarks' => $record->ending_remarks,
+                    'status' => $record->status,
+                    'leave_type' => $record->leave_type,
                     'starting_km' => $record->starting_km,
                     'ending_km' => $record->ending_km,
                     'starting_attachment' => $record->starting_attachment 
@@ -372,94 +378,120 @@ public function punchIn(Request $request)
         }
     }
 
-public function entryLeave(Request $request)
-{
-    try {
-        $employeeId = Auth::id();
-        $date = Carbon::today()->format('Y-m-d');
+    public function entryLeave(Request $request)
+    {
+        try {
+            $employeeId = Auth::id();
+            $date = Carbon::today()->format('Y-m-d');
 
-        if (!$employeeId) {
-            return response()->json([
-                'success' => false,
-                'statusCode' => 401,
-                'message' => 'Unauthorized user',
-            ], 401);
-        }
+            if (!$employeeId) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => 'Unauthorized user',
+                ], 401);
+            }
+            if (empty($request->latitude) || empty($request->longitude)) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 400,
+                    'message' => 'Latitude and longitude are required. Please enable location services.',
+                ]);
+            }
+            // ✅ Validation
+            $request->validate([
+                'leave_date'   => 'required|date',
+                'remarks' => 'required|string|max:1000',
+                'leave_type' => 'required|string'
 
-         if (empty($request->latitude) || empty($request->longitude)) {
-            return response()->json([
-                'success' => false,
-                'statusCode' => 400,
-                'message' => 'Latitude and longitude are required. Please enable location services.',
             ]);
-        }
-        $request->validate([
-            'leave_date'   => 'required|date',
-	    'remarks' => 'required|string|max:1000',
-	    'leave_type' => 'required|string'
-        ]);
 
-        $leaveDate = Carbon::parse($request->leave_date)->format('Y-m-d');
+            $leaveDate = Carbon::parse($request->leave_date)->format('Y-m-d');
 
-        
-        $attendance = Attendance::where('employee_id', $employeeId)
-		->where('date', $leaveDate)
-	->where('status', "leave")->where('leave_type', "!=","Full Day")
-                                ->first();
+            // ✅ Check if attendance already exists for the date
+            $attendance = Attendance::where('employee_id', $employeeId)
+                                    ->where('date', $leaveDate)
+                                    ->where('status', "leave")
+                                    ->where('leave_type', "!=","Full Day")
+                                    ->first();
 
-        if ($attendance) {
+            if ($attendance) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 400,
+                    'message' => 'Attendance already marked for this date.',
+                ], 400);
+            }
+
+            // ✅ Create absent record
+            $attendance = Attendance::create([
+                'employee_id'    => $employeeId,
+                'date'           => $leaveDate,
+                'status'         => 'leave',
+                'leave_type' => $request->leave_type,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'starting_remarks' => $request->remarks,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Leave entered successfully',
+                'data' => [
+                    'employee_id' => $attendance->employee_id,
+                    'date'        => $attendance->date,
+                    'status'      => $attendance->status,
+                    'leave_type' => $attendance->leave_type,
+                    'leave_reason'=> $attendance->starting_remarks,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'statusCode' => 400,
-                'message' => 'Attendance already marked for this date.',
-            ], 400);
+                'statusCode' => 500,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-      
-        $attendance = Attendance::create([
-            'employee_id'    => $employeeId,
-            'date'           => $leaveDate,
-	    'leave_type' => $request->leave_type,
-	    'status'         => 'leave',
-	    'latitude' => $request->latitude,
-
-                'longitude' => $request->longitude,
-            'starting_remarks' => $request->remarks,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'statusCode' => 200,
-            'message' => 'Leave entered successfully',
-            'data' => [
-                'employee_id' => $attendance->employee_id,
-                'date'        => $attendance->date,
-                'status'      => $attendance->status,
-                'leave_type' => $attendance->leave_type,'leave_reason'=> $attendance->starting_remarks,
-            ]
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'statusCode' => 500,
-            'message' => 'Something went wrong',
-            'error' => $e->getMessage(),
-        ], 500);
     }
-}
 
+    public function LeaveType()
+    {
+        try {
+            $leaveTypes = [
+                'Full Day',
+                'First Half',
+                'Second Half',
+            ];
 
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Leave types fetched successfully',
+                'data' => $leaveTypes
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function getTodayAttendance()
     {
         $employeeId = Auth::id();
         $date = Carbon::today()->format('Y-m-d');
-
         $attendance = Attendance::where('employee_id', $employeeId)
                                 ->where('date', $date)
-                              ->where('status', "present")  ->first();
-
+                                ->where('status', "present")
+                                ->first();
+        
         if (!$attendance) {
             return response()->json([
                 'success' => true,
@@ -485,39 +517,16 @@ public function entryLeave(Request $request)
                 'total_active_hours' => $total_active_hours,
             ]
         ]);
-    }
-    public function LeaveType()
+    }   
+    
+    public function index()
     {
-        try {
-            $leaveTypes = [
-                'Full Day',
-                'First Half',
-                'Second Half',
-            ];
-
-            return response()->json([
-                'success' => true,
-                'statusCode' => 200,
-                'message' => 'Leave types fetched successfully',
-                'data' => $leaveTypes
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'statusCode' => 500,
-                'message' => 'Something went wrong',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-}
- public function index()
-    {
-        $attendance = Attendance::all();
+        $attendance = Attendance::all(); 
         $employeeTypes = EmployeeType::all();
         return view('sales.attendance.index', compact('attendance','employeeTypes'));
     }
-public function list(Request $request)
+
+    public function list(Request $request)
     {
         $query = Attendance::with(['employee.employeeType']);
 
@@ -573,8 +582,8 @@ public function list(Request $request)
             ->addColumn('ending_remarks', fn($t) => $t->ending_remarks ?? '-')
             ->addColumn('ending_km', fn($t) => $t->ending_km ?? '-')
             ->addColumn('total_time', fn($t) => $t->total_active_hours ?? '-')
-	    ->addColumn('leave_type', fn($t) => $t->leave_type ?? '-')
-	    ->addColumn('leave_remarks', function ($t) {
+            ->addColumn('leave_type', fn($t) => $t->leave_type ?? '-')
+            ->addColumn('leave_remarks', function ($t) {
                 if ($t->status === 'leave') {
                     return $t->starting_remarks ?? '-';
                 }
@@ -633,6 +642,6 @@ public function list(Request $request)
 
         return response()->json($employees);
     }
-  
-}
 
+
+}
