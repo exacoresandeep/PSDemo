@@ -217,5 +217,7 @@ class AdminController extends Controller
         }
     }
     
-
+    public function usersIndex(){
+        return view('admin.users.user');
+    }
 }

@@ -19,6 +19,7 @@ use App\Http\Controllers\Logistics\DriverController;
 use App\Http\Controllers\Logistics\VehiclesController;
 use App\Http\Controllers\SchemeController;
 use App\Http\Controllers\Logistics\OperationsController;
+use App\Http\Controllers\UserManagementController;
 
     Route::get('/', [AdminController::class, 'login'])->name('login');
     Route::post('/doLogin', [AdminController::class, 'doLogin'])->name('doLogin');
@@ -171,11 +172,14 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
     Route::prefix('admin')->middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
         Route::prefix('users')->group(function () {
-            Route::get('/', [AdminController::class, 'usersIndex'])->name('admin.users.index');
-            Route::post('/list', [AdminController::class, 'usersList'])->name('admin.users.list');
-            Route::post('/store', [AdminController::class, 'usersStore'])->name('admin.users.store');
-            Route::post('/update', [AdminController::class, 'usersUpdate'])->name('admin.users.update');
-            Route::delete('/delete/{id}', [AdminController::class, 'usersDestroy'])->name('admin.users.delete');
+            Route::get('/', [UserManagementController::class, 'index'])->name('admin.users.index');
+            Route::get('/create', [UserManagementController::class, 'create'])->name('admin.users.create');
+            Route::get('/list', [UserManagementController::class, 'list'])->name('admin.users.list');
+            Route::post('/store', [UserManagementController::class, 'store'])->name('admin.users.store');
+            Route::get('/edit/{id}', [UserManagementController::class, 'edit'])->name('admin.users.edit');
+            Route::post('/update/{id}', [UserManagementController::class, 'update'])->name('admin.users.update');
+            Route::delete('/delete/{id}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+            Route::get('/check-username', [UserManagementController::class, 'checkUsername'])->name('admin.users.check-username');
 
             Route::get('/employees', [AdminController::class, 'employeeIndex'])->name('admin.users.employee-index');
             Route::get('/employees/list', [AdminController::class, 'employeeList'])->name('admin.users.employee-list');

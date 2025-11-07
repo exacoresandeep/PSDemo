@@ -36,7 +36,7 @@
 $(document).ready(function() {
     $('#employeesTable').DataTable({
         processing: true,
-        serverSide: true,
+        serverSide: false,
         ajax: "{{ route('admin.users.employee-list') }}",
         columns: [
             { data: 'id', name: 'id' },

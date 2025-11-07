@@ -18,6 +18,7 @@ class User extends Authenticatable
         'email',
         'username',
         'password',
+        'product_ids',
         'role_id'
     ];
 
@@ -31,6 +32,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            'product_ids' => 'array',
             'password' => 'hashed',
         ];
     }
@@ -47,5 +49,10 @@ class User extends Authenticatable
     public function isAccounts()
     {
         return $this->role_id == 3;
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(UserType::class, 'role_id');
     }
 }
