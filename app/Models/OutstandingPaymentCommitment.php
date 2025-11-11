@@ -12,7 +12,8 @@ class OutstandingPaymentCommitment extends Model
     protected $fillable = [
         'outstanding_payment_id',
         'committed_date',
-        'committed_amount',
+	'committed_amount',
+	'notification_status'
     ];
 
     public $timestamps = false;

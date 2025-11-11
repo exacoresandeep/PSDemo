@@ -20,6 +20,7 @@ class RescheduledRoute extends Model
         'route_name',
         'locations',
         'customers', 
+        'notification_status', 
     ];
 
     // protected $casts = [

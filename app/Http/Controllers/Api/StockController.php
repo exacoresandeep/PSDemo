@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Warehouse;
 use App\Models\ProductStock;
+use App\Models\ProductDetails;
+use App\Models\ProductType;
 use Illuminate\Support\Facades\DB;
 
 class StockController extends Controller
@@ -62,9 +64,9 @@ class StockController extends Controller
                     $stockQuantity = (float) $stock->quantity;
         
                     $availabilityStatus = 'Out of Stock';
-                    if ($stockQuantity > 0 && $stockQuantity < 1000) {
+                    if ($stockQuantity > 0 && $stockQuantity < 10) {
                         $availabilityStatus = 'Low Stock';
-                    } elseif ($stockQuantity >= 1000) {
+                    } elseif ($stockQuantity >= 10) {
                         $availabilityStatus = 'In Stock';
                     }
         
@@ -101,9 +103,9 @@ class StockController extends Controller
 
         // Determine availability status
         $availabilityStatus = 'Out of Stock';
-        if ($stockQuantity > 0 && $stockQuantity < 1000) {
+        if ($stockQuantity > 0 && $stockQuantity < 10) {
             $availabilityStatus = 'Low Stock';
-        } elseif ($stockQuantity >= 1000) {
+        } elseif ($stockQuantity >= 10) {
             $availabilityStatus = 'In Stock';
         }
         return response()->json([
@@ -138,9 +140,9 @@ class StockController extends Controller
         $stockQuery = ProductStock::with(['productDetails.product', 'productDetails.productType', 'warehouse']);
 
         if ($searchKey == 'In Stock') {
-            $stockQuery->where('quantity', '>=', 1000);
+            $stockQuery->where('quantity', '>=', 10);
         } elseif ($searchKey == 'Low Stock') {
-            $stockQuery->where('quantity', '>', 0)->where('quantity', '<', 1000);
+            $stockQuery->where('quantity', '>', 0)->where('quantity', '<', 10);
         } elseif ($searchKey == 'Out of Stock') {
             $stockQuery->where('quantity', '=', 0);
         }
@@ -165,9 +167,9 @@ class StockController extends Controller
                     $stockQuantity = (float) $stock->quantity;
         
                     $availabilityStatus = 'Out of Stock';
-                    if ($stockQuantity > 0 && $stockQuantity < 1000) {
+                    if ($stockQuantity > 0 && $stockQuantity < 10) {
                         $availabilityStatus = 'Low Stock';
-                    } elseif ($stockQuantity >= 1000) {
+                    } elseif ($stockQuantity >= 10) {
                         $availabilityStatus = 'In Stock';
                     }
         
@@ -184,6 +186,26 @@ class StockController extends Controller
             ],
         ], 200);
     }
+    public function getTotalStocks()
+    {
+        $stocks = ProductDetails::select('type_id')
+            ->selectRaw('SUM(total_available_quantity) as total_stock_quantity')
+            ->groupBy('type_id')
+            ->with('productType:id,type_name')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'type_id' => $item->type_id,
+                    'type_name' => $item->productType->type_name ?? 'Unknown',
+                    'total_stock_quantity' => (float) $item->total_stock_quantity,
+                ];
+            });
 
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'data' => $stocks
+        ]);
+    }
 
 }

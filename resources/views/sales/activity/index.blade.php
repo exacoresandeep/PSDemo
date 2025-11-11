@@ -80,42 +80,42 @@
 <script>
     $(document).ready(function () {
 
-        $('#district').change(function () {
-            let district_id = $(this).val();
-            if (district_id) {
-                // Fetch dealers in the selected district
-                $.ajax({
-                    url: `/sales/dealers-by-district/${district_id}`,
-                    type: 'GET',
-                    success: function (response) {
-                        $('#dealer_id').html('<option value="">-Select Dealer-</option>');
-                        $.each(response, function (key, dealer) {
-                            $('#dealer_id').append(`<option value="${dealer.id}">${dealer.dealer_name} (${dealer.dealer_code})</option>`);
-                        });
-                    }
-                });
+        // $('#district').change(function () {
+        //     let district_id = $(this).val();
+        //     if (district_id) {
+        //         // Fetch dealers in the selected district
+        //         $.ajax({
+        //             url: `/sales/dealers-by-district/${district_id}`,
+        //             type: 'GET',
+        //             success: function (response) {
+        //                 $('#dealer_id').html('<option value="">-Select Dealer-</option>');
+        //                 $.each(response, function (key, dealer) {
+        //                     $('#dealer_id').append(`<option value="${dealer.id}">${dealer.dealer_name} (${dealer.dealer_code})</option>`);
+        //                 });
+        //             }
+        //         });
 
-                // Clear the employee dropdown
-                $('#employee_id').html('<option value="">-Select Employee-</option>');
-            }
-        });
+        //         // Clear the employee dropdown
+        //         $('#employee_id').html('<option value="">-Select Employee-</option>');
+        //     }
+        // });
 
-        $('#dealer_id').change(function () {
-            let dealer_id = $(this).val();
+        // $('#dealer_id').change(function () {
+        //     let dealer_id = $(this).val();
 
-            if (dealer_id) {
-                $.ajax({
-                    url: `/sales/employees-by-dealer/${dealer_id}`,
-                    type: 'GET',
-                    success: function (response) {
-                        $('#employee_id').html('<option value="">-Select Employee-</option>');
-                        $.each(response, function (key, employee) {
-                            $('#employee_id').append(`<option value="${employee.id}">${employee.name}</option>`);
-                        });
-                    }
-                });
-            }
-        });
+        //     if (dealer_id) {
+        //         $.ajax({
+        //             url: `/sales/employees-by-dealer/${dealer_id}`,
+        //             type: 'GET',
+        //             success: function (response) {
+        //                 $('#employee_id').html('<option value="">-Select Employee-</option>');
+        //                 $.each(response, function (key, employee) {
+        //                     $('#employee_id').append(`<option value="${employee.id}">${employee.name}</option>`);
+        //                 });
+        //             }
+        //         });
+        //     }
+        // });
 
 
         $('#openCreateActivityModal').click(function () {
@@ -129,57 +129,72 @@
             }).modal('show');
         });
 
-        $('#activityForm').submit(function (e) {
-            e.preventDefault();
+        // $('#activityForm').submit(function (e) {
+        //     e.preventDefault();
             
-            let id = $('#activity_id').val();
-            let url = id ? `/sales/activity/update/${id}` : "/sales/activity/store";
-            let method = id ? 'PUT' : 'POST';
+        //     let id = $('#activity_id').val();
+        //     let url = id ? `/sales/activity/update/${id}` : "/sales/activity/store";
+        //     let method = id ? 'PUT' : 'POST';
             
-            let formData = $(this).serialize();
-            if (id) {
-                formData += '&_method=PUT';
-            }
+        //     let formData = $(this).serialize();
+        //     if (id) {
+        //         formData += '&_method=PUT';
+        //     }
 
-            Swal.fire({
-                title: 'Are you sure?',
-                text: id ? 'Do you want to update this activity?' : 'Do you want to create this activity?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: id ? 'Yes, update it!' : 'Yes, create it!',
-                cancelButtonText: 'No, cancel!',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    $.ajax({
-                        url: url,
-                        type: 'POST',
-                        data: formData,
-                        success: function (response) {
-                            Swal.fire({
-                                title: 'Success!',
-                                text: response.message,
-                                icon: 'success',
-                                timer: 2000,
-                                showConfirmButton: true
-                            });
-                            $('#createEditActivityModal').modal('hide');
-                            $('#activityForm')[0].reset();
-                            $('#activityTable').DataTable().ajax.reload();
-                        },
-                        error: function (xhr) {
-                            Swal.fire({
-                                title: 'Error!',
-                                text: xhr.responseJSON ? xhr.responseJSON.message : 'Something went wrong!',
-                                icon: 'error'
-                            });
-                        }
-                    });
-                }
-            });
-        });
+        //     Swal.fire({
+        //         title: 'Are you sure?',
+        //         text: id ? 'Do you want to update this activity?' : 'Do you want to create this activity?',
+        //         icon: 'question',
+        //         showCancelButton: true,
+        //         confirmButtonText: id ? 'Yes, update it!' : 'Yes, create it!',
+        //         cancelButtonText: 'No, cancel!',
+        //         reverseButtons: true
+        //     }).then((result) => {
+        //         if (result.isConfirmed) {
+        //             $.ajax({
+        //                 url: url,
+        //                 type: 'POST',
+        //                 data: formData,
+        //                 success: function (response) {
+        //                     Swal.fire({
+        //                         title: 'Success!',
+        //                         text: response.message,
+        //                         icon: 'success',
+        //                         timer: 2000,
+        //                         showConfirmButton: true
+        //                     });
+        //                     $('#createEditActivityModal').modal('hide');
+        //                     $('#activityForm')[0].reset();
+        //                     $('#activityTable').DataTable().ajax.reload();
+        //                 },
+        //                 error: function (xhr) {
+        //                     Swal.fire({
+        //                         title: 'Error!',
+        //                         text: xhr.responseJSON ? xhr.responseJSON.message : 'Something went wrong!',
+        //                         icon: 'error'
+        //                     });
+        //                 }
+        //             });
+        //         }
+        //     });
+        // });
+        // $('#assigned_date, #due_date').on('change', function () {
+        //     let assignedDate = new Date($('#assigned_date').val());
+        //     let dueDate = new Date($('#due_date').val());
 
+        //     if ($('#assigned_date').val() && $('#due_date').val()) {
+        //         if (dueDate < assignedDate) {
+        //             Swal.fire({
+        //                 icon: 'warning',
+        //                 title: 'Invalid Dates',
+        //                 text: 'Due Date must be greater than or equal to Assigned Date.',
+        //             });
+        //             $('#due_date').val(''); // reset due date if invalid
+        //         }
+        //     }
+        // });
 
+        
         window.handleAction = function (id, action) {
             let url = action === 'view' 
                 ? "{{ route('sales.activity.view', ':id') }}" 
@@ -324,7 +339,108 @@
                 }
             });
         });
-
+        
+        
+        
+        
+        $('#district, #employee_type_id').change(function () {
+            let district_id = $('#district').val();
+            let employee_type_id = $('#employee_type_id').val();
+    
+            if (district_id && employee_type_id) {
+                $.ajax({
+                    url: `/sales/activity/employees-by-district-type/${district_id}/${employee_type_id}`,
+                    type: 'GET',
+                    success: function (response) {
+                        $('#employee_id').html('<option value="">-Select Employee-</option>');
+                        $.each(response, function (key, emp) {
+                            $('#employee_id').append(`<option value="${emp.id}">${emp.name}</option>`);
+                        });
+                    }
+                });
+            } else {
+                $('#employee_id').html('<option value="">-Select Employee-</option>');
+                $('#dealer_id').html('<option value="">-Select Dealer-</option>');
+            }
+        });
+    
+        // Fetch dealers when an employee is selected
+        $('#employee_id').change(function () {
+            let employee_id = $(this).val();
+            if (employee_id) {
+                $.ajax({
+                    url: `/sales/activity/dealers-by-employee/${employee_id}`,
+                    type: 'GET',
+                    success: function (response) {
+                        $('#dealer_id').html('<option value="">-Select Dealer-</option>');
+                        $.each(response, function (key, dealer) {
+                            $('#dealer_id').append(`<option value="${dealer.dealer_id}">${dealer.dealer_name}</option>`);
+                        });
+                    }
+                });
+            }
+        });
+    
+        // Date validation
+        $('#assigned_date, #due_date').on('change', function () {
+            let assignedDate = new Date($('#assigned_date').val());
+            let dueDate = new Date($('#due_date').val());
+            if ($('#assigned_date').val() && $('#due_date').val() && dueDate < assignedDate) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Dates',
+                    text: 'Due Date must be greater than or equal to Assigned Date.',
+                });
+                $('#due_date').val('');
+            }
+        });
+    
+        // Form submit (same as your previous logic)
+        $('#activityForm').submit(function (e) {
+            e.preventDefault();
+            let id = $('#activity_id').val();
+            let url = id ? `/sales/activity/update/${id}` : "/sales/activity/store";
+            let method = id ? 'PUT' : 'POST';
+            let formData = $(this).serialize();
+            if (id) formData += '&_method=PUT';
+    
+            Swal.fire({
+                title: 'Are you sure?',
+                text: id ? 'Do you want to update this activity?' : 'Do you want to create this activity?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: id ? 'Yes, update it!' : 'Yes, create it!',
+                cancelButtonText: 'No, cancel!',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: formData,
+                        success: function (response) {
+                            Swal.fire({
+                                title: 'Success!',
+                                text: response.message,
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: true
+                            });
+                            $('#createEditActivityModal').modal('hide');
+                            $('#activityForm')[0].reset();
+                            $('#activityTable').DataTable().ajax.reload();
+                        },
+                        error: function (xhr) {
+                            Swal.fire({
+                                title: 'Error!',
+                                text: xhr.responseJSON ? xhr.responseJSON.message : 'Something went wrong!',
+                                icon: 'error'
+                            });
+                        }
+                    });
+                }
+            });
+        });
 
     });
 </script>

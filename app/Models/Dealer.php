@@ -25,7 +25,8 @@ class Dealer extends Model
         'district',
         'taluk',
         'location',
-        'assigned_route_id',
+	'assigned_route_id',
+	'password_reset_flag'
     ];
 
     public function orders()
@@ -35,5 +36,18 @@ class Dealer extends Model
     public function district()
     {
         return $this->belongsTo(District::class, 'district_id');
+    }
+     public function addresses()
+    {
+        return $this->hasMany(DealerAddress::class, 'dealer_id');
+    }
+
+    public function primaryAddress()
+    {
+        return $this->belongsTo(DealerAddress::class, 'address_id');
+    }
+    public function assignRoute()
+    {
+        return $this->belongsTo(AssignRoute::class, 'assign_route_id');
     }
 }

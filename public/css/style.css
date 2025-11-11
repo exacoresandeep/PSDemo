@@ -384,3 +384,222 @@ main {
   color: white !important;
 }
 
+
+
+
+
+
+
+
+.dashboard-card {
+  padding: 20px;
+  border-radius: 12px;
+  background: #eee;
+  min-height: 200px;
+  box-shadow: 0 0 5px 2px #ddd;
+  overflow: hidden;
+}
+
+.dashboard-card .form-control,  .dashboard-card-cover .form-control, .target-cover .form-control {
+    padding: 5px;
+
+    border: #aaa solid 1px;
+
+    display: inline-block;
+
+    width: auto;
+
+    border-radius: 7px;
+
+    width: 70px;
+
+    background-color: transparent !important;
+
+    color: #333 !important;
+}
+
+@media (min-width: 1300px) {
+  .dashboard-card .form-control,  .dashboard-card-cover .form-control, .target-cover .form-control {
+    width: 75px;
+  }
+}
+
+@media (min-width: 1500px) {
+  .dashboard-card .form-control,  .dashboard-card-cover .form-control, .target-cover .form-control {
+    width: 80px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .dashboard-card .form-control,  .dashboard-card-cover .form-control, .target-cover .form-control {
+    width: 100px;
+  }
+}
+
+.card-bg-1 {
+  background: url(../images/card-bg-1.svg) no-repeat right bottom;
+  background-size: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.card-bg-2 {
+  background: url(../images/card-bg-2.svg) no-repeat right bottom;
+  background-size: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.card-bg-3 {
+  background: url(../images/card-bg-3.svg) no-repeat right bottom;
+  background-size: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.card-bg-4 {
+  background: url(../images/card-bg-4.svg) no-repeat right bottom;
+  background-size: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.card-bg-5 {
+  background: url(../images/card-bg-5.svg) no-repeat right bottom;
+  background-size: cover;
+  width: 100%;
+  height: 100%;
+}
+
+.dashboard-card h4 {
+  font-size: 20px;
+  min-height: 80px;
+}
+
+.dashboard-card h2 {
+  font-size: 22px;
+  margin: 0;
+}
+
+.dashboard-card h1 {
+  font-size: 28px;
+  margin: 0;
+  margin-top: 25px;
+}
+
+.dashboard-card h1 span {
+  font-size: 30px;
+}
+
+.dashboard-card h1 i {
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.dashboard-card h5 {
+  font-size: 15px;
+
+}
+
+.dashboard-card-cover {
+  padding: 20px;
+  border-radius: 7px;
+  background: #eee;
+  margin: 30px 0;
+  background: linear-gradient(90deg, #FFF0EE, #E1FFE9);
+  box-shadow: 0 0 5px 2px #ddd;
+}
+
+.dashboard-card-cover h4 {
+  margin-bottom: 30px;
+}
+
+.target-cover {
+  padding: 20px;
+  background: #E5F2FF;
+  margin-top: 30px;
+  box-shadow: 0 0 5px 2px #ddd;
+  border-radius: 10px;
+  margin-bottom: 30px;
+}
+
+.target-cover .dashboard-card {
+  margin-top: 30px;
+}
+
+.target-cover .dashboard-card h2 span {
+  font-size: 20px;
+}
+
+.stock-cover {
+  background: #fff;
+  padding: 20px;
+  box-shadow: 0 0 5px 2px #ddd;
+  border-radius: 10px;
+  margin-bottom: 30px;
+}
+
+.stock-table {
+  height: 330px;
+  overflow-y: scroll;
+  font-size: 14px;
+}
+
+.stock-table.adj {
+  height: auto;
+  overflow-y: auto;
+}
+
+.hs-card p {
+  margin: 5px 0;
+  font-size: 20px;
+}
+
+.hs-card .row {
+  margin: 0;
+}
+.form-control {
+    /* appearance: none; */
+    -webkit-appearance: auto !important;
+    -moz-appearance: unset;
+}
+.target-cover.sales-dash .form-control{
+  width:150px;
+}
+.dashboard-card.sales-performance .form-control{
+  width:140px;
+}
+
+.export-btn:hover{
+    background-color: transparent !important;
+    color: #333333 !important;
+}
+.export-btn {
+    border: 1px solid #aaa !important;
+    color: #333333 !important;
+    margin-top: -5px;
+}
+.card-bg-6{
+  background: url(../public/images/card-bg-6.svg) no-repeat right bottom;
+  background-size: cover;
+  width: 100%;
+  height: 100%;
+}
+.card-bg-7{
+  background: url(../public/images/card-bg-7.svg) no-repeat right bottom;
+  background-size: cover;
+  width: 100%;
+  height: 100%;
+}
+.visit{
+  height: unset;
+    margin-bottom: 20px;
+}
+.visit-date p{
+  margin-bottom: 0px !important;
+    font-size: 20px;
+    font-weight: 500;
+}
+.visit-date h1{
+  margin-top:15px;
+}

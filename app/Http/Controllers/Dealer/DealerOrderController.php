@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\Payment;
 use App\Models\ProductType;
 use App\Models\CreditNote;
+use App\Models\CreditDays;
 use App\Models\OutstandingPaymentCommitment;
 use App\Models\OutstandingPayment;
 use App\Models\AssignRoute;
@@ -18,6 +19,8 @@ use Illuminate\Support\Facades\Auth;
 use Exception;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Api\AuthController;
+use Illuminate\Support\Facades\Log;
 
 class DealerOrderController extends Controller
 {
@@ -41,7 +44,8 @@ class DealerOrderController extends Controller
                     $order->total_amount = (float) sprintf("%.2f", $order->total_amount);
                     $order->total_quantity = $order->orderItems->sum('total_quantity'); 
                     return $order;
-                });     
+		});
+
                 return response()->json([
                     'success' => true,
                     'statusCode' => 200,
@@ -53,9 +57,9 @@ class DealerOrderController extends Controller
                             'total_quantity' => $order->total_quantity,
                             'status' => $order->status,
                             'created_at' => $order->created_at->format('d/m/Y'),
-                            'dealer' => [
-                                'name' => $order->dealers->dealer_name,
-                                'dealer_code' => $order->dealers->dealer_code, 
+			    'dealer' => [
+                               'name' => $order->dealers->dealer_name,
+                              'dealer_code' => $order->dealers->dealer_code, 
                             ],
                         ];
                     }),
@@ -93,7 +97,10 @@ class DealerOrderController extends Controller
             $validatedData = $request->validate([
                 'order_type' => 'nullable|exists:order_types,id',
                 'payment_terms_id' => 'required|exists:payment_terms,id',
-                'billing_date' => 'required|string',
+                'credit_days' => 'nullable|string',
+		        'billing_date' => 'required|string',
+		        'delivery_date' => 'nullable|string',
+	            'scheme' => 'nullable',
                 'total_amount' => 'nullable|numeric',
                 'additional_information' => 'nullable|string',
                 'status' => 'nullable|in:Pending,Dispatched,Delivered',
@@ -121,6 +128,7 @@ class DealerOrderController extends Controller
             $validatedData['created_by'] = null;
             $validatedData['created_by_dealer'] = $dealer->id;
             $validatedData['dealer_flag_order'] = '1';
+            $validatedData['order_Approved'] = '0';
 
             $order = Order::create($validatedData);
            
@@ -143,6 +151,7 @@ class DealerOrderController extends Controller
             $responseData = [
                     'order_type' => $order->order_type,
                     'payment_terms_id' => $order->payment_terms_id,
+                    'credit_days' => $order->credit_days,
                     'billing_date' => Carbon::parse($order->billing_date)->format('d/m/Y'),
                     'total_amount' => round($order->total_amount, 2),
                     'additional_information' => $order->additional_information,
@@ -211,7 +220,9 @@ class DealerOrderController extends Controller
                     'id' => $order->paymentTerm->id ?? null,
                     'name' => $order->paymentTerm->name ?? null,
                 ],
-                'billing_date' => $order->billing_date ? Carbon::parse($order->billing_date)->format('d/m/Y') : null,
+                'credit_days' => $order->credit_days,
+                'billing_date' => $order->billing_date,
+                'delivery_date' => $order->delivery_date,
                 'total_amount' => round($order->total_amount, 2),
                 'additional_information' => $order->additional_information,
                 'status' => $order->status,
@@ -232,6 +243,7 @@ class DealerOrderController extends Controller
                     'delivered_time'  => $order->delivered_time,
                 ],
                 'attachments' => $order->attachment ?? [],
+                
     
                 'order_items' => $order->orderItems->map(function ($item) {
 
@@ -252,9 +264,15 @@ class DealerOrderController extends Controller
                 }),
     
                 'created_at' => $order->created_at ? Carbon::parse($order->created_at)->format('d/m/Y') : null,
-            ];
-    
-            return response()->json([
+               
+                
+	    ];
+        if($order->dealer_flag_order!="1"){
+            //......................notification..............
+        $authController = new AuthController();
+        $authController->changeNotificationStatus('orders', $orderId,'opened');
+        }
+        return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Order details fetched successfully',
@@ -415,6 +433,68 @@ class DealerOrderController extends Controller
             ], 500);
         }
     }
+    public function monthlyTargetAchievement(Request $request)
+    {
+        try {
+            $dealer = Auth::user();
+
+            if (!$dealer) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => "User not Authenticated",
+                ], 401);
+            }
+
+            $month = $request->input('month', Carbon::now()->format('m'));
+            $year = $request->input('year', Carbon::now()->format('Y'));
+
+            // 1️⃣ Get target for the dealer for that month/year
+            // $target = DB::table('dealer_targets')
+            //     ->where('dealer_id', $dealer->id)
+            //     ->where('month', $month)
+            //     ->where('year', $year)
+            //     ->select('target_quantity')
+            //     ->first();
+
+            // 2️⃣ Get achieved sales (same logic as in your existing API)
+            $salesData = Order::where(function ($query) use ($dealer) {
+                    $query->where('created_by_dealer', $dealer->id)
+                        ->orWhere('dealer_id', $dealer->id);
+                })
+                ->where('status', 'Delivered')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->selectRaw('
+                    SUM(invoice_quantity) as achieved_quantity
+                ')
+                ->first();
+
+            // 3️⃣ Format response
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Monthly Target vs Achieved Data',
+                'data' => [
+                    'year' => $year,
+                    'month' => $month,
+                    // 'target_quantity' => round((float) ($target->target_quantity ?? 0), 2),
+                    'target_quantity' => '0',
+                    'achieved_quantity' => round((float) ($salesData->achieved_quantity ?? 0), 2),
+                    // 'achievement_percentage' => $target && $target->target_quantity > 0
+                    //     ? round(($salesData->achieved_quantity / $target->target_quantity) * 100, 2)
+                    //     : 0,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function outstandingPaymentsList()
     {
@@ -441,16 +521,18 @@ class DealerOrderController extends Controller
                 ->where('status', 'open')
                 ->select('id','order_id', 'due_date', 'outstanding_amount')
                 ->orderBy('due_date', 'asc')
+                // dd($outstandingPayments->toSql(), $outstandingPayments->getBindings());
                 ->get()
                 ->map(function ($payment) {
+                    // Log::info('Mapping payment:', $payment->toArray());
                     return [
                         'id' => $payment->id,
                         'order_id' => $payment->order_id,
                         'due_date' => $payment->due_date ? \Carbon\Carbon::parse($payment->due_date)->format('d/m/Y') : null,
-                        'outstanding_amount' => $payment->outstanding_amount,
+                        'outstanding_amount' => (float) $payment->outstanding_amount,
                     ];
                 });
-             
+           
 
             return response()->json([
                 'success' => true,
@@ -466,137 +548,7 @@ class DealerOrderController extends Controller
             ], 500);
         }
     }
-    // public function opDetails($orderId)
-    // {
-    //     try {
-    //         $user = Auth::user();
-
-    //         if ($user === null) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 400,
-    //                 'message' => 'You must be logged in to view this order.'
-    //             ], 400);
-    //         }
-
-    //         $order = Order::with([
-    //             'orderType:id,name',
-    //             'dealers:id,dealer_name,dealer_code',
-    //             'orderItems.product:id,product_name',
-    //             'orderItems',
-    //             'paymentTerm:id,name',
-    //             'vehicleCategory:id,vehicle_category_name'
-    //         ])->findOrFail($orderId);
-
-    //         $order->billing_date = $order->billing_date ? Carbon::parse($order->billing_date)->format('d-m-Y') : null;
-    //         $order->created_at = Carbon::parse($order->created_at)->format('d-m-Y');
-    //         $order->updated_at = Carbon::parse($order->updated_at)->format('d-m-Y');
-
-    //         $outstandingPayments = OutstandingPayment::where('order_id', $orderId)
-    //             ->where('status', 'open')
-    //             ->select(
-    //                 'id',
-    //                 'order_id',
-    //                 'invoice_number',
-    //                 'invoice_date',
-    //                 'invoice_total',
-    //                 'due_date',
-    //                 'paid_amount',
-    //                 'outstanding_amount',
-    //                 'payment_doc_number',
-    //                 'payment_date',
-    //                 'payment_amount_applied',
-    //                 'status'
-    //             )
-    //             ->orderBy('due_date', 'asc')
-    //             ->get();
-
-    //         $outstandingPayments->each(function ($payment) {
-    //             $payment->commitments = OutstandingPaymentCommitment::where('outstanding_payment_id', $payment->id)
-    //                 ->select('id', 'committed_date', 'committed_amount')
-    //                 ->orderBy('committed_date', 'asc')
-    //                 ->get();
-    //         });
-
-    //         // Response data
-    //         $responseData = [
-    //             'id' => $order->id,
-    //             'order_type' => $order->orderType->name ?? null,
-    //             'dealer' => [
-    //                 'id' => $order->dealers->id ?? null,
-    //                 'name' => $order->dealers->dealer_name ?? null,
-    //                 'code' => $order->dealers->dealer_code ?? null,
-    //             ],
-    //             'payment_terms' => [
-    //                 'id' => $order->paymentTerm->id ?? null,
-    //                 'name' => $order->paymentTerm->name ?? null,
-    //             ],
-    //             'billing_date' => $order->billing_date,
-    //             'total_amount' => round($order->total_amount, 2),
-    //             'additional_information' => $order->additional_information,
-    //             'status' => $order->status,
-    //             'created_by_dealer' => $order->created_by_dealer,
-    //             'dealer_flag_order' => $order->dealer_flag_order,
-    //             'vehicle' => [
-    //                 'category_id' => $order->vehicle_category_id,
-    //                 'category_name' => $order->vehicleCategory->vehicle_category_name ?? null,
-    //                 'vehicle_number' => $order->vehicle_number,
-    //                 'driver_name' => $order->driver_name,
-    //                 'driver_phone' => $order->driver_phone,
-    //             ],
-    //             'attachments' => $order->attachment ?? [],
-
-    //             'order_items' => $order->orderItems->map(function ($item) {
-    //                 return [
-    //                     'product_id' => $item->product_id,
-    //                     'product_name' => $item->product->product_name ?? null,
-    //                     'total_quantity' => $item->total_quantity,
-    //                     'product_details' => $item->product_details ?? [],
-    //                 ];
-    //             }),
-
-    //             'outstanding_payments' => $outstandingPayments->map(function ($payment) {
-    //                 return [
-    //                     'id' => $payment->id,
-    //                     'invoice_number' => $payment->invoice_number,
-    //                     'invoice_date' => $payment->invoice_date ? Carbon::parse($payment->invoice_date)->format('d-m-Y') : null,
-    //                     'invoice_total' => $payment->invoice_total,
-    //                     'due_date' => $payment->due_date ? Carbon::parse($payment->due_date)->format('d-m-Y') : null,
-    //                     'paid_amount' => $payment->paid_amount,
-    //                     'outstanding_amount' => $payment->outstanding_amount,
-    //                     'payment_doc_number' => $payment->payment_doc_number,
-    //                     'payment_date' => $payment->payment_date ? Carbon::parse($payment->payment_date)->format('d-m-Y') : null,
-    //                     'payment_amount_applied' => $payment->payment_amount_applied,
-    //                     'status' => $payment->status,
-    //                     'commitments' => $payment->commitments->map(function ($commitment) {
-    //                         return [
-    //                             'id' => $commitment->id,
-    //                             'committed_date' => $commitment->committed_date ? Carbon::parse($commitment->committed_date)->format('d-m-Y') : null,
-    //                             'committed_amount' => $commitment->committed_amount,
-    //                         ];
-    //                     }),
-    //                 ];
-    //             }),
-
-    //             'created_at' => $order->created_at,
-    //             'updated_at' => $order->updated_at,
-    //         ];
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Order details fetched successfully',
-    //             'data' => $responseData,
-    //         ], 200);
-
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
+  
     public function opDetails($outstandingPaymentId)
     {
         try {
@@ -685,7 +637,8 @@ class DealerOrderController extends Controller
                 'billing_date' => $order->billing_date ? Carbon::parse($order->billing_date)->format('d/m/Y') : null,
                 'total_amount' => round($order->total_amount, 2),
               
-                'attachments' => $order->attachment ?? [],
+                'attachment' => $order->attachment ?? [],
+                
 
                 'order_items' => $order->orderItems->map(function ($item) {
 
@@ -708,7 +661,7 @@ class DealerOrderController extends Controller
                 'outstanding_payments' => $outstandingPayments->isNotEmpty() ? [
                     'id' => $outstandingPayments->first()->id,
                     'invoice_number' => $outstandingPayments->first()->invoice_number,
-                    'invoice_amount' => $outstandingPayments->first()->invoice_total,
+                    'invoice_amount' => (float) $outstandingPayments->first()->invoice_total,
                     'due_date' => $outstandingPayments->first()->due_date ? Carbon::parse($outstandingPayments->first()->due_date)->format('d/m/Y') : null,
                     'commitments' => $outstandingPayments->first()->commitments->map(function ($commitment) {
                         return [
@@ -828,6 +781,7 @@ class DealerOrderController extends Controller
             ], 500);
         }
     }
+
     public function orderRequestDetails($orderId)
     {
         try {
@@ -900,7 +854,7 @@ class DealerOrderController extends Controller
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->product_name ?? 'N/A',
                         'total_quantity' => $item->total_quantity,
-                        'balance_quantity' => $item->balance_quantity,
+                        'balance_quantity' => (float) $item->balance_quantity,
                         'product_details' => collect($item->product_details)->map(function ($detail) {
                             return [
                                 'product_type_id' => $detail['product_type_id'],
@@ -977,7 +931,15 @@ class DealerOrderController extends Controller
                 $order->reason_for_rejection = null;
             }
             $order->save();
-
+		    $value="pending";
+            if($validatedData['status']=="Rejected"){
+                $value="rejected";
+            }else{
+               $value ="approved";
+            }
+            //.............$value.........notification..............
+            $authController = new AuthController();
+            $authController->changeNotificationStatus('orders', $orderId,$value);
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
@@ -1001,7 +963,7 @@ class DealerOrderController extends Controller
     {
         try {
             $dealer = Auth::user();
-
+            
             if (!$dealer) {
                 return response()->json([
                     'success' => false,
@@ -1021,7 +983,7 @@ class DealerOrderController extends Controller
                 ], 404);
             }
 
-            if (!$seAssignedRoute->parent_id) {
+            if (!$seAssignedRoute->employee_id) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 404,
@@ -1030,7 +992,7 @@ class DealerOrderController extends Controller
                 ], 404);
             }
 
-            $aso = Employee::where('id', $seAssignedRoute->parent_id)
+            $aso = Employee::where('id', $seAssignedRoute->employee_id)
                 ->where('employee_type_id', 2) 
                 ->select('id', 'name', 'phone')
                 ->first();
@@ -1052,6 +1014,7 @@ class DealerOrderController extends Controller
                     'aso_id' => $aso->id,
                     'name' => $aso->name,
                     'phone' => $aso->phone,
+                    'address' => '953, Temple Road, opposite Thrikkkakara, Thrikkakara, Edappally, Kochi, Kerala 682021',
                 ],
             ], 200);
 
@@ -1076,13 +1039,16 @@ class DealerOrderController extends Controller
             ], 401);
         }
         $dealerId = $dealer->id;
-
         $payments = Payment::where('dealer_id', $dealerId)
-            ->whereHas('order.paymentTerm', function ($query) {
-                $query->whereIn('payment_terms_id', [1, 2]); 
+            ->whereHas('order', function ($query) {
+                $query->where(function ($q) {
+                    $q->whereIn('payment_terms_id', [1, 2])
+                      ->orWhereNull('payment_terms_id');
+                });
             })
             ->with(['order.paymentTerm'])
-            ->orderBy('payment_date', 'desc')
+	    ->orderBy('payment_date', 'desc')
+// 	dd($payments->toSql(), $payments->getBindings());
             ->get()
             ->map(function ($payment) {
                 return [
@@ -1176,7 +1142,7 @@ class DealerOrderController extends Controller
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->product_name ?? 'N/A',
                         'total_quantity' => $item->total_quantity,
-                        'balance_quantity' => $item->balance_quantity,
+                        'balance_quantity' => (float) $item->balance_quantity,
                         'product_details' => collect($item->product_details)->map(function ($detail) {
                             return [
                                 'product_type_id' => $detail['product_type_id'],
@@ -1251,7 +1217,7 @@ class DealerOrderController extends Controller
 
         $creditNote = CreditNote::where('order_id', $order_id)
             ->where('dealer_id', $dealer->id)
-            ->first();
+	    ->first();
 
         if (!$creditNote) {
             return response()->json([
@@ -1262,11 +1228,18 @@ class DealerOrderController extends Controller
             ], 404);
         }
 
-        $order = Order::where('id', $order_id)
-            ->where('dealer_id', $dealer->id) 
-            ->select('order_type', 'payment_terms_id', 'billing_date', 'invoice_number')
-            ->with('orderType:id,name', 'paymentTerm:id,name')
-            ->first();
+      //  $order = Order::where('id', $creditNote->order_id)
+        //    ->where('dealer_id', $dealer->id) 
+          //  ->select('order_type', 'payment_terms_id', 'billing_date', 'invoice_number')
+           // ->with('orderType:id,name', 'paymentTerm:id,name')
+	//  ->first();
+ $order = Order::where('id', $creditNote->order_id)
+        ->where(function ($query) use ($dealer) {
+            $query->where('dealer_id', $dealer->id)
+                  ->orWhere('created_by_dealer', $dealer->id);
+        })
+        ->with('orderType:id,name', 'paymentTerm:id,name')
+        ->first();
 
         if (!$order) {
             return response()->json([
@@ -1303,9 +1276,33 @@ class DealerOrderController extends Controller
             'data' => $response,
         ], 200);
     }
+    public function getCreditDays(Request $request)
+    {
 
-    
+        try {
+            $user = Auth::user();
+
+            if ($user !== null) {
+                $data = CreditDays::where('status', '1')
+                ->select('id as days_id', 'days as credit_day')->get();
+            } else {
+                $data = [];
+            }
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Credit Days fetched successfully',
+                'data' => $data,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
 
-   
 }

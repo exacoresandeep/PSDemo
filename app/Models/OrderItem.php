@@ -15,6 +15,7 @@ class OrderItem extends Model
 
     protected $casts = [
         'product_details' => 'array',
+        'total_quantity' => 'float',
     ];
 
     public function order()

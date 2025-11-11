@@ -11,68 +11,60 @@
                 <input type="hidden" name="id" id="route_id">
 
                 <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label for="district" class="form-label">District</label>
-                            <select id="district" name="district_id" class="form-control " required>
-                                <option value="">Select District</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-3">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
                             <label for="employee_type" class="form-label">Employee Type</label>
-                            <select id="employee_type" name="employee_type_id" class="form-control " required>
+                            <select id="employee_type" name="employee_type_id" class="form-control select2" required>
                                 <option value="">Select Employee Type</option>
-                                <option value="1">SE (Sales Executive)</option>
-                                <option value="2">ASO (Area Sales Officer)</option>
+                                <option value="1">Sales Executive (SE)</option>
+                                <option value="2">Area Sales Officer (ASO)</option>
+                                <option value="3">District Sales Manager (DSM)</option>
+                                <option value="4">Regional Sales Manager (RSM)</option>
+                                <option value="5">Sales Manager (SM)</option>
                             </select>
                         </div>
 
-                        <div class="col-md-3">
+                        <div class="col-md-8">
                             <label for="employee" class="form-label">Employee</label>
-                            <select id="employee" name="employee_id" class="form-control " required>
+                            <select id="employee" name="employee_id" class="form-control select2" required>
                                 <option value="">Select Employee</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-3" id="asoField" style="display: none;">
-                            <label for="aso" class="form-label">Area Sales Officer</label>
-                            <select id="aso" name="aso_id" class="form-control " >
-                                <option value="">Select Area Sales Officer</option>
                             </select>
                         </div>
                     </div>
 
-                    <div class="row mt-3">
+                    <div class="row mb-2">
                         <div class="col-md-12">
-                            <label class="form-label">Assign Routes & Locations</label>
+                            <label class="form-label">Assign Routes, Locations & Dealers</label>
                         </div>
                     </div>
 
                     @foreach(range(1, 6) as $i)
-                    <div class="row mt-2">
-                        <div class="col-md-5">
-                            <select name="routes[{{ $i }}][route_name]" class="form-control ">
-                                <option value="">Select Route</option>
-                                <option value="R1">R1</option>
-                                <option value="R2">R2</option>
-                                <option value="R3">R3</option>
-                                <option value="R4">R4</option>
-                                <option value="R5">R5</option>
-                                <option value="R6">R6</option>
-                            </select>
-                        </div>
+                        <div class="row mt-2 route-row">
+                            <div class="col-md-3">
+                                <select name="routes[{{ $i }}][route_name]" class="form-control route-select" required>
+                                    <option value="">Select Route</option>
+                                    <option value="R1">R1</option>
+                                    <option value="R2">R2</option>
+                                    <option value="R3">R3</option>
+                                    <option value="R4">R4</option>
+                                    <option value="R5">R5</option>
+                                    <option value="R6">R6</option>
+                                </select>
+                            </div>
 
-                        <div class="col-md-6">
-                            <select class="form-control select2-multi" name="routes[{{ $i }}][locations][]" multiple="multiple"></select>
+                            <div class="col-md-4">
+                                <select class="form-control select2-multi location-select" name="routes[{{ $i }}][locations][]" multiple="multiple" required></select>
+                            </div>
+
+                            <div class="col-md-5">
+                                <select class="form-control select2-multi dealer-select" name="routes[{{ $i }}][dealers][]" multiple="multiple"></select>
+                            </div>
                         </div>
-                    </div>
                     @endforeach
+                </div>
 
-                    <!-- Submit Button -->
-                    <div class="modal-footer mt-3">
-                        <button type="submit" class="btn btn-primary">Create</button>
-                    </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Save</button>
                 </div>
             </form>
         </div>

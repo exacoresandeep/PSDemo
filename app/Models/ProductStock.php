@@ -9,8 +9,15 @@ class ProductStock extends Model
 {
     use HasFactory;
     protected $table = 'products_stock'; 
-    protected $fillable = ['product_details_id', 'warehouse_id', 'quantity'];
+   protected $fillable = [
+        'product_details_id',
+        'warehouse_id',
+        'quantity',
+    ];
 
+    protected $casts = [
+        'quantity' => 'float',
+    ];
     public function productDetails()
     {
         return $this->belongsTo(ProductDetails::class, 'product_details_id');

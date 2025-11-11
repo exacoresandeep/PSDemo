@@ -19,6 +19,13 @@ class Attendance extends Model
         'latitude',
         'longitude',
         'total_active_hours',
+        'starting_remarks',
+        'ending_remarks',
+        'starting_km',
+        'ending_km',
+        'status',
+        'starting_attachment',
+        'ending_attachment'
     ];
     protected $casts = [
         'latitude' => 'string',

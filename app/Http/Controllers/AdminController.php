@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Employee;
 use App\Models\EmployeeType;
 use App\Models\District;
+use App\Models\Order;
+use App\Models\Regions;
+use App\Models\ProductDetails;
 use Yajra\DataTables\Facades\DataTables;
 use Redirect;
 use Illuminate\Support\Facades\Cookie;
@@ -19,39 +22,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 class AdminController extends Controller
 {
 
-    // public function loadContent($page)
-    // {
-    //     $validPages = [
-    //         'dashboard',
-    //         'activity-management',
-    //         'route-management',
-    //         'target-management',
-    //         '404'
-    //     ];
-    //     if (!in_array($page, $validPages)) {
-    //         return response()->json(['error' => 'Page not found.'], 404);
-    //     }
-
-    //     switch ($page) {
-    //         case 'target-management': 
-    //             $targets = Target::all();
-    //             return view('admin.target.index', compact('targets'));
-    //         case 'group-approvals':
-    //             return view('admin.group-approvals');
-    //         case 'approved-groups':
-    //             return view('admin.approved-groups');
-    //         case 'rejected-groups':
-    //             return view('admin.rejected-groups');
-    //         case 'pincode':
-    //             $states=State::all();
-    //             return view('admin.pincode',compact('states'));
-    //         case 'districts':
-    //             $states=State::all();
-    //             return view('admin.districts',compact('states'));
-    //         default:
-    //             return view('admin.' . $page);
-    //     }
-    // }
+    
     
     public function login()
     {
@@ -76,6 +47,12 @@ class AdminController extends Controller
                     return redirect()->route('sales.dashboard');
                 case 3: // Accounts
                     return redirect()->route('accounts.dashboard');
+                case 4: // Logistics
+                    return redirect()->route('logistics.dashboard');
+                case 5: // MD
+                    return redirect()->route('md.dashboard'); 
+                case 6: // MD
+                    return redirect()->route('operations.dashboard'); 
                 default:
                     Auth::logout();
                     return back()->with('error', 'Unauthorized role access');
@@ -95,8 +72,30 @@ class AdminController extends Controller
 
         switch ($user->role_id) {
             case 1: return view('admin.dashboard', compact('user')); 
-            case 2: return view('sales.dashboard', compact('user')); 
+            case 2: 
+                $employeeTypes = EmployeeType::select('id', 'type_name')->get();
+                $regions = Regions::select('id', 'name')->get();
+                // dd($regions);
+                return view('sales.dashboard',compact('employeeTypes', 'regions'));
             case 3: return view('accounts.dashboard', compact('user')); 
+            case 4: return view('logistics.dashboard', compact('user')); 
+            case 5: 
+                $stocks = ProductDetails::select('type_id')
+                ->selectRaw('SUM(total_available_quantity) as total_stock_quantity')
+                ->groupBy('type_id')
+                ->with('productType:id,type_name')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'type_id' => $item->type_id,
+                        'type_name' => $item->productType->type_name ?? 'Unknown',
+                        'total_stock_quantity' => (float) $item->total_stock_quantity,
+                    ];
+                });
+                $employeeTypes = EmployeeType::select('id', 'type_name')->get();
+                $regions = Regions::select('id', 'name')->get();
+                return view('md.dashboard',compact('stocks', 'employeeTypes', 'regions'));
+            case 6: return view('operations.dashboard', compact('user')); 
             default:
                 Auth::logout();
                 return redirect()->route('login')->with('error', 'Unauthorized role access');
@@ -154,15 +153,14 @@ class AdminController extends Controller
                 $sheet = $spreadsheet->getActiveSheet();
                 $rows = $sheet->toArray();
     
-                // Skip first row (Header)
                 unset($rows[0]);
     
                 foreach ($rows as $row) {
-                    $employeeCode = $row[0]; // Employee ID
+                    $employeeCode = $row[0]; 
                     $name = $row[1];
                     $email = $row[2];
                     $phone = $row[3];
-                    $districtName = $row[4]; // District Name from CSV
+                    $districtName = $row[4]; 
                     $area = $row[5];
                     $designation = trim($row[6]);
                     $reportingManagerName = $row[7];
@@ -170,26 +168,22 @@ class AdminController extends Controller
                     $emergencyContact = $row[9];
 
                     if (empty($designation)) {
-                        continue; // Skip this row
+                        continue; 
                     }
-                    // Check if employee already exists
                     if (Employee::where('employee_code', $employeeCode)->exists()) {
-                        continue; // Skip existing employee
+                        continue;
                     }
                     $district = District::where('name', $districtName)->first();
                     $districtId = $district ? $district->id : null;
     
-                    // Check if Designation Exists in EmployeeTypes
                     $employeeType = EmployeeType::firstOrCreate(
                         ['type_name' => $designation],
                         ['created_at' => now(), 'updated_at' => now()]
                     );
                    
-                    // Get Reporting Manager ID from Name
                     $reportingManager = Employee::where('name', $reportingManagerName)->first();
                     $reportingManagerId = $reportingManager ? $reportingManager->id : null;
     
-                    // Generate Password (first 3 letters of name + employee code)
                     $passwordString = strtoupper(substr($name, 0, 3)) . $employeeCode;
                     
                     $hashedPassword = Hash::make($passwordString);
@@ -200,13 +194,14 @@ class AdminController extends Controller
                         'name' => $name,
                         'email' => $email,
                         'phone' => $phone,
-                        'district_id' => $districtId, // Store district ID if found
+                        'district_id' => $districtId,
                         'district' => $districtName,
                         'area' => $area,
                         'designation' => $designation,
                         'employee_type_id' => $employeeType->id,
                         'reporting_manager' => $reportingManagerId,
-                        'address' => $address,
+			'reporting_manager_name' => $reportingManagerName, 
+			'address' => $address,
                         'emergency_contact' => $emergencyContact,
                         'password' => $hashedPassword, // Store encrypted password
                         'status' => '1',

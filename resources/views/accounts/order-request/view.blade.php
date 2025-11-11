@@ -28,9 +28,20 @@
                         <div class="col-md-6"><strong>Payment Type:</strong> <span id="view_payment_type"></span></div>
                     </div>
                     <div class="row mb-2">
+                        <div class="col-md-6">
+                          <strong>Attachment:</strong>
+                          <span id="view_attachment"></span>
+                        </div>
                         <div class="col-md-6"><strong>Billing Date:</strong> <span id="view_billing_date"></span></div>
-                        <div class="col-md-6"><strong>Status:</strong> <span id="view_status"></span></div>
                     </div>
+                    <div class="row mb-2">
+                        
+                        <div class="col-md-6"><strong>Status:</strong> <span id="view_status"></span></div>
+                        <div class="col-md-6"><strong>Scheme:</strong> <span id="view_scheme"></span></div>
+                    </div>
+                   
+
+
 
                     <h5 class="mt-3">Product Details</h5>
                     <table class="table table-bordered">
@@ -39,7 +50,8 @@
                                 <th>Product Name</th>
                                 <th>Type</th>
                                 <th>Quantity</th>
-                                <th>Total</th>
+                                <th id="view_product_price_label" style="display: none;">ADP Price</th>
+                                <th>Price</th>
                             </tr>
                         </thead>
                         <tbody id="view_product_list"></tbody>
@@ -47,16 +59,23 @@
                             <tr>
                                 <th colspan="2">Total</th>
                                 <th id="view_total_quantity"></th>
-                                <th id="view_total_amount"></th>
+                        	    <th id="view_total_product_price"></th>  
+			                    <th id="view_total_amount"></th>
                             </tr>
                         </tfoot>
                     </table>
 
 
-                     <h5 class="mt-3">Credit Details</h5>
-                     <div class="alert alert-danger">
-                         <strong>Total Outstanding Amount:</strong> <span id="view_total_outstanding"></span>
-                     </div>
+		            <div class="row" id="credit_details_row" style="display: block;">
+                        <h5 class="mt-3">Credit Details</h5>
+                        <div class="col-md-12">
+                            <div class="alert alert-danger">
+                                <strong>Total Outstanding Amount:</strong>
+                                <span id="view_total_outstanding"></span>
+                            </div>
+                        </div>
+       
+                    </div>
                     
                     <h5 class="mt-3">Approval Section</h5>
                     <div class="row" id="payment-form">
@@ -110,6 +129,28 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+<div id="imageModal" class="modal" style="display: none;">
+    <div class="modal-content" style="width: 80%; max-width: 800px; height: 500px; position: relative; margin: auto; top: 50%; transform: translateY(-50%); border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+
+        <!-- Close button -->
+        <span class="close" style="position: absolute; top: 10px; right: 15px; font-size: 24px; font-weight: bold; color: #333; cursor: pointer; z-index: 10;">&times;</span>
+
+        <!-- Slider Container -->
+        <div class="slider-container" style="display: flex; align-items: center; justify-content: center; height: 100%; position: relative;">
+
+            <!-- Prev Button -->
+            <button class="prev" style="position: absolute; left: 10px; background: rgba(0,0,0,0.5); border: none; color: #fff; font-size: 24px; padding: 10px; border-radius: 50%; cursor: pointer; z-index: 5;">&#10094;</button>
+
+            <!-- Image Wrapper -->
+            <div class="slider" style="flex: 1; height: 100%; display: flex; justify-content: center; align-items: center; overflow: hidden;">
+                <img id="modalImage" src="" style="max-height: 100%; max-width: 100%; object-fit: contain;">
+            </div>
+
+            <!-- Next Button -->
+            <button class="next" style="position: absolute; right: 10px; background: rgba(0,0,0,0.5); border: none; color: #fff; font-size: 24px; padding: 10px; border-radius: 50%; cursor: pointer; z-index: 5;">&#10095;</button>
         </div>
     </div>
 </div>

@@ -13,6 +13,7 @@ class Payment extends Model
         'order_id',
         'dealer_id',
         'invoice_number',
+        'invoice_date',
         'payment_amount',
         'payment_date',
         'payment_document_no',
@@ -21,6 +22,7 @@ class Payment extends Model
     protected $casts = [
         'payment_amount' => 'float',
         'payment_date' => 'date',
+        'invoice_date' => 'date',
     ];
 
     public function dealer()

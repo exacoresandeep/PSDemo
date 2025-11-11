@@ -20,7 +20,8 @@ class Activity extends Model
         'due_date',
         'instructions',
         'status',
-        'record_details',
+    	'notification_status',
+    	'remarks',
         'attachments',
         'completed_date'
     ];

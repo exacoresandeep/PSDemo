@@ -21,18 +21,20 @@
     <link href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" rel="stylesheet">
     <!-- Add this in your <head> if not already included -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.3/css/buttons.dataTables.min.css">
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @stack('scripts')
 </head>
 
 <body>
 
     <main>
         <div class="main-container">
-            <div class="d-flex h-100">
+            <div class="d-flex">
                 @include('includes.sidebar-menu')
 
-                <div class="w-100">
+                <div class="content flex-fill">
                     <div class="content-area">
                         @include('includes.header')
                         <div class="dashboard-area">

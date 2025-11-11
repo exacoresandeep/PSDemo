@@ -21,7 +21,8 @@ class OutstandingPayment extends Model
         'payment_doc_number',
         'payment_date',
         'payment_amount_applied',
-        'status'
+    	'status',
+    	'notification_status'
     ];
     protected $casts = [
         'invoice_date' => 'date',
@@ -37,5 +38,9 @@ class OutstandingPayment extends Model
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+    public function commitments()
+    {
+        return $this->hasMany(OutstandingPaymentCommitment::class, 'outstanding_payment_id');
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\VehicleCategory;
+use Carbon\Carbon;
 
 class Order extends Model
 {
@@ -14,6 +15,8 @@ class Order extends Model
         'order_type',
         'customer_type_id',
         'order_category',
+        'dealer_visit_id',
+        'influencer_visit_id',
         'lead_id',
         'dealer_id',
         'dealer_flag_order',
@@ -21,11 +24,15 @@ class Order extends Model
         'send_for_approval_by',
         'reason_for_rejection',
         'payment_terms_id',
+        'credit_days',
         'advance_amount',
         'payment_date',
         'utr_number',
         'attachment',
-        'billing_date',
+        'aashiyana_attachment',   
+        'advance_attachment',
+    	'billing_date',
+    	'delivery_date',
         'amount',
         'total_amount',
         'additional_information',
@@ -46,29 +53,71 @@ class Order extends Model
         'invoice_quantity',
         'invoice_total',
         'created_by_dealer',
-        'created_by',
+    	'created_by',
+    	'notification_status',
+    	'scheme',
         'order_approved',
         'order_approved_by',
         'order_payment_terms',
         'order_remarks',
+        'vehicle_status',
+        'vehicle_remarks',
     ];
 
     protected $casts = [
         'advance_amount' => 'float',
         'amount' => 'float',
         'total_amount' => 'float',
-        'payment_date' => 'date',
-        'billing_date' => 'date',
         'accepted_time' => 'datetime',
         'rejected_time' => 'datetime',
         'dispatched_time' => 'datetime',
         'intransit_time' => 'datetime',
         'delivered_time' => 'datetime',
         'attachment' => 'array',
-        'invoice_date' => 'date',
+        'aashiyana_attachment' => 'array',  
+        'advance_attachment' => 'array',
+        'Invoice_date' => 'date',
         
     ];
+    public function getBillingDateAttribute($value)
+    {
+        return $this->formatDateValue($value);
+    }
 
+    public function getDeliveryDateAttribute($value)
+    {
+        return $this->formatDateValue($value);
+    }
+
+    public function getPaymentDateAttribute($value)
+    {
+        return $this->formatDateValue($value);
+    }
+
+   protected function formatDateValue($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+    
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return Carbon::createFromFormat('Y-m-d', $value)->format('d/m/Y');
+        }
+    
+       
+        if (preg_match('/^\d{2}[\/-]\d{2}[\/-]\d{4}$/', $value)) {
+            return str_replace('-', '/', $value);
+        }
+    
+        try {
+            return Carbon::parse($value)->format('d/m/Y');
+        } catch (\Exception $e) {
+            return $value;
+        }
+    }
+
+
+    
 
     public function orderType()
     {
@@ -106,7 +155,7 @@ class Order extends Model
 
     public function createdBy()
     {
-        return $this->belongsTo(Employee::class, 'created_by');
+        return $this->belongsTo(Employee::class, 'created_by')->withTrashed();
     }
     public function lead()
     {
@@ -124,6 +173,12 @@ class Order extends Model
     {
         return $this->belongsTo(Employee::class, 'send_for_approval_by');
     }
+    public function dealerAddress()
+    {
+        return $this->hasMany(DealerAddress::class, 'dealer_id', 'dealer_id');
+    }
+   
+    
 
     
 }

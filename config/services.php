@@ -40,5 +40,8 @@ return [
         'host'     => env('GREYTHR_HOST', 'tousifapisso.greythr.com'),
         'api_url'  => env('GREYTHR_API_URL', 'https://api.greythr.com'),
     ],
+    'sap' => [
+        'api_url' => env('SAP_API_URL', 'http://192.168.0.3:8081')
+    ],
 
 ];

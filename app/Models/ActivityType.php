@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ActivityType extends Model
 {
-    use SoftDeletes,HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'activity_types';
 
@@ -17,8 +17,23 @@ class ActivityType extends Model
         'status',
     ];
 
+    protected $casts = [
+        'status' => 'string', // Ensures enum is stored as string
+    ];
+
+    /**
+     * Relationship: ActivityType has many Activities
+     */
     public function activities()
     {
-        return $this->hasMany(Activity::class);
+        return $this->hasMany(Activity::class, 'activity_type_id', 'id');
+    }
+
+    /**
+     * Relationship: ActivityType has many Question Labels
+     */
+    public function questionLabels()
+    {
+        return $this->hasMany(ActivityQuestionLabel::class, 'activity_types_id', 'id');
     }
 }

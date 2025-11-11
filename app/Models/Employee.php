@@ -5,16 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
 class Employee extends Authenticatable
 {
-    use HasFactory, HasApiTokens;
+    use HasFactory, HasApiTokens, SoftDeletes;
 
     protected $fillable = [
         'employee_code', 'name', 'designation', 'email', 'phone', 
-        'employee_type_id', 'password', 'address', 'photo', 'emergency_contact', 'district_id', 'district', 'area', 'reporting_manager'
-    ];
+        'employee_type_id', 'password', 'address', 'photo', 'emergency_contact', 'district_id', 'district', 'area', 'reporting_manager', 'reporting_manager_name','password_reset_flag'    
+        ];
+    protected $dates = ['deleted_at'];
 
     public function employeeType()
     {

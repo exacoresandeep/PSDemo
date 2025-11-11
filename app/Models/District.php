@@ -17,6 +17,6 @@ class District extends Model
     }
     public function region()
     {
-        return $this->belongsTo(Regions::class);
+        return $this->belongsTo(Regions::class, 'regions_id');
     }
 }

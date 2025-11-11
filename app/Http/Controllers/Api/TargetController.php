@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Log;
 use Exception;
-
+use App\Http\Controllers\Api\AuthController;
 class TargetController extends Controller
 {
     public function index()
@@ -223,7 +223,7 @@ class TargetController extends Controller
             $monthNumber = $request->month ?? Carbon::now()->month;
             $month = $request->month ? Carbon::createFromDate(null, $request->month, 1)->format('F') : Carbon::now()->format('F');
             $year = $request->year ?? Carbon::now()->year;
-            
+           
             $employeeId = $request->employee_id ?? Auth::id();
     
             $employee = Employee::find($employeeId);
@@ -282,10 +282,23 @@ class TargetController extends Controller
                     'unique_leads' => $uniqueLeads,
                     'customer_visit' => $customerVisitCount, 
                     'aashiyana' => $aashiyanaCount,
-                    'order_quantity' => (int) $achievedOrderQuantity,
+                    'order_quantity' => (float) $achievedOrderQuantity,
                 ],
             ];
-    
+            $targetchange = Target::where('employee_id', $employeeId)
+                            ->where('month', $month)
+                            ->where('year', $year)
+                            ->where('notification_status', "pending")
+			    ->get();
+	    $authController = new AuthController();
+
+            foreach($targetchange as $item)
+	    {
+		   // dd($item);
+                //......................notification..............
+//                $authController = new AuthController();
+                $authController->changeNotificationStatus('targets', $item->id,'opened');  
+            }
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
@@ -330,5 +343,112 @@ class TargetController extends Controller
         $visitCount = Lead::where('created_by', $employee)->count();
         return response()->json(['visit_count' => $visitCount]);
     }
+    public function getTotalTargetsAchievements(Request $request)
+    {
+        $employee = Auth::user();
+    
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 401,
+                'message' => "User not authenticated.",
+            ], 401);
+        }
+    
+        if ($employee->employee_type_id !== 5) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 403,
+                'message' => "Unauthorized. Only Sales Manager (SM) can access this summary.",
+            ], 403);
+        }
+    
+        $monthNumber = $request->input('month', date('m'));
+        $year = $request->input('year', date('Y'));
+        $month = Carbon::createFromDate(null, $monthNumber, 1)->format('F');
+   
+        $employeeTypeId = $request->input('employee_type_id', 2); 
+   
+       
+        $employeeIds = Employee::where('employee_type_id', $employeeTypeId)->pluck('id')->toArray();
+    
+        // Initialize totals
+        $totalTargets = [
+            'unique_leads' => 0,
+            'influencer_visits' => 0,
+            'aashiyana_orders' => 0,
+            'product_quantity' => 0,
+        ];
+    
+        $totalAchieved = [
+            'unique_leads' => 0,
+            'influencer_visits' => 0,
+            'aashiyana_orders' => 0,
+            'product_quantity' => 0,
+        ];
+
+        foreach ($employeeIds as $empId) {
+      
+            $target = Target::where('employee_id', $empId)
+                            ->where('month', $month)
+                            ->where('year', $year)
+                            ->first();
+   
+            if ($target) {
+                $totalTargets['unique_leads'] += $target->unique_lead ?? 0;
+                $totalTargets['influencer_visits'] += $target->customer_visit ?? 0;
+                $totalTargets['aashiyana_orders'] += $target->aashiyana ?? 0;
+                $totalTargets['product_quantity'] += $target->order_quantity ?? 0;
+            }
+    
+            // Achievements
+            $totalAchieved['unique_leads'] += Lead::where('created_by', $empId)
+                ->whereYear('created_at', $year)
+                ->whereMonth('created_at', $monthNumber)
+                ->count();
+    
+            $customerVisitCount = RescheduledRoute::where('employee_id', $empId)
+                ->whereYear('assign_date', $year)
+                ->whereMonth('assign_date', $monthNumber)
+                ->get()
+                ->sum(function ($route) {
+                    $customers = collect(json_decode($route->customers ?? '[]', true));
+                    return $customers->where('scheduled', true)->where('status', 'Completed')->count();
+                });
+    
+            $totalAchieved['influencer_visits'] += $customerVisitCount;
+    
+            $totalAchieved['aashiyana_orders'] += Order::where('created_by', $empId)
+                ->whereYear('created_at', $year)
+                ->whereMonth('created_at', $monthNumber)
+                ->where('payment_terms_id', 3)
+                ->count();
+    
+            $orders = Order::where('created_by', $empId)
+                ->whereYear('created_at', $year)
+                ->whereMonth('created_at', $monthNumber)
+                ->where('status', 'Delivered')
+                ->get();
+
+         
+            $orderQuantity = $orders->sum('invoice_quantity');
+            
+            $totalAchieved['product_quantity'] += $orderQuantity;
+        }
+  
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => "Target vs Achievement summary fetched successfully.",
+            'data' => [
+                'month' => $month,
+                'year' => (int) $year,
+                'employee_type_id' => (int) $employeeTypeId,
+                'targets' => $totalTargets,
+                'achievements' => $totalAchieved,
+            ]
+        ]);
+    }
+
 
 }
