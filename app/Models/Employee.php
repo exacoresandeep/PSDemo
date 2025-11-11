@@ -14,7 +14,7 @@ class Employee extends Authenticatable
 
     protected $fillable = [
         'employee_code', 'name', 'designation', 'email', 'phone', 
-        'employee_type_id', 'password', 'address', 'photo', 'emergency_contact', 'district_id', 'district', 'area', 'reporting_manager', 'reporting_manager_name','password_reset_flag'    
+        'employee_type_id','employee_sap_code', 'products', 'password', 'address', 'photo', 'emergency_contact', 'district_id', 'district', 'area', 'reporting_manager', 'reporting_manager_name','password_reset_flag'    
         ];
     protected $dates = ['deleted_at'];
 

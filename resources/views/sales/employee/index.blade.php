@@ -70,6 +70,7 @@
                     <th width="80">District</th>
                     <th>Reporting Person</th>
                     <th>SAP Code</th>
+                    <th>Products</th>
                     <th width="80">Action</th>
                 </tr>
             </thead>
@@ -491,6 +492,7 @@ $(document).ready(function () {
             { data: 'district', name: 'district' },
             { data: 'reporting_manager_name', name: 'reporting_manager_name' },
             { data: 'employee_sap_code', name: 'employee_sap_code' },
+             { data: 'products', name: 'products', orderable: false, searchable: false },
             { data: 'action', name: 'action', orderable: false, searchable: false },
         ]
     });

@@ -443,7 +443,7 @@ class EmployeeController extends Controller
         // }
 
         $query->orderBy('id', 'desc');
-
+        $allProducts = Product::pluck('product_name', 'id');
         return DataTables::of($query)
             ->addIndexColumn()
             ->addColumn('name', fn($t) => $t->name ?? '-')
@@ -503,6 +503,25 @@ class EmployeeController extends Controller
            ->filterColumn('employee_sap_code', function($query, $keyword) {
                 $query->where('employee_sap_code', 'like', "%{$keyword}%");
             })
+            ->addColumn('products', function ($t) use ($allProducts) {
+                if (empty($t->products)) {
+                    return '-';
+                }
+
+                $productIds = json_decode($t->products, true);
+
+                if (empty($productIds) || !is_array($productIds)) {
+                    return '-';
+                }
+
+                $productNames = collect($productIds)
+                    ->map(fn($id) => $allProducts[$id] ?? null)
+                    ->filter()
+                    ->join(', ');
+
+                return $productNames ?: '-';
+            })
+
             ->rawColumns(['action'])
             ->make(true);
     }

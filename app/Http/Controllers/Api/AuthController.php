@@ -64,8 +64,7 @@ class AuthController extends Controller
             ->where('employees.employee_type_id', $validated['employee_type_id'])
             ->select('employees.*', 'employee_types.id as type_id', 'employee_types.type_name') 
 	    ->first();
-//    dd(Hash($validated['password']));
- //  dd($employee->password);
+
         if (!$employee || !Hash::check($validated['password'], $employee->password)) {
             return response()->json([
                 'success' => false,
@@ -1418,11 +1417,31 @@ public function notificationList()
     {
         try {
             $user = Auth::user();
-            if ($user !== null) {
-                $data = Product::select('id as product_id', 'product_name')->get();
-            } else {
-                $data = [];
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => 'User not authenticated',
+                    'data' => [],
+                ], 401);
             }
+
+            // Decode the employee's product list (stored as ["1","2",...])
+            $productIds = json_decode($user->products, true);
+
+            if (empty($productIds) || !is_array($productIds)) {
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'No products assigned to this employee',
+                    'data' => [],
+                ], 200);
+            }
+
+            // Fetch only those products
+            $data = \App\Models\Product::whereIn('id', $productIds)
+                ->select('id as product_id', 'product_name')
+                ->get();
 
             return response()->json([
                 'success' => true,
