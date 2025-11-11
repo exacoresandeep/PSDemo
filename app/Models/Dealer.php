@@ -46,8 +46,31 @@ class Dealer extends Model
     {
         return $this->belongsTo(DealerAddress::class, 'address_id');
     }
+<<<<<<< HEAD
     public function assignRoute()
     {
         return $this->belongsTo(AssignRoute::class, 'assign_route_id');
     }
+=======
+    // public function assignRoute()
+    // {
+    //     return $this->belongsTo(AssignRoute::class, 'assign_route_id');
+    // }
+  
+    public function assignedRoutes()
+    {
+        return $this->belongsToMany(
+            AssignRoute::class,
+            'dealer_route_assignments',
+            'dealer_id',
+            'assign_route_id'
+        );
+    }
+
+    public function routeAssignments()
+    {
+        return $this->hasMany(DealerRouteAssignment::class, 'dealer_id', 'id');
+    }
+
+>>>>>>> origin/master
 }

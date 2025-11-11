@@ -20,6 +20,10 @@ use DB;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Log;
 use App\Services\FirebasePushService;
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/master
 class ActivityController extends Controller
 {
     public function index()
@@ -460,6 +464,7 @@ class ActivityController extends Controller
         return response()->json(['message' => 'Activity Type deleted successfully!']);
     }
 
+<<<<<<< HEAD
     public function getEmployeesByDealer($dealer_id)
     {
         $dealer = Dealer::find($dealer_id);
@@ -476,6 +481,24 @@ class ActivityController extends Controller
 
         return response()->json($employees);
     }
+=======
+    // public function getEmployeesByDealer($dealer_id)
+    // {
+    //     $dealer = Dealer::find($dealer_id);
+
+    //     if (!$dealer) {
+    //         return response()->json([], 404);
+    //     }
+
+    //     $employees = AssignRoute::where('id', $dealer->assigned_route_id)
+    //         ->where('employee_type_id', 1) 
+    //         ->with('employee:id,name')
+    //         ->get()
+    //         ->pluck('employee'); 
+
+    //     return response()->json($employees);
+    // }
+>>>>>>> origin/master
 
     public function getDealersByDistrict($district_id)
     {
@@ -701,6 +724,51 @@ class ActivityController extends Controller
         return response()->json($employees);
     }
 
+<<<<<<< HEAD
+=======
+    // public function getDealersByEmployee($employee_id)
+    // {
+    //     $user = Employee::find($employee_id);
+    //     if (!$user) {
+    //         return response()->json(['message' => 'Employee not found'], 404);
+    //     }
+    
+    //     $query = Dealer::select(
+    //         'id as dealer_id',
+    //         'dealer_code',
+    //         'dealer_name',
+    //         'phone',
+    //         'email',
+    //         'address',
+    //         'user_zone',
+    //         'pincode',
+    //         'state',
+    //         'district',
+    //         'taluk'
+    //     )->where('status', '1');
+    
+    //     if ($user->employee_type_id == 1 || $user->employee_type_id == 2) {
+    //         $assignedRouteIds = AssignRoute::where('employee_id', $user->id)->pluck('id')->toArray();
+    //         $query->whereIn('assigned_route_id', $assignedRouteIds);
+    //     } elseif ($user->employee_type_id == 3) {
+    //         $query->where('district_id', $user->district_id);
+    //     } elseif ($user->employee_type_id == 4) {
+    //         $region = Regions::whereHas('districts', function ($q) use ($user) {
+    //             $q->where('id', $user->district_id);
+    //         })->first();
+    //         if ($region) {
+    //             $districtIds = District::where('regions_id', $region->id)->pluck('id')->toArray();
+    //             $query->whereIn('district_id', $districtIds);
+    //         }
+    //     } elseif ($user->employee_type_id == 5) {
+    //         // Sales Manager - show all dealers
+    //     }
+    
+    //     $dealers = $query->orderBy('dealer_name', 'asc')->get();
+    
+    //     return response()->json($dealers);
+    // }
+>>>>>>> origin/master
     public function getDealersByEmployee($employee_id)
     {
         $employee = Employee::find($employee_id);
@@ -750,4 +818,8 @@ class ActivityController extends Controller
         return response()->json($dealers);
     }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/master
 }

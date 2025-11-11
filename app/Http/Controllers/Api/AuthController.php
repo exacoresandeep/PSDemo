@@ -1335,6 +1335,93 @@ public function notificationList()
         }
     }
 
+<<<<<<< HEAD
+=======
+    // public function getDealers(Request $request){
+
+    //     try {
+    //         $user = Auth::user();
+
+    //         if (!$user) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 401,
+    //                 'message' => "User not authenticated.",
+	// 	        ], 401);
+	//         }
+
+    //         $query = Dealer::select(
+    //                 'id as dealer_id',
+    //                 'dealer_code',
+    //                 'dealer_name',
+    //                 'phone',
+    //                 'email',
+    //                 'address',
+    //                 'user_zone',
+    //                 'pincode',
+    //                 'state',
+    //                 'district',
+    //                 'taluk'
+    //             )->where('status', '1');
+
+    //             if ($user->employee_type_id == 1) { // SE (Sales Executive)
+    //                 $assignedRouteIds = AssignRoute::where('employee_id', $user->id)->pluck('id')->toArray();
+    //                 $query->whereIn('assigned_route_id', $assignedRouteIds);
+
+    //             } elseif ($user->employee_type_id == 2) { // ASO (Area Sales Officer)
+    //                 $assignedRouteIds = AssignRoute::where('employee_id', $user->id)->pluck('id')->toArray();
+    //                 $query->whereIn('assigned_route_id', $assignedRouteIds);
+
+    //             } elseif ($user->employee_type_id == 3) { // DSM (District Sales Manager)
+    //                 $query->where('district_id', $user->district_id);
+
+    //             } elseif ($user->employee_type_id == 4) { // RSM (Regional Sales Manager)
+    //                 $region = Regions::whereHas('districts', function ($q) use ($user) {
+    //                     $q->where('id', $user->district_id);
+    //                 })->first();
+
+    //                 if (!$region) {
+    //                     return response()->json([
+    //                         'success' => false,
+    //                         'statusCode' => 404,
+    //                         'message' => "Region not found for the employee's district.",
+    //                     ], 404);
+    //                 }
+
+    //                 $districtIds = District::where('regions_id', $region->id)->pluck('id')->toArray();
+    //             $query->whereIn('district_id', $districtIds);
+            
+
+    //                 } elseif ($user->employee_type_id == 5) { // SM (Sales Manager)
+    //                     // No filtering, fetch all dealers
+    //                 }
+
+    //                 if ($request->has('search_key') && !empty($request->search_key)) {
+    //                     $searchKey = $request->search_key;
+
+    //                     $query->where(function ($q) use ($searchKey) {
+    //                         $q->where('dealer_code', 'like', '%' . $searchKey . '%')
+    //                         ->orWhere('dealer_name', 'like', '%' . $searchKey . '%');
+    //             });
+    //         }
+
+    //         $data = $query->orderBy('dealer_name', 'asc')->get();
+    //         return response()->json([
+    //                 'success' => true,
+    //                 'statusCode' => 200,
+    //                 'message' => 'Dealers fetched successfully.',
+    //                 'data' => $data,
+    //             ], 200);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 500,
+    //             'message' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+>>>>>>> origin/master
     public function getDealers(Request $request)
     {
         try {
@@ -1412,6 +1499,10 @@ public function notificationList()
         }
     }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/master
     
     // Fetch Products
     public function getProducts()

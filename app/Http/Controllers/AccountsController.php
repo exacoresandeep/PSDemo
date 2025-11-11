@@ -12,6 +12,10 @@ use App\Models\AssignRoute;
 use App\Models\Price;
 use App\Models\OutstandingPayment;
 use App\Models\OutstandingNew;
+<<<<<<< HEAD
+=======
+use App\Models\DealerRouteAssignment;
+>>>>>>> origin/master
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -28,16 +32,160 @@ class AccountsController extends Controller
         return view('accounts.order-request.index');
     }
     
+<<<<<<< HEAD
     public function orderList(Request $request)
     {
 	    $statusFilter = $request->get('status');       
         $orders = Order::with(['dealer', 'dealers', 'createdBy.employeeType', 'sendForApprovalBy'])
             ->where(function ($query) {
                 
+=======
+    // public function orderList(Request $request)
+    // {
+	//     $statusFilter = $request->get('status');       
+    //     $orders = Order::with(['dealer', 'dealers', 'createdBy.employeeType', 'sendForApprovalBy'])
+    //         ->where(function ($query) {
+                
+    //             $query->where(function ($subQuery) {
+    //                 $subQuery->where('dealer_flag_order', '1')
+    //                     ->whereNotIn('status', ['Pending', 'Rejected'])
+    //                     ->where(function ($approvalQuery) {
+    //                         $approvalQuery->where('send_for_approval', '0') 
+    //                                       ->orWhere('send_for_approval', '1');
+    //                     });
+    //             })
+                
+    //             ->orWhere(function ($subQuery) {
+    //                 $subQuery->whereHas('createdBy', function ($employeeQuery) {
+    //                     $employeeQuery->whereIn('employee_type_id', [2, 3, 4, 5]);
+    //                 })->where('dealer_flag_order', '!=', '1') 
+    //                   ->where(function ($sourceQuery) {
+    //                     $sourceQuery->whereNull('source')
+    //                         ->orWhereNotIn('source', ['lead_won', 'influencer_won']); 
+    //                 });
+    //             });
+    //         })->orderByRaw("
+    //             CASE
+    //                 WHEN order_approved = '1' THEN accepted_time
+    //                 WHEN order_approved = '2' THEN rejected_time
+    //                 ELSE created_at
+    //             END DESC
+    //         ");
+    //         // ->latest();
+    
+    //     	if ($statusFilter === 'Approved') {
+    //             $orders->where('order_approved', '1');
+    //         } elseif ($statusFilter === 'Rejected') {
+    //             $orders->where('order_approved', '2');
+    //         } elseif ($statusFilter === 'Pending') {
+    //             $orders->where(function ($query) {
+    //                 $query->whereNull('order_approved')->orWhereNotIn('order_approved', ['1', '2']);
+    //             });
+    //         }         
+   
+    //         return DataTables::of($orders)
+    //             ->addIndexColumn()
+    //             ->addColumn('date', function ($order) {
+    //                 if ($order->order_approved == 1 && $order->accepted_time) {
+    //                     return $order->accepted_time->format('d/m/Y h:i A');
+    //                 } elseif ($order->order_approved == 2 && $order->rejected_time) {
+    //                     return $order->rejected_time->format('d/m/Y h:i A');
+    //                 } else {
+    //                     return $order->created_at->format('d/m/Y h:i A');
+    //                 }
+    //             })
+    //             ->addColumn('order_id', function ($order) {
+    //                 return 'OD00' . $order->id;
+    //             })
+    //             ->addColumn('dealer_name', function ($order) {
+    //                 if ($order->created_by_dealer) {
+    //                     return $order->dealers?->dealer_name ?? 'N/A';
+    //                 }
+    //                 return $order->dealer?->dealer_name ?? 'N/A';
+    //             })
+    //             ->addColumn('dealer_code', function ($order) {
+    //                 if ($order->created_by_dealer) {
+    //                     return $order->dealers?->dealer_code ?? 'N/A';
+    //                 }
+    //                 return $order->dealer?->dealer_code ?? 'N/A';
+    //             })
+    //             ->addColumn('employee_type', function ($order) {
+    //                 if ($order->dealer_flag_order == "1") {
+
+    //                     if ($order->send_for_approval == "0") {
+    //                         return 'Area Sales Officer';
+    //                     }
+                
+    //                     if ($order->send_for_approval == "1" && !empty($order->send_for_approval_by)) {
+    //                         return 'Sales Manager';
+    //                     }
+                
+    //                     return 'N/A';
+    //                 }
+        
+    //                 elseif ($order->createdBy?->employeeType) {
+    //                     return $order->createdBy->employeeType->type_name;
+    //                 }
+                
+    //                 return 'N/A';
+    //             })
+          
+    //             ->addColumn('employee_name_code', function ($order) {
+    //                 if ($order->dealer_flag_order == '1') {
+    //                     if ($order->send_for_approval == 1 && $order->sendForApprovalBy) {
+                            
+    //                         return 'Dhanesh Kamath - PS007';
+    //                     }
+    //                     if ($order->send_for_approval == 0 && $order->dealers) {
+    //                         $assignedRouteId = $order->dealers->assigned_route_id;
+                
+    //                         if ($assignedRouteId) {
+    //                             $assignedRoute = \App\Models\AssignRoute::with('employee')->find($assignedRouteId);
+                
+    //                             if ($assignedRoute && $assignedRoute->employee) {
+    //                                 return $assignedRoute->employee->name . ' - ' . $assignedRoute->employee->employee_code;
+    //                             }
+    //                         }
+    //                     }
+    //                     return $order->dealer?->dealer_name ?? '-';
+    //                 } elseif ($order->createdBy) {
+                       
+    //                     return $order->createdBy->name . ' - ' . $order->createdBy->employee_code;
+    //                 }
+    //                 return 'N/A';
+    //             })
+    //             ->addColumn('amount', function ($order) {
+    //                 return (float) ($order->total_amount);
+    //             })
+    //             ->addColumn('status', function ($order) {
+    //                 if ($order->order_approved == 1) {
+    //                     return '<span class="badge bg-success">Approved</span>';
+    //                 } elseif ($order->order_approved == 2) {
+    //                     return '<span class="badge bg-danger">Rejected</span>';
+    //                 }
+    //                 return '<span class="badge bg-warning">Pending</span>';
+    //             })
+    //             ->addColumn('action', function ($order) {
+                   
+    //                 return '<button class="btn btn-info btn-sm view-order" data-id="' . $order->id . '" title="View">
+    //                             <i class="fa fa-eye"></i>
+    //                         </button>';
+    //             })
+    //             ->rawColumns(['status','action'])
+    //             ->make(true);
+    // }
+    public function orderList(Request $request)
+    {
+        $statusFilter = $request->get('status');       
+
+        $orders = Order::with(['dealer', 'dealers', 'createdBy.employeeType', 'sendForApprovalBy'])
+            ->where(function ($query) {
+>>>>>>> origin/master
                 $query->where(function ($subQuery) {
                     $subQuery->where('dealer_flag_order', '1')
                         ->whereNotIn('status', ['Pending', 'Rejected'])
                         ->where(function ($approvalQuery) {
+<<<<<<< HEAD
                             $approvalQuery->where('send_for_approval', '0') 
                                           ->orWhere('send_for_approval', '1');
                         });
@@ -53,12 +201,31 @@ class AccountsController extends Controller
                     });
                 });
             })->orderByRaw("
+=======
+                            $approvalQuery->where('send_for_approval', '0')
+                                        ->orWhere('send_for_approval', '1');
+                        });
+                })
+                ->orWhere(function ($subQuery) {
+                    $subQuery->whereHas('createdBy', function ($employeeQuery) {
+                        $employeeQuery->whereIn('employee_type_id', [2, 3, 4, 5]);
+                    })
+                    ->where('dealer_flag_order', '!=', '1')
+                    ->where(function ($sourceQuery) {
+                        $sourceQuery->whereNull('source')
+                                    ->orWhereNotIn('source', ['lead_won', 'influencer_won']);
+                    });
+                });
+            })
+            ->orderByRaw("
+>>>>>>> origin/master
                 CASE
                     WHEN order_approved = '1' THEN accepted_time
                     WHEN order_approved = '2' THEN rejected_time
                     ELSE created_at
                 END DESC
             ");
+<<<<<<< HEAD
             // ->latest();
     
         	if ($statusFilter === 'Approved') {
@@ -163,6 +330,91 @@ class AccountsController extends Controller
                 ->make(true);
     }
 
+=======
+
+        if ($statusFilter === 'Approved') {
+            $orders->where('order_approved', '1');
+        } elseif ($statusFilter === 'Rejected') {
+            $orders->where('order_approved', '2');
+        } elseif ($statusFilter === 'Pending') {
+            $orders->where(function ($query) {
+                $query->whereNull('order_approved')->orWhereNotIn('order_approved', ['1', '2']);
+            });
+        }         
+
+        return DataTables::of($orders)
+            ->addIndexColumn()
+            ->addColumn('date', function ($order) {
+                if ($order->order_approved == 1 && $order->accepted_time) {
+                    return $order->accepted_time->format('d/m/Y h:i A');
+                } elseif ($order->order_approved == 2 && $order->rejected_time) {
+                    return $order->rejected_time->format('d/m/Y h:i A');
+                } else {
+                    return $order->created_at->format('d/m/Y h:i A');
+                }
+            })
+            ->addColumn('order_id', fn($order) => 'OD00' . $order->id)
+            ->addColumn('dealer_name', fn($order) =>
+                $order->created_by_dealer ? ($order->dealers?->dealer_name ?? 'N/A') : ($order->dealer?->dealer_name ?? 'N/A')
+            )
+            ->addColumn('dealer_code', fn($order) =>
+                $order->created_by_dealer ? ($order->dealers?->dealer_code ?? 'N/A') : ($order->dealer?->dealer_code ?? 'N/A')
+            )
+            ->addColumn('employee_type', function ($order) {
+                if ($order->dealer_flag_order == "1") {
+                    if ($order->send_for_approval == "0") return 'Area Sales Officer';
+                    if ($order->send_for_approval == "1" && !empty($order->send_for_approval_by)) return 'Sales Manager';
+                    return 'N/A';
+                }
+                return $order->createdBy?->employeeType?->type_name ?? 'N/A';
+            })
+            ->addColumn('employee_name_code', function ($order) {
+                if ($order->dealer_flag_order == '1') {
+                    if ($order->send_for_approval == 1 && $order->sendForApprovalBy) {
+                        return 'Dhanesh Kamath - PS007';
+                    }
+
+                    if ($order->send_for_approval == 0 && $order->dealers) {
+                        $dealerId = $order->dealers->id;
+
+                        $assignment = \App\Models\DealerRouteAssignment::where('dealer_id', $dealerId)
+                            ->where('employee_type_id', 2) // ASO
+                            ->with('employee')
+                            ->first();
+
+                        if ($assignment && $assignment->employee) {
+                            return $assignment->employee->name . ' - ' . $assignment->employee->employee_code;
+                        }
+                    }
+
+                    return $order->dealer?->dealer_name ?? '-';
+                }
+
+                if ($order->createdBy) {
+                    return $order->createdBy->name . ' - ' . $order->createdBy->employee_code;
+                }
+
+                return 'N/A';
+            })
+            ->addColumn('amount', fn($order) => (float) ($order->total_amount))
+            ->addColumn('status', function ($order) {
+                return match ($order->order_approved) {
+                    1 => '<span class="badge bg-success">Approved</span>',
+                    2 => '<span class="badge bg-danger">Rejected</span>',
+                    default => '<span class="badge bg-warning">Pending</span>'
+                };
+            })
+            ->addColumn('action', fn($order) =>
+                '<button class="btn btn-info btn-sm view-order" data-id="' . $order->id . '" title="View">
+                    <i class="fa fa-eye"></i>
+                </button>'
+            )
+            ->rawColumns(['status', 'action'])
+            ->make(true);
+    }
+
+
+>>>>>>> origin/master
     public function approveOrder(Request $request, $id)
     {
         $order = Order::findOrFail($id);
@@ -225,6 +477,7 @@ class AccountsController extends Controller
         $empName = null;
         $employee = null;
 
+<<<<<<< HEAD
         if ($order->dealer_flag_order == '0') {
             $employee = Employee::find($order->created_by);
         } else {
@@ -236,10 +489,46 @@ class AccountsController extends Controller
                     $employee = Employee::find($assignedRoute->employee_id);
                 } else {
                     $employee = Employee::find($assignedRoute->parent_id); // ASO
+=======
+        // if ($order->dealer_flag_order == '0') {
+        //     $employee = Employee::find($order->created_by);
+        // } else {
+        //     $dealer = $order->created_by_dealer;
+        //     $assignedRoute = AssignRoute::where('id', $dealer->assigned_route_id)->first();
+
+        //     if ($assignedRoute) {
+        //         if (is_null($assignedRoute->parent_id)) {
+        //             $employee = Employee::find($assignedRoute->employee_id);
+        //         } else {
+        //             $employee = Employee::find($assignedRoute->parent_id); // ASO
+        //         }
+        //     }
+        // }
+        if ($order->dealer_flag_order == '0') {
+            $employee = Employee::find($order->created_by);
+        } else {
+            $dealer = Dealer::find($order->created_by_dealer);
+
+            $employee = null;
+
+            if ($dealer) {
+                $dealerRoute = DealerRouteAssignment::where('dealer_id', $dealer->id)->first();
+
+                if ($dealerRoute) {
+                    $assignRoute = AssignRoute::find($dealerRoute->assign_route_id);
+
+                    if ($assignRoute) {
+                        $employee = Employee::find($assignRoute->employee_id);
+                    }
+>>>>>>> origin/master
                 }
             }
         }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/master
         if (!empty($employee)) {
             $empId = $employee->employee_code;
             $empName = $employee->name;
@@ -313,6 +602,7 @@ class AccountsController extends Controller
         return response()->json(['success' => true, 'message' => 'Order rejected successfully']);
     }
 
+<<<<<<< HEAD
     public function viewOrder($id)
     {
       
@@ -364,10 +654,188 @@ class AccountsController extends Controller
             }
 
        
+=======
+    // public function viewOrder($id)
+    // {
+      
+    //     $order = Order::with([
+    //         'dealer',
+    //         'dealers.assignRoute.employee.employeeType',
+    //         'createdBy.employeeType',
+    //         'sendForApprovalBy.employeeType',
+    //         'orderItems',
+    //         'orderType',
+    //         'paymentTerm'
+    //     ])->where('id', $id)->first();
+
+    //     if (!$order) {
+    //         return response()->json(['success' => false, 'message' => 'Order not found!'], 404);
+    //     }
+    //     $dealerId = $order->dealer_flag_order == 1 ? $order->created_by_dealer : $order->dealer_id;
+  
+    //     $totalOutstandingAmount = OutstandingNew::where('dealer_id', $dealerId)
+    //         ->sum('outstanding_amount');
+
+    //     $employeeType = '-';
+    //     $employeeNameCode = '-';
+    //     $dealerName = 'N/A';
+    //     $dealerCode = 'N/A';
+    //     $dealerPhone = 'N/A';
+    //     $dealerAddress = 'N/A';
+
+    //      if ($order->dealer_flag_order == 1) {
+    //         $dealer = $order->dealers;
+
+    //         if ($order->send_for_approval == 0) {
+            
+    //             $employeeType = 'Area Sales Officer';
+
+    //             if ($dealer && $dealer->assigned_route_id) {
+    //                 $assignedRoute = \App\Models\AssignRoute::with('employee')->find($dealer->assigned_route_id);
+
+    //                 if ($assignedRoute && $assignedRoute->employee) {
+    //                     $employee = $assignedRoute->employee;
+    //                     $employeeNameCode = $employee->name . ' - ' . $employee->employee_code;
+    //                 }
+    //             }
+    //         } elseif ($order->send_for_approval == 1 && $order->send_for_approval_by) {
+           
+    //             $employeeType = 'Sales Manager';
+    //             $employee = $order->sendForApprovalBy;
+    //             $employeeNameCode = 'Dhanesh Kamath - PS007';
+    //         }
+
+       
+    //         $dealerName = $dealer?->dealer_name ?? 'N/A';
+    //         $dealerCode = $dealer?->dealer_code ?? 'N/A';
+    //         $dealerPhone = $dealer?->phone ?? 'N/A';
+    //         $dealerAddress = $dealer?->address ?? 'N/A';
+    //     } else {
+           
+    //         $employee = $order->createdBy;
+    //         $employeeType = $employee?->employeeType?->type_name ?? 'N/A';
+    //         $employeeNameCode = $employee ? ($employee->name . ' - ' . $employee->employee_code) : 'N/A';
+
+    //         $dealerName = $order->dealer?->dealer_name ?? 'N/A';
+    //         $dealerCode = $order->dealer?->dealer_code ?? 'N/A';
+    //         $dealerPhone = $order->dealer?->phone ?? 'N/A';
+    //         $dealerAddress = $order->dealer?->address ?? 'N/A';
+    //     }
+	//     $orderCreatedAt = $order->created_at->format('Y-m-d');	
+
+    //     $orderItems = $order->orderItems->map(function ($item) use ($orderCreatedAt) {
+    //         $product = $item->product;
+
+    //         $productDetails = collect($item->product_details)->map(function ($detail) use ($product, $orderCreatedAt) {
+    //             $productName = 'TATA TISCON';
+    //             $productType = isset($detail['product_type_id']) ? ProductType::find($detail['product_type_id']) : null;
+
+    //             $typeName = $productType?->type_name ?? 'N/A';
+    //             $quantity = (float) ($detail['quantity'] ?? 0);
+    //             $rate = (float) $detail['rate'] ?? 0;
+
+    //             $price = null;
+    //             $adpPrice = null;
+    //             $dpPrice = null;
+
+    //             if (isset($detail['product_type_id'])) {
+    //                 $price = Price::where('product_id', $product->id)
+    //                     ->where('product_type_id', $detail['product_type_id'])
+    //                     ->where('start_date', '<=', $orderCreatedAt)
+    //                     ->where('end_date', '>=', $orderCreatedAt)
+    //                     ->orderBy('created_at', 'desc')
+    //                     ->first();
+
+    //                 $adpPrice = $price?->advance_dealer_price;
+    //                 $dpPrice = $price?->dealer_price;
+    //             }
+
+    //             return [
+    //                 'product_name' => $productName,
+    //                 'type_name' => $typeName,
+    //                 'quantity' => $quantity,
+    //                 'rate' => $rate,
+    //                 'adp_price' => (float) $adpPrice,
+    //                 'dp_price' => (float) $dpPrice,
+    //             ];
+    //         });
+
+    //         return $productDetails;
+    //     })->flatten(1);
+
+    //     $orderData = [
+    //         'order_id' => 'OD00' . $order->id,
+    //         'date' => $order->created_at->format('d/m/Y'),
+    //         'employee_type' => $employeeType,
+    //         'employee_name_code' => $employeeNameCode,
+    //         'dealer_name' => $dealerName,
+    //         'dealer_code' => $dealerCode,
+    //         'dealer_phone' => $dealerPhone,
+    //         'dealer_address' => $dealerAddress,
+    //         'order_type' => $order->orderType?->name ?? 'N/A',
+    //         'payment_type' => $order->paymentTerm?->name ?? 'N/A',
+            
+    //         'billing_date' => optional($order->billing_date)->format('d/m/Y') ?? 'N/A',
+    //         'status_badge' => $order->status,
+    //         'scheme' => $order->scheme,
+    //         'reason_for_rejection' => $order->reason_for_rejection,
+    //         'remarks' => $order->order_remarks,
+    //         'order_approved' => $order->order_approved,
+    //         'payment_term' => $order->order_payment_terms,
+    //         'order_status' => $order->order_approved == '1'
+    //             ? '<span class="badge bg-success">Approved</span>'
+    //             : ($order->order_approved == '2'
+    //                 ? '<span class="badge bg-danger">Rejected</span>'
+    //                 : '<span class="badge bg-warning">Pending</span>'),
+    //         'order_items' => $orderItems,
+    //         'total_outstanding' => (float) $totalOutstandingAmount ?? 0.00,
+    //     ];
+    //     $attachment = $order->attachment;
+
+    //     // Decode attachment if stored as JSON string
+    //     if (is_string($attachment)) {
+    //         $decodedAttachment = json_decode($attachment, true);
+    //     } else {
+    //         $decodedAttachment = $attachment;
+    //     }
+        
+    //     // Ensure it's always an array
+    //     $attachments = is_array($decodedAttachment) ? $decodedAttachment : [];
+    
+        
+    //     $orderData['attachments'] = $attachments;
+
+    //     return response()->json(['success' => true, 'order' => $orderData]);
+    // }
+    public function viewOrder($id)
+    {
+        try {
+            $order = Order::with([
+                'dealer',
+                'createdBy.employeeType',
+                'sendForApprovalBy.employeeType',
+                'orderItems',
+                'orderType',
+                'paymentTerm'
+            ])->find($id);
+
+            if (!$order) {
+                return response()->json(['success' => false, 'message' => 'Order not found!'], 404);
+            }
+
+            $dealerId = $order->dealer_flag_order == 1 ? $order->created_by_dealer : $order->dealer_id;
+            $dealer = Dealer::find($dealerId);
+
+            $totalOutstandingAmount = OutstandingNew::where('dealer_id', $dealerId)->sum('outstanding_amount');
+
+            $employeeType = '-';
+            $employeeNameCode = '-';
+>>>>>>> origin/master
             $dealerName = $dealer?->dealer_name ?? 'N/A';
             $dealerCode = $dealer?->dealer_code ?? 'N/A';
             $dealerPhone = $dealer?->phone ?? 'N/A';
             $dealerAddress = $dealer?->address ?? 'N/A';
+<<<<<<< HEAD
         } else {
            
             $employee = $order->createdBy;
@@ -397,10 +865,52 @@ class AccountsController extends Controller
                 $dpPrice = null;
 
                 if (isset($detail['product_type_id'])) {
+=======
+
+            if ($order->dealer_flag_order == 1) {
+                if ($order->send_for_approval == 0) {
+                    $employeeType = 'Area Sales Officer';
+
+                    $dealerRoute = \App\Models\DealerRouteAssignment::where('dealer_id', $dealer->id)->first();
+                    if ($dealerRoute) {
+                        $assignRoute = \App\Models\AssignRoute::with('employee')->find($dealerRoute->assign_route_id);
+                        if ($assignRoute && $assignRoute->employee) {
+                            $employee = $assignRoute->employee;
+                            $employeeNameCode = $employee->name . ' - ' . $employee->employee_code;
+                        }
+                    }
+                } elseif ($order->send_for_approval == 1 && $order->send_for_approval_by) {
+                    $employeeType = 'Sales Manager';
+                    $employee = $order->sendForApprovalBy;
+                    $employeeNameCode = $employee ? ($employee->name . ' - ' . $employee->employee_code) : 'N/A';
+                }
+            } else {
+                $employee = $order->createdBy;
+                $employeeType = $employee?->employeeType?->type_name ?? 'N/A';
+                $employeeNameCode = $employee ? ($employee->name . ' - ' . $employee->employee_code) : 'N/A';
+            }
+
+            $orderCreatedAt = $order->created_at->format('Y-m-d');
+
+            $orderItems = $order->orderItems->flatMap(function ($item) use ($orderCreatedAt) {
+                $product = $item->product;
+
+                return collect($item->product_details)->map(function ($detail) use ($product, $orderCreatedAt) {
+                    $productName = 'TATA TISCON';
+                    $productType = isset($detail['product_type_id'])
+                        ? ProductType::find($detail['product_type_id'])
+                        : null;
+
+                    $typeName = $productType?->type_name ?? 'N/A';
+                    $quantity = (float) ($detail['quantity'] ?? 0);
+                    $rate = (float) ($detail['rate'] ?? 0);
+
+>>>>>>> origin/master
                     $price = Price::where('product_id', $product->id)
                         ->where('product_type_id', $detail['product_type_id'])
                         ->where('start_date', '<=', $orderCreatedAt)
                         ->where('end_date', '>=', $orderCreatedAt)
+<<<<<<< HEAD
                         ->orderBy('created_at', 'desc')
                         ->first();
 
@@ -466,6 +976,65 @@ class AccountsController extends Controller
         return response()->json(['success' => true, 'order' => $orderData]);
     }
 
+=======
+                        ->latest()
+                        ->first();
+
+                    return [
+                        'product_name' => $productName,
+                        'type_name' => $typeName,
+                        'quantity' => $quantity,
+                        'rate' => $rate,
+                        'adp_price' => (float) ($price?->advance_dealer_price ?? 0),
+                        'dp_price' => (float) ($price?->dealer_price ?? 0),
+                    ];
+                });
+            });
+
+            $orderData = [
+                'order_id' => 'OD00' . $order->id,
+                'date' => $order->created_at->format('d/m/Y'),
+                'employee_type' => $employeeType,
+                'employee_name_code' => $employeeNameCode,
+                'dealer_name' => $dealerName,
+                'dealer_code' => $dealerCode,
+                'dealer_phone' => $dealerPhone,
+                'dealer_address' => $dealerAddress,
+                'order_type' => $order->orderType?->name ?? 'N/A',
+                'payment_type' => $order->paymentTerm?->name ?? 'N/A',
+                'billing_date' => optional($order->billing_date)->format('d/m/Y') ?? 'N/A',
+                'status_badge' => $order->status,
+                'scheme' => $order->scheme,
+                'reason_for_rejection' => $order->reason_for_rejection,
+                'remarks' => $order->order_remarks,
+                'order_approved' => $order->order_approved,
+                'payment_term' => $order->order_payment_terms,
+                'order_status' => match ($order->order_approved) {
+                    '1' => '<span class="badge bg-success">Approved</span>',
+                    '2' => '<span class="badge bg-danger">Rejected</span>',
+                    default => '<span class="badge bg-warning">Pending</span>',
+                },
+                'order_items' => $orderItems,
+                'total_outstanding' => (float) $totalOutstandingAmount ?? 0.00,
+            ];
+
+            $decodedAttachment = is_string($order->attachment)
+                ? json_decode($order->attachment, true)
+                : $order->attachment;
+
+            $orderData['attachments'] = is_array($decodedAttachment) ? $decodedAttachment : [];
+
+            return response()->json(['success' => true, 'order' => $orderData]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching order details: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+>>>>>>> origin/master
     public function priceIndex()
     {
         $productTypes = ProductType::all(); 

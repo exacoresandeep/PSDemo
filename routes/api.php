@@ -56,7 +56,10 @@ use App\Http\Controllers\ExpenseController;
                     // Route::post('/filter', [DealerOrderController::class, 'orderFilter']);
                     Route::post('/track-order', [DealerOrderController::class, 'trackOrder']);
                     Route::post('/monthly-transaction', [DealerOrderController::class, 'monthlySalesTransaction']);
+<<<<<<< HEAD
                     Route::post('/monthly-targets', [DealerOrderController::class, 'monthlyTargetAchievement']);
+=======
+>>>>>>> origin/master
                     Route::post('/outstanding-payments', [DealerOrderController::class, 'outstandingPaymentsList']);
                     Route::get('/outstanding-payments/{orderId}', [DealerOrderController::class, 'opDetails']);
                     Route::post('/order-request-list', [DealerOrderController::class, 'orderRequestList']);
