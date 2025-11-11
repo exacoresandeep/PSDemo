@@ -56,6 +56,7 @@ use App\Http\Controllers\ExpenseController;
                     // Route::post('/filter', [DealerOrderController::class, 'orderFilter']);
                     Route::post('/track-order', [DealerOrderController::class, 'trackOrder']);
                     Route::post('/monthly-transaction', [DealerOrderController::class, 'monthlySalesTransaction']);
+                    Route::post('/monthly-targets', [DealerOrderController::class, 'monthlyTargetAchievement']);
                     Route::post('/outstanding-payments', [DealerOrderController::class, 'outstandingPaymentsList']);
                     Route::get('/outstanding-payments/{orderId}', [DealerOrderController::class, 'opDetails']);
                     Route::post('/order-request-list', [DealerOrderController::class, 'orderRequestList']);
@@ -171,8 +172,10 @@ use App\Http\Controllers\ExpenseController;
                 Route::post('/punch-out', [AttendanceController::class, 'punchOut']);
                 // Route::get('/auto-punch-out', [AttendanceController::class, 'autoPunchOut']);
                 Route::get('/today', [AttendanceController::class, 'getTodayAttendance']);
-                Route::post('/getsummary', [AttendanceController::class, 'getsummary']);
+                Route::post('/summary', [AttendanceController::class, 'getsummary']);
                 Route::post('/entryLeave', [AttendanceController::class, 'entryLeave']);
+                Route::post('/LeaveType', [AttendanceController::class, 'LeaveType']);
+
             });
             Route::prefix('stock')->group(function () {
                 Route::get('/stock-insights', [StockController::class, 'stockList']);
