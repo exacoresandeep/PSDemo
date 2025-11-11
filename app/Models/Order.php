@@ -19,6 +19,7 @@ class Order extends Model
         'influencer_visit_id',
         'lead_id',
         'dealer_id',
+        'product_id',
         'dealer_flag_order',
         'send_for_approval',
         'send_for_approval_by',

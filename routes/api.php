@@ -457,6 +457,10 @@ use App\Http\Controllers\ExpenseController;
         Route::get('getStageOfConstruction', [AuthController::class, 'getStageOfConstruction']);
         Route::get('getLeadScore', [AuthController::class, 'getLeadScore']);
         Route::get('getLeadStatus', [AuthController::class, 'getLeadStatus']);
+        Route::get('getQuantityType', [AuthController::class, 'getQuantityType']);
+        Route::get('getQuantityType', [AuthController::class, 'getQuantityType']);
+        Route::post('calculateQuantityDetails', [AuthController::class, 'calculateQuantityDetails']);
+
         
 });
 
