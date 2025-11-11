@@ -20,10 +20,7 @@ use DB;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Log;
 use App\Services\FirebasePushService;
-<<<<<<< HEAD
-=======
 
->>>>>>> origin/master
 class ActivityController extends Controller
 {
     public function index()
@@ -464,24 +461,6 @@ class ActivityController extends Controller
         return response()->json(['message' => 'Activity Type deleted successfully!']);
     }
 
-<<<<<<< HEAD
-    public function getEmployeesByDealer($dealer_id)
-    {
-        $dealer = Dealer::find($dealer_id);
-
-        if (!$dealer) {
-            return response()->json([], 404);
-        }
-
-        $employees = AssignRoute::where('id', $dealer->assigned_route_id)
-            ->where('employee_type_id', 1) 
-            ->with('employee:id,name')
-            ->get()
-            ->pluck('employee'); 
-
-        return response()->json($employees);
-    }
-=======
     // public function getEmployeesByDealer($dealer_id)
     // {
     //     $dealer = Dealer::find($dealer_id);
@@ -498,7 +477,6 @@ class ActivityController extends Controller
 
     //     return response()->json($employees);
     // }
->>>>>>> origin/master
 
     public function getDealersByDistrict($district_id)
     {
@@ -724,8 +702,6 @@ class ActivityController extends Controller
         return response()->json($employees);
     }
 
-<<<<<<< HEAD
-=======
     // public function getDealersByEmployee($employee_id)
     // {
     //     $user = Employee::find($employee_id);
@@ -768,7 +744,6 @@ class ActivityController extends Controller
     
     //     return response()->json($dealers);
     // }
->>>>>>> origin/master
     public function getDealersByEmployee($employee_id)
     {
         $employee = Employee::find($employee_id);
@@ -818,8 +793,5 @@ class ActivityController extends Controller
         return response()->json($dealers);
     }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> origin/master
 }

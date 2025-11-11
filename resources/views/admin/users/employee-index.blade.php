@@ -36,11 +36,7 @@
 $(document).ready(function() {
     $('#employeesTable').DataTable({
         processing: true,
-<<<<<<< HEAD
-        serverSide: true,
-=======
         serverSide: false,
->>>>>>> origin/master
         ajax: "{{ route('admin.users.employee-list') }}",
         columns: [
             { data: 'id', name: 'id' },
