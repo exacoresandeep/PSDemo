@@ -1426,7 +1426,6 @@ public function notificationList()
                 ], 401);
             }
 
-            // Decode the employee's product list (stored as ["1","2",...])
             $productIds = json_decode($user->products, true);
 
             if (empty($productIds) || !is_array($productIds)) {
@@ -1438,7 +1437,6 @@ public function notificationList()
                 ], 200);
             }
 
-            // Fetch only those products
             $data = \App\Models\Product::whereIn('id', $productIds)
                 ->select('id as product_id', 'product_name')
                 ->get();
@@ -1962,7 +1960,7 @@ public function notificationList()
             ], 500);
         }
     }
-   public function changeNotificationStatus($table, $id, $value)
+    public function changeNotificationStatus($table, $id, $value)
     {
         
         $allowedTables = [
@@ -1980,42 +1978,10 @@ public function notificationList()
         DB::table($table)->where('id', $id)->update(['notification_status' => $value]);
     
         return response()->json(['status' => 'success']);
-        
-    //     switch ($table) {
-    //         case 'assigned_routes':
-    // 		DB::table('assigned_routes')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    
-    //         case 'activities':
-    //             DB::table('activities')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    
-    //         case 'orders':
-    //             DB::table('orders')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    // 	case 'targets':
-    //             DB::table('targets')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    
-    //         case 'leads':
-    //             DB::table('leads')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    
-    //         case 'outstanding_payments':
-    //             DB::table('outstanding_payments')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-            
-    //         case 'outstanding_payment_commitments':
-    //             DB::table('outstanding_payment_commitments')->where('id', $id)->update(['notification_status' => $value]);
-    // 	    break;
-    
-    //         default:
-    //             return response()->json(['status' => 'error', 'message' => 'Invalid parameter'], 400);
-    //     }
-    //     return response()->json(['status' => 'success']);
+   
     }
    
-   public function getRegions()
+    public function getRegions()
     {
         $regions = Regions::with(['districts:id,regions_id,name'])->get(['id', 'name']);
 
@@ -2116,5 +2082,63 @@ public function notificationList()
             'data' => $data,
         ], 200);
     }
+    public function getQuantityType()
+    {
+        $data = [
+            'Pieces',
+            'Ton',
+        ];
+
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => 'Quantity Types fetched successfully',
+            'data' => $data,
+        ], 200);
+    }
+    public function calculateQuantityDetails(Request $request)
+    {
+        $request->validate([
+            'quantity_type' => 'required|in:Pieces,Ton',
+            'quantity' => 'required|numeric|min:0',
+        ]);
+
+        $quantityType = $request->quantity_type;
+        $quantity = $request->quantity;
+
+        // Define your conversion rate
+        $piecesPerTon = 100; // example: 1 Ton = 100 Pieces
+
+        // Define base prices
+        $pricePerPiece = 50; // example: ₹50 per piece
+        $pricePerTon = $pricePerPiece * $piecesPerTon;
+
+        if ($quantityType === 'Pieces') {
+            $pieces = $quantity;
+            $tons = $quantity / $piecesPerTon;
+            $price = $pieces * $pricePerPiece;
+            $pricePerUnit = $pricePerPiece;
+        } else {
+            $tons = $quantity;
+            $pieces = $quantity * $piecesPerTon;
+            $price = $tons * $pricePerTon;
+            $pricePerUnit = $pricePerTon;
+        }
+
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => 'Quantity details calculated successfully',
+            'data' => [
+                'quantity_type' => $quantityType,
+                'entered_quantity' => $quantity,
+                'pieces' => $pieces,
+                'tons' => $tons,
+                'price' => $price,
+                'price_per_unit' => $pricePerUnit,
+            ],
+        ], 200);
+    }
+
 
 }

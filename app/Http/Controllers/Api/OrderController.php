@@ -173,13 +173,13 @@ class OrderController extends Controller
     {
         try {
             $employee = Auth::user();
-                if (!$employee) {
-                    return response()->json([
-                        'success' => false,
-                        'statusCode' => 401,
-                        'message' => "User not Authenticated",
-    		], 401);
-                }
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => "User not Authenticated",
+                ], 401);
+            }
               
     
               $rules = [
@@ -206,6 +206,7 @@ class OrderController extends Controller
                 'order_items' => 'required|array',
                 'order_items.*.product_id' => 'required|exists:products,id',
                 'order_items.*.product_details' => 'nullable|array',
+                'order_items.*.quantity_type' => 'nullable|in:Pieces,Ton',
                 'attachment' => 'nullable|array',
                 'attachment.*' => 'nullable|string',
                 
@@ -237,6 +238,7 @@ class OrderController extends Controller
             if (in_array($employee->employee_type_id, [2, 3, 4, 5])) {
                 $validatedData['order_approved'] = '0';
             }
+            $validatedData['product_id'] = $validatedData['order_items'][0]['product_id'] ?? null;
             $order = Order::create($validatedData);
            
             if (!empty($validatedData['order_items'])) {
@@ -249,6 +251,7 @@ class OrderController extends Controller
                     }
             
                     $orderItem['total_quantity'] = round($totalQuantity, 6);
+                    $orderItem['quantity_type'] = $orderItem['quantity_type'];
             
                     $order->orderItems()->create($orderItem);
                 }
@@ -272,6 +275,7 @@ class OrderController extends Controller
                     'updated_at' => Carbon::parse($order->updated_at)->format('d-m-Y'),
                     'created_at' => Carbon::parse($order->created_at)->format('d-m-Y'),
                     'id' => $order->id,
+                    'product_id' => $order->product_id,
 
             ];
            
