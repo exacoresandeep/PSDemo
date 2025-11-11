@@ -378,10 +378,7 @@
 
         initializeSelect2();
 
-<<<<<<< HEAD
-=======
         // Load employees based on type
->>>>>>> origin/master
         $('#employee_type').on('change', function() {
             let employeeTypeId = $(this).val();
             $('#employee').empty().append('<option value="">Select Employee</option>');
@@ -395,10 +392,7 @@
             }
         });
 
-<<<<<<< HEAD
-=======
         // Fetch all locations (all districts)
->>>>>>> origin/master
         function loadAllLocations(callback) {
             $.get("{{ route('sales.get-all-locations') }}", function(data) {
                 $('.location-select').each(function() {
@@ -413,10 +407,7 @@
             });
         }
 
-<<<<<<< HEAD
-=======
         // Load dealers for selected locations
->>>>>>> origin/master
         $(document).on('change', '.location-select', function() {
             let $row = $(this).closest('.route-row');
             let selectedLocations = $(this).val() || [];
@@ -438,10 +429,7 @@
             }
         });
 
-<<<<<<< HEAD
-=======
         // Prevent duplicate route names (R1–R6)
->>>>>>> origin/master
         $(document).on('change', '.route-select', function() {
             let selectedRoutes = [];
             $('.route-select').each(function() {
@@ -465,7 +453,6 @@
         $('#assignedRouteForm').on('submit', function(e) {
             e.preventDefault();
             let formData = new FormData(this);
-<<<<<<< HEAD
             let mode = $(this).attr('data-mode');
             let id = $(this).attr('data-id');
 
@@ -482,21 +469,11 @@
             $.ajax({
                 url: url,
                 method: method,
-=======
-
-            $.ajax({
-                url: "{{ route('sales.route.assigned.store') }}",
-                method: 'POST',
->>>>>>> origin/master
                 data: formData,
                 processData: false,
                 contentType: false,
                 success: function(response) {
-<<<<<<< HEAD
                     Swal.fire('Success', response.message || 'Operation successful!', 'success');
-=======
-                    Swal.fire('Success', 'Route assigned successfully', 'success');
->>>>>>> origin/master
                     $('#createEditAssignRouteModal').modal('hide');
                     $('#routeTable').DataTable().ajax.reload();
                 },
@@ -505,10 +482,6 @@
                 }
             });
         });
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/master
         let routeTable = $('#routeTable').DataTable({
             processing: true,
             serverSide: true,
@@ -530,7 +503,6 @@
                 keyboard: false
             }).modal('show');
         });
-<<<<<<< HEAD
         // Handle Edit button click
             // Handle Edit button click
         $(document).on('click', '.editRoute', function () {
@@ -616,8 +588,6 @@
 
 
 
-=======
->>>>>>> origin/master
     });
 </script>
 

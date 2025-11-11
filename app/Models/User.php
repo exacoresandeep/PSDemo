@@ -18,10 +18,7 @@ class User extends Authenticatable
         'email',
         'username',
         'password',
-<<<<<<< HEAD
-=======
         'product_ids',
->>>>>>> origin/master
         'role_id'
     ];
 
@@ -35,10 +32,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-<<<<<<< HEAD
-=======
             'product_ids' => 'array',
->>>>>>> origin/master
             'password' => 'hashed',
         ];
     }
@@ -56,12 +50,9 @@ class User extends Authenticatable
     {
         return $this->role_id == 3;
     }
-<<<<<<< HEAD
-=======
 
     public function role()
     {
         return $this->belongsTo(UserType::class, 'role_id');
     }
->>>>>>> origin/master
 }

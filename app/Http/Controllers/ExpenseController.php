@@ -19,10 +19,6 @@ class ExpenseController extends Controller
     {
         $from_date = $request->input('from_date');
         $to_date   = $request->input('to_date');
-<<<<<<< HEAD
-
-        return Excel::download(new ExpenseExport($from_date, $to_date), 'expenses.xlsx');
-=======
         $employee_type = $request->employee_type;
         $employee_id = $request->employee_id;
         $travel_method = $request->travel_method;
@@ -31,7 +27,6 @@ class ExpenseController extends Controller
             new ExpenseExport($from_date, $to_date, $employee_type, $employee_id, $travel_method),
             'dayend_report.xlsx'
         );
->>>>>>> origin/master
     }
 
     public function travelMethod()
