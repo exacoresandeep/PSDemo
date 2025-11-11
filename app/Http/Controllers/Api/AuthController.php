@@ -1426,7 +1426,6 @@ public function notificationList()
                 ], 401);
             }
 
-            // Decode the employee's product list (stored as ["1","2",...])
             $productIds = json_decode($user->products, true);
 
             if (empty($productIds) || !is_array($productIds)) {
@@ -1438,7 +1437,6 @@ public function notificationList()
                 ], 200);
             }
 
-            // Fetch only those products
             $data = \App\Models\Product::whereIn('id', $productIds)
                 ->select('id as product_id', 'product_name')
                 ->get();
