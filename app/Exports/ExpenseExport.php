@@ -9,6 +9,14 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 
 class ExpenseExport implements FromCollection, WithHeadings, WithMapping
 {
+<<<<<<< HEAD
+    protected $from_date, $to_date;
+
+    public function __construct($from_date, $to_date)
+    {
+        $this->from_date = $from_date;
+        $this->to_date = $to_date;
+=======
     protected $from_date, $to_date, $employee_type, $employee_id, $travel_method;
 
     public function __construct($from_date, $to_date, $employee_type, $employee_id, $travel_method)
@@ -18,10 +26,18 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping
          $this->employee_type = $employee_type;
         $this->employee_id = $employee_id;
         $this->travel_method = $travel_method;
+>>>>>>> origin/master
     }
 
     public function collection()
     {
+<<<<<<< HEAD
+        return DayExpense::when($this->from_date && $this->to_date, function ($query) {
+            $query->whereBetween('date', [$this->from_date, $this->to_date]);
+        })->get();
+    }
+
+=======
         return DayExpense::with('employee')
             ->when($this->from_date && $this->to_date, function ($query) {
                 $query->whereBetween('created_at', [$this->from_date, $this->to_date]);
@@ -42,6 +58,7 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping
     }
 
 
+>>>>>>> origin/master
     public function headings(): array
     {
         return [
@@ -55,8 +72,12 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping
             'Total Amount',
         ];
     }
+<<<<<<< HEAD
+protected $methodPrices = [
+=======
     
     protected $methodPrices = [
+>>>>>>> origin/master
         "Bike"    => 4.0,
         "Car"     => 5.6,
         "Own Car" => 9.0,

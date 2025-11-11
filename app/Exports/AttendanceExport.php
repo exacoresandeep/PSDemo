@@ -12,16 +12,24 @@ class AttendanceExport implements FromQuery, WithHeadings, WithMapping
     protected $from_date;
     protected $to_date;
     protected $employee_type;
+<<<<<<< HEAD
+    protected static $rowNumber = 0;
+    public function __construct($from_date, $to_date, $employee_type)
+=======
     protected $employee_id;
     protected $status;
     protected static $rowNumber = 0;
     public function __construct($from_date, $to_date, $employee_type, $employee_id, $status)
+>>>>>>> origin/master
     {
         $this->from_date = $from_date;
         $this->to_date = $to_date;
         $this->employee_type = $employee_type;
+<<<<<<< HEAD
+=======
         $this->employee_id   = $employee_id;
         $this->status        = $status;
+>>>>>>> origin/master
     }
 
     public function query()
@@ -37,6 +45,8 @@ class AttendanceExport implements FromQuery, WithHeadings, WithMapping
                 $q->where('employee_type_id', $this->employee_type);
             });
         }
+<<<<<<< HEAD
+=======
         if ($this->employee_id) {
             $query->where('employee_id', $this->employee_id);
         }
@@ -45,6 +55,7 @@ class AttendanceExport implements FromQuery, WithHeadings, WithMapping
         if ($this->status) {
             $query->where('status', $this->status);
         }
+>>>>>>> origin/master
 
         return $query->orderBy('date', 'desc');
     }

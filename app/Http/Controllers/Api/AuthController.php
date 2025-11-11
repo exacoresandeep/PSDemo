@@ -1335,6 +1335,8 @@ public function notificationList()
         }
     }
 
+<<<<<<< HEAD
+=======
     // public function getDealers(Request $request){
 
     //     try {
@@ -1419,6 +1421,7 @@ public function notificationList()
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function getDealers(Request $request)
     {
         try {
@@ -1496,7 +1499,10 @@ public function notificationList()
         }
     }
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/master
     
     // Fetch Products
     public function getProducts()

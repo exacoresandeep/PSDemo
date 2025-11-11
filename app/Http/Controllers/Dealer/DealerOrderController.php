@@ -21,7 +21,10 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Log;
+<<<<<<< HEAD
+=======
 use Illuminate\Support\Facades\DB;
+>>>>>>> origin/master
 
 class DealerOrderController extends Controller
 {
@@ -359,6 +362,8 @@ class DealerOrderController extends Controller
     }
 
 
+<<<<<<< HEAD
+=======
     // public function monthlySalesTransaction(Request $request)
     // {
     //     try {
@@ -434,6 +439,7 @@ class DealerOrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function monthlySalesTransaction(Request $request)
     {
         try {
@@ -453,7 +459,11 @@ class DealerOrderController extends Controller
             $assignedRouteIds = AssignRoute::whereIn('employee_id', function ($query) {
                     $query->select('id')
                         ->from('employees')
+<<<<<<< HEAD
+                        ->where('employee_type_id', 1); 
+=======
                         ->where('employee_type_id', 1);
+>>>>>>> origin/master
                 })->pluck('id')->toArray();
 
             if (empty($assignedRouteIds)) {
@@ -464,6 +474,14 @@ class DealerOrderController extends Controller
                     'data' => []
                 ], 404);
             }
+<<<<<<< HEAD
+          
+            if (!in_array($dealer->assigned_route_id, $assignedRouteIds)) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 403,
+                    'message' => "Dealer is not in an assigned route of an SE.",
+=======
 
             $dealerRouteIds = DB::table('dealer_route_assignments')
                 ->where('dealer_id', $dealer->id)
@@ -486,10 +504,27 @@ class DealerOrderController extends Controller
                     'success' => false,
                     'statusCode' => 403,
                     'message' => "Dealer is not in any assigned route of a Sales Executive.",
+>>>>>>> origin/master
                     'data' => []
                 ], 403);
             }
 
+<<<<<<< HEAD
+            // $salesData = Order::where('created_by_dealer', $dealer->id)
+            //     ->where('status', 'Delivered')
+            //     ->whereMonth('created_at', $month)
+            //     ->whereYear('created_at', $year)
+            //     ->selectRaw('SUM(invoice_quantity) as total_quantity, SUM(invoice_total) as total_transaction')
+            //     ->first();
+            $salesData = Order::where(function ($query) use ($dealer) {
+                $query->where('created_by_dealer', $dealer->id)
+                    ->orWhere('dealer_id', $dealer->id);
+            })
+                ->where('status', 'Delivered')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->selectRaw('SUM(invoice_quantity) as total_quantity, SUM(invoice_total) as total_transaction')
+=======
             $salesData = Order::where(function ($query) use ($dealer) {
                     $query->where('created_by_dealer', $dealer->id)
                         ->orWhere('dealer_id', $dealer->id);
@@ -501,6 +536,7 @@ class DealerOrderController extends Controller
                     SUM(invoice_quantity) as total_quantity,
                     SUM(invoice_total) as total_transaction
                 ')
+>>>>>>> origin/master
                 ->first();
 
             return response()->json([
@@ -514,6 +550,70 @@ class DealerOrderController extends Controller
                     'total_transaction' => round((float) ($salesData->total_transaction ?? 0), 2),
                 ],
             ], 200);
+<<<<<<< HEAD
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    public function monthlyTargetAchievement(Request $request)
+    {
+        try {
+            $dealer = Auth::user();
+
+            if (!$dealer) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => "User not Authenticated",
+                ], 401);
+            }
+
+            $month = $request->input('month', Carbon::now()->format('m'));
+            $year = $request->input('year', Carbon::now()->format('Y'));
+
+            // 1️⃣ Get target for the dealer for that month/year
+            // $target = DB::table('dealer_targets')
+            //     ->where('dealer_id', $dealer->id)
+            //     ->where('month', $month)
+            //     ->where('year', $year)
+            //     ->select('target_quantity')
+            //     ->first();
+
+            // 2️⃣ Get achieved sales (same logic as in your existing API)
+            $salesData = Order::where(function ($query) use ($dealer) {
+                    $query->where('created_by_dealer', $dealer->id)
+                        ->orWhere('dealer_id', $dealer->id);
+                })
+                ->where('status', 'Delivered')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->selectRaw('
+                    SUM(invoice_quantity) as achieved_quantity
+                ')
+                ->first();
+
+            // 3️⃣ Format response
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Monthly Target vs Achieved Data',
+                'data' => [
+                    'year' => $year,
+                    'month' => $month,
+                    // 'target_quantity' => round((float) ($target->target_quantity ?? 0), 2),
+                    'target_quantity' => '0',
+                    'achieved_quantity' => round((float) ($salesData->achieved_quantity ?? 0), 2),
+                    // 'achievement_percentage' => $target && $target->target_quantity > 0
+                    //     ? round(($salesData->achieved_quantity / $target->target_quantity) * 100, 2)
+                    //     : 0,
+                ],
+            ], 200);
+=======
+>>>>>>> origin/master
 
         } catch (\Exception $e) {
             return response()->json([
@@ -730,6 +830,8 @@ class DealerOrderController extends Controller
         }
     }
 
+<<<<<<< HEAD
+=======
     // public function orderRequestList(Request $request)
     // {
     //     try {
@@ -809,6 +911,7 @@ class DealerOrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function orderRequestList(Request $request)
     {
         try {
@@ -837,6 +940,24 @@ class DealerOrderController extends Controller
                 ], 404);
             }
 
+<<<<<<< HEAD
+            if (!in_array($dealer->assigned_route_id, $assignedRouteIds)) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 403,
+                    'message' => "Dealer is not in an assigned route of an SE.",
+                    'data' => []
+                ], 403);
+            }
+
+            $salesExecutives = AssignRoute::where('id', $dealer->assigned_route_id)
+                ->pluck('employee_id');
+            if ($salesExecutives->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => "No Sales Executives found for this dealer's assigned route.",
+=======
             $dealerRouteIds = DB::table('dealer_route_assignments')
                 ->where('dealer_id', $dealer->id)
                 ->pluck('assign_route_id')
@@ -847,10 +968,18 @@ class DealerOrderController extends Controller
                     'success' => false,
                     'statusCode' => 404,
                     'message' => "No route assignments found for this dealer.",
+>>>>>>> origin/master
                     'data' => []
                 ], 404);
             }
 
+<<<<<<< HEAD
+            $orders = Order::whereIn('created_by', $salesExecutives)
+                ->where('dealer_id',$dealer->id)
+                ->select('id', 'total_amount', 'status', 'created_at')
+                ->orderBy('id', 'desc')
+                ->get();
+=======
             $matchedRouteIds = array_intersect($dealerRouteIds, $assignedRouteIds);
 
             if (empty($matchedRouteIds)) {
@@ -880,17 +1009,24 @@ class DealerOrderController extends Controller
                 ->orderBy('id', 'desc')
                 ->get();
 
+>>>>>>> origin/master
             $formattedOrders = $orders->map(function ($order) {
                 return [
                     'id' => $order->id,
                     'created_at' => $order->created_at->format('d/m/Y'),
                     'total_amount' => round($order->total_amount, 2),
+<<<<<<< HEAD
+                    'status' => $order->status === 'Pending' ? 'Order Received' :
+                                ($order->status === 'Accepted' ? 'Order Accepted' :
+                                ($order->status === 'Rejected' ? 'Order Rejected' : ucfirst($order->status))),
+=======
                     'status' => match ($order->status) {
                         'Pending' => 'Order Received',
                         'Accepted' => 'Order Accepted',
                         'Rejected' => 'Order Rejected',
                         default => ucfirst($order->status),
                     },
+>>>>>>> origin/master
                 ];
             });
 
@@ -900,7 +1036,11 @@ class DealerOrderController extends Controller
                 'message' => 'Order Request List fetched successfully',
                 'data' => $formattedOrders,
             ], 200);
+<<<<<<< HEAD
+            
+=======
 
+>>>>>>> origin/master
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -910,7 +1050,10 @@ class DealerOrderController extends Controller
         }
     }
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/master
     public function orderRequestDetails($orderId)
     {
         try {
@@ -1014,6 +1157,8 @@ class DealerOrderController extends Controller
         }
     }
 
+<<<<<<< HEAD
+=======
     // public function orderRequestStatusUpdate(Request $request, $orderId)
     // {
     //     try {
@@ -1088,6 +1233,7 @@ class DealerOrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function orderRequestStatusUpdate(Request $request, $orderId)
     {
         try {
@@ -1116,6 +1262,9 @@ class DealerOrderController extends Controller
                 ], 404);
             }
 
+<<<<<<< HEAD
+            $salesExecutives = AssignRoute::where('id', $dealer->assigned_route_id)->pluck('employee_id');
+=======
             $dealerRouteIds = DB::table('dealer_route_assignments')
                 ->where('dealer_id', $dealer->id)
                 ->pluck('assign_route_id')
@@ -1136,6 +1285,7 @@ class DealerOrderController extends Controller
                         ->where('employee_type_id', 1);
                 })
                 ->pluck('employee_id');
+>>>>>>> origin/master
 
             if (!$salesExecutives->contains($order->created_by)) {
                 return response()->json([
@@ -1145,6 +1295,25 @@ class DealerOrderController extends Controller
                 ], 403);
             }
 
+<<<<<<< HEAD
+            // Update order status
+            $order->status = $validatedData['status'];
+            if ($validatedData['status'] === 'Rejected') {
+                $order->reason_for_rejection = $validatedData['reason_for_rejection'];
+            } else {
+                $order->reason_for_rejection = null;
+            }
+            $order->save();
+		    $value="pending";
+            if($validatedData['status']=="Rejected"){
+                $value="rejected";
+            }else{
+               $value ="approved";
+            }
+            //.............$value.........notification..............
+            $authController = new AuthController();
+            $authController->changeNotificationStatus('orders', $orderId,$value);
+=======
             $order->status = $validatedData['status'];
             $order->reason_for_rejection = $validatedData['status'] === 'Rejected'
                 ? $validatedData['reason_for_rejection']
@@ -1160,6 +1329,7 @@ class DealerOrderController extends Controller
             $authController = new AuthController();
             $authController->changeNotificationStatus('orders', $orderId, $value);
 
+>>>>>>> origin/master
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
@@ -1179,6 +1349,8 @@ class DealerOrderController extends Controller
             ], 500);
         }
     }
+<<<<<<< HEAD
+=======
 
     // public function getSupport(Request $request)
     // {
@@ -1246,11 +1418,16 @@ class DealerOrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function getSupport(Request $request)
     {
         try {
             $dealer = Auth::user();
+<<<<<<< HEAD
+            
+=======
 
+>>>>>>> origin/master
             if (!$dealer) {
                 return response()->json([
                     'success' => false,
@@ -1259,6 +1436,15 @@ class DealerOrderController extends Controller
                 ], 401);
             }
 
+<<<<<<< HEAD
+            $seAssignedRoute = AssignRoute::where('id', $dealer->assigned_route_id)->first();
+
+            if (!$seAssignedRoute) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => "Assigned route not found for this dealer.",
+=======
             $dealerRouteIds = DB::table('dealer_route_assignments')
                 ->where('dealer_id', $dealer->id)
                 ->pluck('assigned_route_id')
@@ -1269,21 +1455,41 @@ class DealerOrderController extends Controller
                     'success' => false,
                     'statusCode' => 404,
                     'message' => "No route assignments found for this dealer.",
+>>>>>>> origin/master
                     'data' => []
                 ], 404);
             }
 
+<<<<<<< HEAD
+            if (!$seAssignedRoute->employee_id) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => "No ASO assigned for this dealer's route.",
+                    'data' => []
+                ], 404);
+            }
+
+            $aso = Employee::where('id', $seAssignedRoute->employee_id)
+                ->where('employee_type_id', 2) 
+                ->select('id', 'name', 'phone')
+=======
             $aso = AssignRoute::whereIn('id', $dealerRouteIds)
                 ->join('employees', 'assign_routes.employee_id', '=', 'employees.id')
                 ->where('employees.employee_type_id', 2)
                 ->select('employees.id as aso_id', 'employees.name', 'employees.phone')
+>>>>>>> origin/master
                 ->first();
 
             if (!$aso) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 404,
+<<<<<<< HEAD
+                    'message' => "No ASO found for this dealer's assigned route.",
+=======
                     'message' => "No ASO found for this dealer’s assigned routes.",
+>>>>>>> origin/master
                     'data' => []
                 ], 404);
             }
@@ -1293,9 +1499,16 @@ class DealerOrderController extends Controller
                 'statusCode' => 200,
                 'message' => "Support ASO fetched successfully",
                 'data' => [
+<<<<<<< HEAD
+                    'aso_id' => $aso->id,
+                    'name' => $aso->name,
+                    'phone' => $aso->phone,
+                    'address' => '953, Temple Road, opposite Thrikkkakara, Thrikkakara, Edappally, Kochi, Kerala 682021',
+=======
                     'aso_id' => $aso->aso_id,
                     'name' => $aso->name,
                     'phone' => $aso->phone,
+>>>>>>> origin/master
                 ],
             ], 200);
 
@@ -1308,7 +1521,10 @@ class DealerOrderController extends Controller
         }
     }
 
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/master
     public function paymentHistoryList(Request $request)
     {
         $dealer = Auth::user();
@@ -1329,7 +1545,12 @@ class DealerOrderController extends Controller
                 });
             })
             ->with(['order.paymentTerm'])
+<<<<<<< HEAD
+	    ->orderBy('payment_date', 'desc')
+// 	dd($payments->toSql(), $payments->getBindings());
+=======
 	        ->orderBy('payment_date', 'desc')
+>>>>>>> origin/master
             ->get()
             ->map(function ($payment) {
                 return [
@@ -1514,6 +1735,15 @@ class DealerOrderController extends Controller
           //  ->select('order_type', 'payment_terms_id', 'billing_date', 'invoice_number')
            // ->with('orderType:id,name', 'paymentTerm:id,name')
 	//  ->first();
+<<<<<<< HEAD
+ $order = Order::where('id', $creditNote->order_id)
+        ->where(function ($query) use ($dealer) {
+            $query->where('dealer_id', $dealer->id)
+                  ->orWhere('created_by_dealer', $dealer->id);
+        })
+        ->with('orderType:id,name', 'paymentTerm:id,name')
+        ->first();
+=======
         $order = Order::where('id', $creditNote->order_id)
             ->where(function ($query) use ($dealer) {
             $query->where('dealer_id', $dealer->id)
@@ -1521,6 +1751,7 @@ class DealerOrderController extends Controller
         })
             ->with('orderType:id,name', 'paymentTerm:id,name')
             ->first();
+>>>>>>> origin/master
 
         if (!$order) {
             return response()->json([

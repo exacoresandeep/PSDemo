@@ -96,7 +96,11 @@ class LeadController extends Controller
                 'district_id' => 'required|exists:districts,id',
                 'assigned_route_id' => 'required|exists:assigned_routes,id',
             ]);
+<<<<<<< HEAD
+// return $request;
+=======
 
+>>>>>>> origin/master
             $existingLead = Lead::where('phone', $request->phone)->first();
             if ($existingLead) {
                 return response()->json([
@@ -376,7 +380,11 @@ class LeadController extends Controller
     
             $formattedLeads = $leads->map(function ($lead) {
                 return [
+<<<<<<< HEAD
+                    'id' => $lead->id,
+=======
                     'lead_id' => $lead->id,
+>>>>>>> origin/master
                     'status' => $lead->status,
                     'customer_name' => $lead->customer_name,
                     'customer_type' => $lead->customerType ? [

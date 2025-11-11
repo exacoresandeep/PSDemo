@@ -36,6 +36,10 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
         ->whereYear('created_at', $this->year)
         ->whereMonth('created_at', $this->month)
         ->get();
+<<<<<<< HEAD
+         
+=======
+>>>>>>> origin/master
     }
 
     public function map($lead): array
@@ -85,15 +89,26 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             $lead->type_of_visit,
             $lead->construction_type,
             $lead->stage_of_construction,
+<<<<<<< HEAD
+            $lead->follow_up_date 
+                ? \Carbon\Carbon::parse($lead->follow_up_date)->format('Y-m-d') 
+                : 'NA',
+
+=======
             
+>>>>>>> origin/master
             $lead->lead_score,
             $lead->lead_source,
             $lead->source_name,
             $lead->total_quantity,
             $lead->status,
+<<<<<<< HEAD
+            $newFollowUpDate,
+=======
             $lead->follow_up_date 
                 ? \Carbon\Carbon::parse($lead->follow_up_date)->format('Y-m-d') 
                 : 'NA',
+>>>>>>> origin/master
             $newFollowUpReason,
             $dealerName,
             $paymentTerm,
@@ -132,7 +147,11 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             'Type of Visit',
             'Construction Type',
             'Stage of Construction',
+<<<<<<< HEAD
+            'Follow Up Date',
+=======
            
+>>>>>>> origin/master
             'Lead Score',
             'Source',
             'Source Name',

@@ -217,7 +217,11 @@ class AdminController extends Controller
         }
     }
     
+<<<<<<< HEAD
+
+=======
     public function usersIndex(){
         return view('admin.users.user');
     }
+>>>>>>> origin/master
 }

@@ -449,6 +449,9 @@ class OrderController extends Controller
         }
     }
 
+<<<<<<< HEAD
+     public function dealerOrderList(Request $request)
+=======
     // public function dealerOrderDetails($orderId)
     // {
     //     try {
@@ -640,6 +643,7 @@ class OrderController extends Controller
     //     }
     // }
     public function dealerOrderList(Request $request)
+>>>>>>> origin/master
     {
         try {
             if ($request->has('search_key')) {
@@ -922,6 +926,9 @@ class OrderController extends Controller
     }
 
 
+<<<<<<< HEAD
+     public function dealerOrderFilter(Request $request)
+=======
     // public function dealerOrderFilter(Request $request)
     // {
     //     try {
@@ -1009,6 +1016,7 @@ class OrderController extends Controller
     //     }
     // }
     public function dealerOrderFilter(Request $request)
+>>>>>>> origin/master
     {
         try {
             $validatedData = $request->validate([
@@ -1100,6 +1108,9 @@ class OrderController extends Controller
         }
     }
 
+<<<<<<< HEAD
+    
+=======
 
     
     // public function outstandingPaymentsList()
@@ -1208,6 +1219,7 @@ class OrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function outstandingPaymentsList()
     {
         try {
@@ -1275,6 +1287,10 @@ class OrderController extends Controller
             ], 500);
         }
     }
+<<<<<<< HEAD
+  
+     public function searchOutstandingPayments(Request $request)
+=======
 
   
     // public function searchOutstandingPayments(Request $request)
@@ -1385,6 +1401,7 @@ class OrderController extends Controller
     //     }
     // }
     public function searchOutstandingPayments(Request $request)
+>>>>>>> origin/master
     {
         try {
             $employee = Auth::user();
@@ -1483,6 +1500,8 @@ class OrderController extends Controller
             ], 500);
         }
     }
+<<<<<<< HEAD
+=======
 
     // public function viewOutstandingPaymentByDealer($dealer_id)
     // {
@@ -1574,6 +1593,7 @@ class OrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function viewOutstandingPaymentByDealer($dealer_id)
     {
         try {
@@ -1651,6 +1671,8 @@ class OrderController extends Controller
             ], 500);
         }
     }
+<<<<<<< HEAD
+=======
 
     // public function searchOutstandingByInvoice(Request $request)
     // {
@@ -1759,6 +1781,7 @@ class OrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function searchOutstandingByInvoice(Request $request)
     {
         try {
@@ -1858,6 +1881,8 @@ class OrderController extends Controller
         }
     }
 
+<<<<<<< HEAD
+=======
 
     // public function viewOutstandingPaymentOrderDetails($orderId)
     // {
@@ -2036,6 +2061,7 @@ class OrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function viewOutstandingPaymentOrderDetails($orderId)
     {
         try {
@@ -2192,6 +2218,9 @@ class OrderController extends Controller
             ], 500);
         }
     }
+<<<<<<< HEAD
+    
+=======
 
     // public function addOutstandingPaymentCommitment(Request $request, $outstandingPaymentId)
     // {
@@ -2296,6 +2325,7 @@ class OrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function addOutstandingPaymentCommitment(Request $request, $outstandingPaymentId)
     {
         try {
@@ -2389,6 +2419,8 @@ class OrderController extends Controller
         }
     }
 
+<<<<<<< HEAD
+=======
 
     // public function addOutstandingPaymentCommitmentNew(Request $request, $outstandingPaymentId)
     // {
@@ -2546,6 +2578,7 @@ class OrderController extends Controller
     //         ], 500);
     //     }
     // }
+>>>>>>> origin/master
     public function addOutstandingPaymentCommitmentNew(Request $request, $outstandingPaymentId)
     {
         try {
@@ -2656,7 +2689,10 @@ class OrderController extends Controller
             ], 500);
         }
     }
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/master
     public function salesExecutiveSalesReport(Request $request)
     {
         try {
