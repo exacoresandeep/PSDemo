@@ -414,7 +414,6 @@ class LeadController extends Controller
     public function updateLead(Request $request, $leadId)
     {
         try {
-            // ✅ Step 1: Validate request
             $validatedData = $request->validate([
                 'type_of_visit' => 'required|string',
                 'construction_type' => 'required|string',
@@ -430,7 +429,6 @@ class LeadController extends Controller
                 'status' => 'required|in:Opened,Follow Up,Won,Lost',
                 'dealer_id' => 'nullable|numeric',
     
-                // Lost details
                 'lost_details.lost_volume' => 'required_if:status,Lost|nullable|numeric',
                 'lost_details.lost_to_competitor' => 'required_if:status,Lost|nullable|string',
                 'lost_details.competitor_name' => 'nullable|string',
@@ -443,7 +441,6 @@ class LeadController extends Controller
                 'further_requirement' => 'required_if:status,Lost|nullable|in:Yes,No',
                 'further_volume' => 'required_if:status,Lost|nullable|numeric',
     
-                // Won order details
                 'order_details.customer_type_id' => 'required_if:status,Won|nullable|exists:customer_types,id',
                 'order_details.dealer_id' => 'nullable|exists:dealers,id',
                 'order_details.dealer_flag_order' => 'nullable|numeric',
@@ -458,7 +455,6 @@ class LeadController extends Controller
                 'order_details.attachment.*' => 'nullable|string',
             ]);
     
-            // ✅ Step 2: Find the lead
             $lead = Lead::where('id', $leadId)
                 ->where('created_by', Auth::id())
                 ->firstOrFail();
@@ -467,7 +463,6 @@ class LeadController extends Controller
                 $lead->update(['lead_chain_id' => (string) Str::uuid()]);
             }
     
-            // ✅ Determine total deal volume
             if ($lead->lead_chain_id) {
                 $originalLead = Lead::where('lead_chain_id', $lead->lead_chain_id)
                     ->orderBy('created_at', 'asc')
@@ -479,7 +474,6 @@ class LeadController extends Controller
     
             DB::beginTransaction();
     
-            // ✅ Step 3: Notification status
             switch ($request->status) {
                 case 'Follow Up':
                     $notification_status = 'approved';
@@ -491,7 +485,6 @@ class LeadController extends Controller
                     break;
             }
     
-            // ✅ Step 4: Handle Follow Up
             if ($request->status === 'Follow Up') {
                 LeadFollowUp::create([
                     'lead_id' => $lead->id,
@@ -502,7 +495,6 @@ class LeadController extends Controller
                 $lead->update(['follow_up_date' => $request->follow_up_date]);
             }
     
-            // ✅ Step 5: Prepare lead data
             $leadData = [
                 'type_of_visit' => $request->type_of_visit,
                 'construction_type' => $request->construction_type,
@@ -524,7 +516,6 @@ class LeadController extends Controller
                 $leadData['dealer_id'] = $request->dealer_id;
             }
     
-            // ✅ Step 6: Add Lost details if status is Lost
             if ($request->status === 'Lost' && !empty($request->lost_details)) {
                 $lost = $request->lost_details;
                 $leadData = array_merge($leadData, [
@@ -546,7 +537,6 @@ class LeadController extends Controller
     
             $order = null;
     
-            // ✅ Step 7: Handle Won status
             if ($request->status === 'Won' && !empty($request->order_details)) {
             $orderDetails = $request->order_details;
 
@@ -554,7 +544,7 @@ class LeadController extends Controller
                 'customer_type_id' => $orderDetails['customer_type_id'],
                 'lead_id' => $lead->id,
                 'dealer_id' => $orderDetails['dealer_id'] ?? null,
-                'dealer_flag_order' => $orderDetails['dealer_flag_order'] ?? 0,
+                'dealer_flag_order' => $orderDetails['dealer_flag_order'] ?? "0",
                 'payment_terms_id' => $orderDetails['payment_terms_id'],
                 'credit_days' => $orderDetails['credit_days'] ?? null,
                 'total_amount' => (float) $orderDetails['total_amount'],
@@ -582,7 +572,6 @@ class LeadController extends Controller
             }
         }
 
-        // Step 9: Calculate total Won/Lost volume across lead_chain_id
         $totalWonVolume = Lead::where('lead_chain_id', $lead->lead_chain_id)
             ->where('status', 'Won')
             ->with('orders.orderItems')
@@ -599,7 +588,6 @@ class LeadController extends Controller
 
         $handledVolume = $totalWonVolume + $totalLostVolume;
 
-        // Step 10: Create new Opened lead if all volume handled
         if ($handledVolume >= $totalDealVolume) {
             Lead::create([
                 'customer_type' => $lead->customer_type,
