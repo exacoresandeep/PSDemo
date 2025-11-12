@@ -325,7 +325,9 @@ class EmployeeController extends Controller
                     'message' => 'Employee not found',
                 ], 400);
             }
+             $productIds = json_decode($employee->products, true) ?? [];
 
+            $employee->product_ids = $productIds;
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
@@ -544,6 +546,59 @@ class EmployeeController extends Controller
             'status' => 'success',
             'data' => $employee
         ]);
+    }
+     public function getEmployeeProducts(Request $request)
+    {
+        try {
+            $employee = $request->user();
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => 'User not authenticated',
+                ], 401);
+            }
+
+            $employee = Employee::where('id', $employee->id)->first();
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => 'Employee not found',
+                ], 404);
+            }
+
+            $productIds = [];
+            if (!empty($employee->products)) {
+                $decoded = json_decode($employee->products, true);
+                $productIds = json_last_error() === JSON_ERROR_NONE
+                    ? $decoded
+                    : explode(',', $employee->products);
+            }
+
+            $products = \App\Models\Product::whereIn('id', $productIds)->get(['id', 'product_name']);
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Products handled by employee retrieved successfully',
+                'data' => [
+                    'employee_id' => $employee->id,
+                    'employee_name' => $employee->name,
+                    'product_ids' => $productIds,
+                    'products' => $products,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     
