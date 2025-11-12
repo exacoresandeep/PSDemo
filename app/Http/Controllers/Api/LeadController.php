@@ -27,7 +27,7 @@ class LeadController extends Controller
             if ($user !== null) {
                 $leads = Lead::with(['customerType', 'district', 'tripRoute'])
                             ->where('created_by', $user->id)
-                            ->orderBy('customer_name', 'asc')
+                            ->orderBy('created_at', 'desc')
                             ->get();
     
                 if ($leads->isEmpty()) {
@@ -54,8 +54,8 @@ class LeadController extends Controller
                         ] : null,  
                         'route_name' => $lead->tripRoute ? $lead->tripRoute->route_name : null, 
                         'location_name' => $lead->location ? $lead->location : null,
-                        'created_at' => $lead->created_at->format('d/M/Y'),
-                        'updated_at' => $lead->updated_at,
+                        'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+                        'updated_at' => $lead->updated_at->format('d/M/Y h:i A'),
                         'follow_up_date' => $lead->follow_up_date,
                         ];
                 });
@@ -82,7 +82,7 @@ class LeadController extends Controller
             ], 500);
         }
     }
-    
+
     public function store(Request $request)
     {
         try {
@@ -96,7 +96,6 @@ class LeadController extends Controller
                 'district_id' => 'required|exists:districts,id',
                 'assigned_route_id' => 'required|exists:assigned_routes,id',
             ]);
-            // return $request;
             $existingLead = Lead::where('phone', $request->phone)->first();
             if ($existingLead) {
                 return response()->json([
@@ -247,7 +246,7 @@ class LeadController extends Controller
                 'trip_route' => $lead->assignRoute ? [
                     'id' => $lead->assignRoute->id,
                     'route_name' => $lead->assignRoute->route_name,
-                    'location_name' => $lead->assignRoute->location_name,
+                    'location_name' => $lead->assignRoute->locations,
                 ] : null,
                 'type_of_visit' => $lead->type_of_visit,
                 'construction_type' => $lead->construction_type,
@@ -257,13 +256,14 @@ class LeadController extends Controller
                 'lead_score' => $lead->lead_score,
                 'lead_source' => $lead->lead_source,
                 'source_name' => $lead->source_name,
-                'total_volume' => (float) $lead->total_volume,
+                'total_volume' => (float) ($lead->total_deal_volume ?? $lead->total_volume),
                 'total_quantity' => (float) $lead->total_quantity,
-                'current_deal_volume' => (float) $lead->current_deal_volume,
+                'current_deal_volume' => (float) $lead->total_deal_volume - $wonVolume - $lostVolume,
+                // 'current_deal_volume' => (float) $lead->current_deal_volume,
                 'won_volume' => (float) $wonVolume,
                 'lost_v' => (float) $lostVolume,
-                'total_deal_volume' => (float) $wonVolume + $lostVolume + $lead->current_deal_volume,
-                'volume' => (float) $lead->previous_quantity,
+                // 'total_deal_volume' => (float) $wonVolume + $lostVolume + $lead->current_deal_volume,
+                // 'volume' => (float) $lead->previous_quantity,
                 'previous_brand' => $lead->previous_brand,
                 'brand_name' => $lead->brand_name,
                 'previous_brand_quantity' => (float) $lead->previous_brand_quantity,
@@ -332,6 +332,7 @@ class LeadController extends Controller
             ], 500);
         }
     }
+
     public function searchLead(Request $request)
     {
       
@@ -413,6 +414,7 @@ class LeadController extends Controller
     public function updateLead(Request $request, $leadId)
     {
         try {
+            // ✅ Step 1: Validate request
             $validatedData = $request->validate([
                 'type_of_visit' => 'required|string',
                 'construction_type' => 'required|string',
@@ -431,10 +433,10 @@ class LeadController extends Controller
                 // Lost details
                 'lost_details.lost_volume' => 'required_if:status,Lost|nullable|numeric',
                 'lost_details.lost_to_competitor' => 'required_if:status,Lost|nullable|string',
-                'competitor_name' => 'nullable|string',
+                'lost_details.competitor_name' => 'nullable|string',
                 'lost_details.reason_for_lost' => 'required_if:status,Lost|nullable|string',
                 'previous_brand' => 'required_if:status,Lost|nullable|string',
-		        'brand_name' => 'nullable|string',
+                'brand_name' => 'nullable|string',
                 'previous_brand_quantity' => 'required_if:status,Lost|nullable|numeric',
                 'customer_meet' => 'required_if:status,Lost|nullable|in:Yes,No',
                 'ring_test' => 'required_if:status,Lost|nullable|in:Yes,No',
@@ -452,23 +454,44 @@ class LeadController extends Controller
                 'order_details.order_items.*.total_quantity' => 'required_with:order_details.order_items|numeric',
                 'order_details.order_items.*.balance_quantity' => 'required_with:order_details.order_items|numeric',
                 'order_details.order_items.*.product_details' => 'nullable|array',
-                
                 'order_details.attachment' => 'nullable|array',
                 'order_details.attachment.*' => 'nullable|string',
-                
             ]);
     
+            // ✅ Step 2: Find the lead
             $lead = Lead::where('id', $leadId)
                 ->where('created_by', Auth::id())
                 ->firstOrFail();
+    
             if (!$lead->lead_chain_id) {
                 $lead->update(['lead_chain_id' => (string) Str::uuid()]);
-            } 
+            }
+    
+            // ✅ Determine total deal volume
+            if ($lead->lead_chain_id) {
+                $originalLead = Lead::where('lead_chain_id', $lead->lead_chain_id)
+                    ->orderBy('created_at', 'asc')
+                    ->first();
+                $totalDealVolume = $originalLead ? $originalLead->total_volume : $lead->total_volume;
+            } else {
+                $totalDealVolume = $lead->total_volume;
+            }
+    
             DB::beginTransaction();
     
-            $notification_status = $request->status === 'Follow Up' ? 'approved' : 'pending';
+            // ✅ Step 3: Notification status
+            switch ($request->status) {
+                case 'Follow Up':
+                    $notification_status = 'approved';
+                    break;
+                case 'Won':
+                case 'Lost':
+                default:
+                    $notification_status = 'pending';
+                    break;
+            }
     
-
+            // ✅ Step 4: Handle Follow Up
             if ($request->status === 'Follow Up') {
                 LeadFollowUp::create([
                     'lead_id' => $lead->id,
@@ -476,11 +499,10 @@ class LeadController extends Controller
                     'reason' => $request->follow_up_reason,
                     'created_by' => Auth::id(),
                 ]);
-                $lead->update([
-                    'follow_up_date' => $request->follow_up_date,
-                ]);
+                $lead->update(['follow_up_date' => $request->follow_up_date]);
             }
     
+            // ✅ Step 5: Prepare lead data
             $leadData = [
                 'type_of_visit' => $request->type_of_visit,
                 'construction_type' => $request->construction_type,
@@ -491,141 +513,107 @@ class LeadController extends Controller
                 'lead_source' => $request->lead_source,
                 'source_name' => $request->source_name,
                 'total_quantity' => $request->total_quantity,
+                'total_deal_volume' => $totalDealVolume,
+                'total_volume' => $request->total_volume,
                 'status' => $request->status,
                 'notification_status' => $notification_status,
+                'updated_by' => Auth::id(),
             ];
-            
-           
+    
             if (!empty($request->dealer_id)) {
                 $leadData['dealer_id'] = $request->dealer_id;
             }
-            
-            $lead->update($leadData);
-            $order = null;
-
-            if ($request->status === 'Won' && !empty($request->order_details)) {
-                $orderDetails = $request->order_details;
     
-                $order = Order::create([
-                    'customer_type_id' => $orderDetails['customer_type_id'],
-                    'lead_id' => $lead->id,
-                    'dealer_id' => $orderDetails['dealer_id'] ?? null,
-                    'dealer_flag_order' => $orderDetails['dealer_flag_order'] ?? 0,
-                    'payment_terms_id' => $orderDetails['payment_terms_id'],
-                    'credit_days' => $orderDetails['credit_days'] ?? null,
-                    'total_amount' => (float)$orderDetails['total_amount'],
-                    'billing_date' => now()->format('Y-m-d'),
-                    'status' => 'Pending',
-                    'source' => 'lead_won',
-                    'created_by' => Auth::id(),
-                    
-                    'attachment' => $orderDetails['attachment'] ?? $request->attachment ?? [],
-                ]);
-                
-    
-                if (!empty($orderDetails['order_items'])) {
-                    $orderItems = array_map(function ($item) use ($order) {
-                        return [
-                            'order_id' => $order->id,
-                            'product_id' => $item['product_id'],
-                            'total_quantity' => $item['total_quantity'],
-                            'balance_quantity' => $item['balance_quantity'],
-                            'product_details' => json_encode($item['product_details']),
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ];
-                    }, $orderDetails['order_items']);
-    
-                    OrderItem::insert($orderItems);
-                    foreach ($orderDetails['order_items'] as $item) {
-                        if ($item['balance_quantity'] > 0) {
-                            $totalQuantity = $item['total_quantity'];    
-                            $balanceQuantity = $item['balance_quantity'];
-                            $sum = $totalQuantity + $balanceQuantity;
-                            Lead::create([
-                                'customer_type' => $lead->customer_type,
-                                'customer_name' => $lead->customer_name,
-                                'city' => $lead->city,
-                                'location' => $lead->location,
-                                'phone' => $lead->phone,
-                                'address' => $lead->address,
-                                'district_id' => $lead->district_id,
-                                'assigned_route_id' => $lead->assigned_route_id,
-                                'type_of_visit' => $request->type_of_visit,
-                                'construction_type' => $request->construction_type,
-                                'construction_type_name' => $request->construction_type_name,
-                                'stage_of_construction' => $request->stage_of_construction,
-                                'follow_up_date' => $request->follow_up_date,
-                                'lead_score' => $request->lead_score,
-                                'lead_source' => $request->lead_source,
-                                'source_name' => $request->source_name,
-                                'total_volume' => $request->total_volume,
-                                'total_quantity' => $lead->total_quantity,
-                                //'total_quantity' => $lead->total_quantity,
-                                'previous_quantity' => $item['total_quantity'],
-                                'current_deal_volume' => $item['balance_quantity'],
-                                'status' => 'Follow Up',
-                                'lead_chain_id' => $lead->lead_chain_id,
-                                'notification_status' => 'approved',
-                                'created_by' => Auth::id(),
-                            ]);
-                        }
-                    }
-                }
-            }
-    
-            // Handle LOST lead
+            // ✅ Step 6: Add Lost details if status is Lost
             if ($request->status === 'Lost' && !empty($request->lost_details)) {
-                $lead->update([
-                    'lost_volume' => $request->lost_details['lost_volume'],
-                    'lost_to_competitor' => $request->lost_details['lost_to_competitor'],
-                    'competitor_name' => $request->lost_details['competitor_name'],
-                    'reason_for_lost' => $request->lost_details['reason_for_lost'],
+                $lost = $request->lost_details;
+                $leadData = array_merge($leadData, [
+                    'lost_volume' => $lost['lost_volume'] ?? null,
+                    'lost_to_competitor' => $lost['lost_to_competitor'] ?? null,
+                    'competitor_name' => $lost['competitor_name'] ?? null,
+                    'reason_for_lost' => $lost['reason_for_lost'] ?? null,
                     'previous_brand' => $request->previous_brand ?? null,
                     'brand_name' => $request->brand_name ?? null,
                     'previous_brand_quantity' => $request->previous_brand_quantity ?? null,
                     'customer_meet' => $request->customer_meet ?? null,
                     'ring_test' => $request->ring_test ?? null,
                     'further_requirement' => $request->further_requirement ?? null,
-                    'further_volume' => is_numeric($request->further_volume) ? $request->further_volume : null,
+                    'further_volume' => $request->further_volume ?? null,
                 ]);
-                if (!empty($request->lost_details['lost_volume']) && $request->lost_details['lost_volume'] > 0) {
-                    Lead::create([
-                        'customer_type' => $lead->customer_type,
-                        'customer_name' => $lead->customer_name,
-                        'city' => $lead->city,
-                        'location' => $lead->location,
-                        'phone' => $lead->phone,
-                        'address' => $lead->address,
-                        'district_id' => $lead->district_id,
-                        'assigned_route_id' => $lead->assigned_route_id,
-                        'type_of_visit' => $request->type_of_visit,
-                        'construction_type' => $request->construction_type,
-                        'construction_type_name' => $request->construction_type_name,
-                        'stage_of_construction' => $request->stage_of_construction,
-                        'follow_up_date' => $request->follow_up_date,
-                        'lead_score' => $request->lead_score,
-                        'lead_source' => $request->lead_source,
-                        'source_name' => $request->source_name,
-                        'total_volume' => $request->total_volume,
-                        'total_quantity' => $request->lost_details['lost_volume'],
-                        //'total_quantity' => $lead->total_quantity,
-                        'previous_quantity' => $lead->total_quantity,
-                        'current_deal_volume' => $request->lost_details['lost_volume'],
-                        'previous_brand' => $request->previous_brand,
-                        'brand_name' => $request->brand_name,
-                        'previous_brand_quantity' => $request->previous_brand_quantity,
-                        'customer_meet' => $request->customer_meet,
-                        'ring_test' => $request->ring_test,
-                        'further_requirement' => $request->further_requirement,
-                        'further_volume' => $request->further_volume,
-                        'status' => 'Follow Up',
-                        'lead_chain_id' => $lead->lead_chain_id,
-                        'notification_status' => 'approved',
-                        'created_by' => Auth::id(),
-                    ]);
-                }
             }
+    
+            $lead->update($leadData);
+    
+            $order = null;
+    
+            // ✅ Step 7: Handle Won status
+            if ($request->status === 'Won' && !empty($request->order_details)) {
+            $orderDetails = $request->order_details;
+
+            $order = Order::create([
+                'customer_type_id' => $orderDetails['customer_type_id'],
+                'lead_id' => $lead->id,
+                'dealer_id' => $orderDetails['dealer_id'] ?? null,
+                'dealer_flag_order' => $orderDetails['dealer_flag_order'] ?? 0,
+                'payment_terms_id' => $orderDetails['payment_terms_id'],
+                'credit_days' => $orderDetails['credit_days'] ?? null,
+                'total_amount' => (float) $orderDetails['total_amount'],
+                'billing_date' => now()->format('Y-m-d'),
+                'status' => 'Pending',
+                'source' => 'lead_won',
+                'created_by' => Auth::id(),
+                'attachment' => $orderDetails['attachment'] ?? $request->attachment ?? [],
+            ]);
+
+            if (!empty($orderDetails['order_items']) && is_array($orderDetails['order_items'])) {
+                $orderItems = [];
+                foreach ($orderDetails['order_items'] as $item) {
+                    $orderItems[] = [
+                        'order_id' => $order->id,
+                        'product_id' => $item['product_id'],
+                        'total_quantity' => $item['total_quantity'],
+                        'balance_quantity' => $item['balance_quantity'],
+                        'product_details' => isset($item['product_details']) ? json_encode($item['product_details']) : null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                OrderItem::insert($orderItems);
+            }
+        }
+
+        // Step 9: Calculate total Won/Lost volume across lead_chain_id
+        $totalWonVolume = Lead::where('lead_chain_id', $lead->lead_chain_id)
+            ->where('status', 'Won')
+            ->with('orders.orderItems')
+            ->get()
+            ->sum(function ($l) {
+                return $l->orders->sum(function ($order) {
+                    return $order->orderItems->sum('total_quantity');
+                });
+            });
+
+        $totalLostVolume = Lead::where('lead_chain_id', $lead->lead_chain_id)
+            ->where('status', 'Lost')
+            ->sum('lost_volume');
+
+        $handledVolume = $totalWonVolume + $totalLostVolume;
+
+        // Step 10: Create new Opened lead if all volume handled
+        if ($handledVolume >= $totalDealVolume) {
+            Lead::create([
+                'customer_type' => $lead->customer_type,
+                'customer_name' => $lead->customer_name,
+                'phone' => $lead->phone,
+                'address' => $lead->address,
+                'city' => $lead->city,
+                'location' => $lead->location,
+                'district_id' => $lead->district_id,
+                'assigned_route_id' => $lead->assigned_route_id,
+                'status' => 'Opened',
+                'created_by' => Auth::id(),
+            ]);
+        }
     
             DB::commit();
     

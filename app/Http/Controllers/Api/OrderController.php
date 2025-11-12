@@ -108,6 +108,7 @@ class OrderController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
     public function index(Request $request)
     {
         try {
@@ -115,50 +116,58 @@ class OrderController extends Controller
                 return $this->orderFilter($request); 
             }
 
-
             $employee = Auth::user();
-            if($employee)
-            {
-                $orders = Order::where('created_by', $employee->id)
-                    ->where('dealer_flag_order',"0")
-                    ->with(['dealer:id,dealer_name,dealer_code'])
-                    ->select('id', 'total_amount', 'status', 'created_at', 'dealer_id')
-                    ->orderBy('id','desc')
-                    ->get()
-                    ->map(function ($order) {
-                
-                    $order->total_amount = round((float) $order->total_amount, 6);
-                        return $order;
-                        
-                    });  
-                return response()->json([
-                    'success' => true,
-                    'statusCode' => 200,
-                    'message' => 'Orders fetched successfully',
-                    'data' => $orders->map(function ($order) {
-                    return [
-                            'id' => $order->id,
-                            'total_amount' => $order->total_amount,
-                            'status' => $order->status,
-                            'date'       => $order->created_at->format('d-m-Y'),
-            			    'time'       => $order->created_at->format('H:i:s'),
-            			    'created_at' => $order->created_at->format('d-m-Y'),
-            			    'dealer' => [
-            				    'name' => optional($order->dealer)->dealer_name,
-                                        'dealer_code' => optional($order->dealer)->dealer_code,
-                                          //  'name' => $order->dealer->dealer_name,
-                                        //    'dealer_code' => $order->dealer->dealer_code, 
-                                        ],
-                    ];
-                    }),
-                ], 200);
-            }else{
+
+            if (!$employee) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 401,
                     'message' => "User not Authenticated",
                 ], 401);
             }
+
+            $query = Order::where('created_by', $employee->id)
+                ->where('dealer_flag_order', "0")
+                ->with([
+                    'dealer:id,dealer_name,dealer_code',
+                    'orderItems:id,order_id,product_id,total_quantity' // optional, if you want to see products
+                ]);
+
+            // ✅ Optional product filter
+            if ($request->has('product_id') && !empty($request->product_id)) {
+                $productId = $request->product_id;
+                $query->whereHas('orderItems', function ($q) use ($productId) {
+                    $q->where('product_id', $productId);
+                });
+            }
+
+            $orders = $query->select('id', 'total_amount', 'status', 'created_at', 'dealer_id')
+                ->orderBy('id', 'desc')
+                ->get()
+                ->map(function ($order) {
+                    $order->total_amount = round((float) $order->total_amount, 6);
+                    return $order;
+                });
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Orders fetched successfully',
+                'data' => $orders->map(function ($order) {
+                    return [
+                        'id' => $order->id,
+                        'total_amount' => $order->total_amount,
+                        'status' => $order->status,
+                        // 'date' => $order->created_at->format('d-m-Y'),
+                        // 'time' => $order->created_at->format('H:i:s'),
+                        'created_at' => $order->created_at->format('d/m/Y h:i:s A'),
+                        'dealer' => [
+                            'name' => optional($order->dealer)->dealer_name,
+                            'dealer_code' => optional($order->dealer)->dealer_code,
+                        ],
+                    ];
+                }),
+            ], 200);
 
         } catch (Exception $e) {
             return response()->json([
@@ -168,6 +177,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
     
     public function store(Request $request)
     {
@@ -180,8 +190,6 @@ class OrderController extends Controller
                     'message' => "User not Authenticated",
                 ], 401);
             }
-              
-    
               $rules = [
                 'order_type' => 'nullable|exists:order_types,id',
                 'customer_type_id' => 'nullable|exists:customer_types,id',
@@ -206,7 +214,6 @@ class OrderController extends Controller
                 'order_items' => 'required|array',
                 'order_items.*.product_id' => 'required|exists:products,id',
                 'order_items.*.product_details' => 'nullable|array',
-                'order_items.*.quantity_type' => 'nullable|in:Pieces,Ton',
                 'attachment' => 'nullable|array',
                 'attachment.*' => 'nullable|string',
                 
@@ -241,21 +248,38 @@ class OrderController extends Controller
             $validatedData['product_id'] = $validatedData['order_items'][0]['product_id'] ?? null;
             $order = Order::create($validatedData);
            
-            if (!empty($validatedData['order_items'])) {
-                foreach ($validatedData['order_items'] as $orderItem) {
-                    $totalQuantity = 0;
-                    if (!empty($orderItem['product_details'])) {
-                        foreach ($orderItem['product_details'] as $productDetail) {
-                            $totalQuantity += $productDetail['quantity'];
+      
+            foreach ($validatedData['order_items'] as $orderItem) {
+                $totalQuantity = 0;
+
+                if (!empty($orderItem['product_details'])) {
+                    foreach ($orderItem['product_details'] as $productDetail) {
+                        if (isset($productDetail['pieces'])) {
+                            $totalQuantity += (float)$productDetail['pieces'];
                         }
+                        if (isset($productDetail['tonnage'])) {
+                            $totalQuantity += (float)$productDetail['tonnage'];
+                        }
+                        $typeName = \App\Models\ProductType::where('id', $productDetail['product_type_id'])
+                        ->value('type_name');
+
+                        $productDetail['quantity_type'] = $orderItem['quantity_type'] ?? null;
+                        $productDetail['type_name'] = $typeName ?? null;
+
+                        $productDetails[] = $productDetail;
                     }
-            
-                    $orderItem['total_quantity'] = round($totalQuantity, 6);
-                    $orderItem['quantity_type'] = $orderItem['quantity_type'];
-            
-                    $order->orderItems()->create($orderItem);
+
+                } else {
+                    $totalQuantity = (float)($orderItem['quantity'] ?? 0);
+                    $orderItem['product_details'] = null;
                 }
+
+                $orderItem['total_quantity'] = round($totalQuantity, 6);
+                unset($orderItem['quantity_type']);
+
+                $order->orderItems()->create($orderItem);
             }
+
      
 
             $responseData = [
@@ -264,10 +288,8 @@ class OrderController extends Controller
                     'lead_id' => $order->lead_id,
                     'dealer_id' => $order->dealer_id,
                     'payment_terms_id' => $order->payment_terms_id,
-                    
                     'credit_days' => $order->credit_days,
-                  
-                    'billing_date' => "12-12-2025",
+                    'billing_date' => $order->billing_date,
                     'total_amount' => round((float) $order->total_amount, 6),
                     'additional_information' => $order->additional_information,
                     'status' => $order->status,

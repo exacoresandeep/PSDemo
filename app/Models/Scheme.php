@@ -9,9 +9,14 @@ class Scheme extends Model
     protected $table = 'scheme';
 
     protected $fillable = [
+        'product_id',
         'scheme',
         'status',
     ];
 
     public $timestamps = false; 
+    public function product()
+    {
+        return $this->belongsTo(Product::class, 'product_id');
+    }
 }
