@@ -239,6 +239,7 @@ use App\Http\Controllers\ExpenseController;
             Route::get('influencer-visit-listing', [LeadController::class, 'influencerVisitListing']); //New
             Route::get('influencer-visit-details/{id}', [LeadController::class, 'influencerVisitDetails']); //New
             Route::get('districts', [AuthController::class, 'getDistricts']);
+            Route::get('employee/products', [EmployeeController::class, 'getEmployeeProducts']);
     
             Route::post('logout', [AuthController::class, 'logout']);
             
