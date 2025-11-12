@@ -77,7 +77,7 @@ class Order extends Model
         'attachment' => 'array',
         'aashiyana_attachment' => 'array',  
         'advance_attachment' => 'array',
-        'Invoice_date' => 'date',
+        'invoice_date' => 'date',
         
     ];
     public function getBillingDateAttribute($value)
@@ -151,7 +151,7 @@ class Order extends Model
 
     public function orderItems()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(OrderItem::class, 'order_id', 'id');
     }
 
     public function createdBy()

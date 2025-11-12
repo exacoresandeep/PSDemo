@@ -1662,17 +1662,27 @@ public function notificationList()
             ], 500);
         }
     }
-    public function getScheme()
+    public function getScheme(Request $request)
     {
         try {
             $user = Auth::user();
 
-            if ($user !== null) {
-                $data = Scheme::where('status', '1')
-                ->select('id as scheme_id', 'scheme')->get();
-            } else {
-                $data = [];
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => "User not Authenticated",
+                ], 401);
             }
+
+            $query = Scheme::where('status', '1')
+                ->select('id as scheme_id', 'scheme', 'product_id');
+
+            if ($request->has('product_id') && !empty($request->product_id)) {
+                $query->where('product_id', $request->product_id);
+            }
+
+            $data = $query->get();
           
             return response()->json([
                 'success' => true,
