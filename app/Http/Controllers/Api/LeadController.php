@@ -945,11 +945,28 @@ class LeadController extends Controller
             $employee = Auth::user();
             $details = $request->order_details;
 
-            
-            $mainProductId = null;
-            if (!empty($details['order_items']) && isset($details['order_items'][0]['product_id'])) {
-                $mainProductId = $details['order_items'][0]['product_id'];
-            }
+            // ✅ Convert date formats (from d/m/Y → Y-m-d)
+            $convertDate = function ($date) {
+                if (!$date) return null;
+                try {
+                    return \Carbon\Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    try {
+                        return \Carbon\Carbon::createFromFormat('d-m-Y', $date)->format('Y-m-d');
+                    } catch (\Exception $e2) {
+                        return $date; // already Y-m-d
+                    }
+                }
+            };
+
+            $billingDate = $convertDate($details['billing_date'] ?? null);
+            $deliveryDate = $convertDate($details['delivery_date'] ?? null);
+            $paymentDate  = $convertDate($details['payment_date'] ?? null);
+
+            // ✅ Pick main product_id from first item
+            $mainProductId = !empty($details['order_items'][0]['product_id'])
+                ? $details['order_items'][0]['product_id']
+                : null;
 
             $orderData = [
                 'influencer_visit_id' => $visit->id,
@@ -961,9 +978,9 @@ class LeadController extends Controller
                 'payment_terms_id'    => $details['payment_terms_id'],
                 'credit_days'         => $details['credit_days'] ?? null,
                 'advance_amount'      => $details['advance_amount'] ?? null,
-                'payment_date'        => $details['payment_date'] ?? null,
-                'billing_date'        => $details['billing_date'] ?? now()->format('Y-m-d'),
-                'delivery_date'       => $details['delivery_date'] ?? now()->addDays(2)->format('Y-m-d'),
+                'payment_date'        => $paymentDate,
+                'billing_date'        => $billingDate ?? now()->format('Y-m-d'),
+                'delivery_date'       => $deliveryDate ?? now()->addDays(2)->format('Y-m-d'),
                 'total_amount'        => (float) ($details['total_amount'] ?? 0),
                 'additional_information' => $details['additional_information'] ?? null,
                 'status'              => 'Pending',
@@ -976,7 +993,7 @@ class LeadController extends Controller
                 'source'              => 'influencer_won',
                 'created_by'          => $employee->id,
                 'attachment'          => $details['attachment'] ?? [],
-                'product_id'          => $mainProductId, // ✅ new field added
+                'product_id'          => $mainProductId,
             ];
 
             $order = Order::create($orderData);
@@ -985,6 +1002,9 @@ class LeadController extends Controller
                 $totalPieces = 0;
                 $totalTon = 0;
                 $productDetails = [];
+
+                // ✅ safely handle missing quantity_type
+                $quantityType = $orderItem['quantity_type'] ?? 'Ton'; // default Ton
 
                 if (!empty($orderItem['product_details'])) {
                     foreach ($orderItem['product_details'] as $pd) {
@@ -996,25 +1016,26 @@ class LeadController extends Controller
 
                         $typeName = \App\Models\ProductType::where('id', $pd['product_type_id'])->value('type_name');
                         $pd['type_name'] = $typeName ?? null;
-                        $pd['quantity_type'] = $orderItem['quantity_type'] ?? null;
+                        $pd['quantity_type'] = $quantityType;
 
                         $productDetails[] = $pd;
                     }
                 }
 
-                $orderItem['total_quantity'] = $orderItem['quantity_type'] === 'Pieces'
+                // ✅ compute total safely
+                $orderItem['total_quantity'] = ($quantityType === 'Pieces')
                     ? round($totalPieces, 2)
                     : round($totalTon, 2);
 
                 $orderItem['product_details'] = $productDetails;
-                unset($orderItem['quantity_type']);
+                $orderItem['quantity_type'] = $quantityType;
 
                 $order->orderItems()->create($orderItem);
             }
 
+
             $visit->update(['status' => 'Won']);
         }
-
 
         DB::commit();
     
@@ -1055,8 +1076,8 @@ class LeadController extends Controller
                 'order_details.total_amount'     => 'required_if:status,Won|nullable|numeric',
                 'order_details.order_items'      => 'required_if:status,Won|nullable|array',
                 'order_details.order_items.*.product_id'        => 'required_with:order_details.order_items|exists:products,id',
-                'order_details.order_items.*.total_quantity'    => 'required_with:order_details.order_items|numeric',
-                'order_details.order_items.*.balance_quantity'  => 'required_with:order_details.order_items|numeric',
+                // 'order_details.order_items.*.total_quantity'    => 'required_with:order_details.order_items|numeric',
+                // 'order_details.order_items.*.balance_quantity'  => 'required_with:order_details.order_items|numeric',
                 'order_details.order_items.*.product_details'   => 'nullable|array',
                 'order_details.attachment' => 'nullable|array',
                 'order_details.attachment.*' => 'nullable|string',
@@ -1265,19 +1286,29 @@ class LeadController extends Controller
                 $orderItems = $order->orderItems->map(function ($item) {
                     $productDetails = collect($item->product_details)->map(function ($detail) {
                         $productType = ProductType::find($detail['product_type_id']);
-                        // dd($productType);
+
+                        // Handle both Tiscon and Durashine structure safely
                         return [
-                            'product_type_id' => $detail['product_type_id'],
+                            'product_type_id' => $detail['product_type_id'] ?? null,
                             'type_name' => $productType->type_name ?? null,
-                            'quantity' => (float) $detail['quantity'],
-                            'rate' => $detail['rate']
+                            'quantity' => isset($detail['quantity']) ? (float) $detail['quantity'] : null,
+                            'pieces' => isset($detail['pieces']) ? (int) $detail['pieces'] : null,
+                            'tonnage' => isset($detail['tonnage']) ? (float) $detail['tonnage'] : null,
+                            'rate' => $detail['rate'] ?? null,
+                            'quantity_type' => $detail['quantity_type'] ?? null,
                         ];
                     });
-            
+
+                    // Sum pieces and tonnage for Durashine
+                    $totalPieces = $productDetails->sum('pieces');
+                    $totalTonnage = $productDetails->sum('tonnage');
+
                     return [
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->product_name ?? null,
-                        'total_quantity' => (float) $item->total_quantity,
+                        'total_quantity' => (float) ($item->total_quantity ?? 0),
+                        'total_pieces' => $totalPieces > 0 ? $totalPieces : null,
+                        'total_ton' => $totalTonnage > 0 ? $totalTonnage : null,
                         'product_details' => $productDetails,
                     ];
                 });

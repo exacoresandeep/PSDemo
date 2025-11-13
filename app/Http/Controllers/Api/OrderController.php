@@ -2976,7 +2976,7 @@ class OrderController extends Controller
                 ($purpose === 'Casual Visit' && $request->input('new_order') === 'Yes')
             ) {
                 $orderData = $request->only([
-                    'order_type', 'customer_type_id', 'order_category', 'lead_id', 'dealer_id',
+                    'order_type', 'customer_type_id', 'order_category', 'lead_id', 'dealer_id','product_id',
                     'payment_terms_id', 'credit_days', 'advance_amount', 'payment_date', 'utr_number',
                     'billing_date', 'delivery_date', 'total_amount', 'additional_information', 'status', 'source',
                     'vehicle_category_id', 'vehicle_type', 'vehicle_number', 'driver_name', 'driver_phone',
@@ -3007,12 +3007,29 @@ class OrderController extends Controller
                 if (!empty($orderData['order_items'])) {
                     foreach ($orderData['order_items'] as $item) {
                         $totalQty = 0;
+                        $totalPieces = 0;
+                        $totalTon = 0;
+
                         if (!empty($item['product_details'])) {
                             foreach ($item['product_details'] as $detail) {
-                                $totalQty += $detail['quantity'];
+                                // Flexible quantity key handling
+                                if (isset($detail['quantity'])) {
+                                    $totalQty += $detail['quantity'];
+                                }
+                                if (isset($detail['pieces'])) {
+                                    $totalPieces += $detail['pieces'];
+                                }
+                                if (isset($detail['tonnage'])) {
+                                    $totalTon += $detail['tonnage'];
+                                }
                             }
                         }
+
+                        // Assign totals based on available data
                         $item['total_quantity'] = round($totalQty, 6);
+                        $item['total_pieces'] = round($totalPieces, 6);
+                        $item['total_ton'] = round($totalTon, 6);
+
                         $order->orderItems()->create($item);
                     }
                 }
@@ -3197,25 +3214,50 @@ class OrderController extends Controller
             'credit_days' => $order->credit_days,
             'billing_date' => $order->billing_date,
             'delivery_date' => $order->delivery_date,
+
             'product_details' => $order->orderItems->map(function ($item) {
                 $productDetails = collect($item->product_details)->map(function ($detail) {
                     $productType = \App\Models\ProductType::find($detail['product_type_id']);
+
                     return [
                         'product_type_id' => $detail['product_type_id'],
                         'type_name' => $productType->type_name ?? null,
-                        'quantity' => (float) $detail['quantity'],
-                        'rate' => $detail['rate']
+                        'quantity' => isset($detail['quantity']) ? (float)$detail['quantity'] : null,
+                        'pieces' => isset($detail['pieces']) ? (float)$detail['pieces'] : null,
+                        'tonnage' => isset($detail['tonnage']) ? (float)$detail['tonnage'] : null,
+                        'rate' => $detail['rate'] ?? null,
+                        'quantity_type' => $detail['quantity_type'] ?? null,
                     ];
                 });
+
+                // Compute total pieces and total tonnage
+                $totalPieces = $productDetails->sum('pieces');
+                $totalTon = $productDetails->sum('tonnage');
+                $totalQty = $productDetails->sum('quantity');
 
                 return [
                     'product_id' => $item->product_id,
                     'product_name' => $item->product->product_name ?? null,
-                    'total_quantity' => (float) $item->total_quantity,
+                    'total_quantity' => (float)$totalQty,
+                    'total_pieces' => (float)$totalPieces,
+                    'total_ton' => (float)$totalTon,
                     'product_details' => $productDetails,
                 ];
             }),
-            'total_quantity' => $order->orderItems->sum('total_quantity'),
+
+            // Calculate overall totals across all order items
+            'total_quantity' => $order->orderItems->map(function ($item) {
+                return collect($item->product_details)->sum('quantity');
+            })->sum(),
+
+            'total_pieces' => $order->orderItems->map(function ($item) {
+                return collect($item->product_details)->sum('pieces');
+            })->sum(),
+
+            'total_ton' => $order->orderItems->map(function ($item) {
+                return collect($item->product_details)->sum('tonnage');
+            })->sum(),
+
             'total_amount' => $order->total_amount,
             'vehicle_category' => $order->vehicleCategory?->vehicle_category_name,
             'vehicle_number' => $order->vehicle_number,
@@ -3224,6 +3266,8 @@ class OrderController extends Controller
             'additional_info' => $order->additional_information,
         ];
     }
+
+
     
     public function SalesReportExport(Request $request)
     {
