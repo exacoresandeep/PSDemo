@@ -897,8 +897,8 @@ class LeadController extends Controller
                 'order_details.total_amount'     => 'required_if:status,Won|nullable|numeric',
                 'order_details.order_items'      => 'required_if:status,Won|nullable|array',
                 'order_details.order_items.*.product_id'        => 'required_with:order_details.order_items|exists:products,id',
-                'order_details.order_items.*.total_quantity'    => 'required_with:order_details.order_items|numeric',
-                'order_details.order_items.*.balance_quantity'  => 'required_with:order_details.order_items|numeric',
+                // 'order_details.order_items.*.total_quantity'    => 'required_with:order_details.order_items|numeric',
+                // 'order_details.order_items.*.balance_quantity'  => 'required_with:order_details.order_items|numeric',
                 'order_details.order_items.*.product_details'   => 'nullable|array',
                 'order_details.attachment' => 'nullable|array',
                 'order_details.attachment.*' => 'nullable|string',
@@ -918,7 +918,6 @@ class LeadController extends Controller
 
         $order = null;
 
-        // Follow Up
         if ($validated['status'] === 'Follow Up') {
             InfluencerVisitFollowUp::create([
                 'influencer_visit_id' => $visit->id,
@@ -942,39 +941,80 @@ class LeadController extends Controller
             ]);
         }
 
-        // Won
         if ($validated['status'] === 'Won' && !empty($request->order_details)) {
+            $employee = Auth::user();
             $details = $request->order_details;
+
             
-            $order = Order::create([
-                'influencer_visit_id' => $visit->id,
-                'dealer_id'           => $details['dealer_id'] ?? null,
-                'dealer_flag_order'   => $details['dealer_flag_order'] ?? '0',
-                'payment_terms_id'    => $details['payment_terms_id'],
-                'credit_days'         => $details['credit_days'] ?? 0,
-                'total_amount'        => (float)$details['total_amount'],
-                'status'              => 'Pending',
-                'source'              => 'influencer_won',
-                'created_by'          => Auth::id(),
-                'attachment'          => $details['attachment'] ?? $request->attachment ?? [],
-            ]);
-
-            if (!empty($details['order_items'])) {
-                $items = array_map(function ($item) use ($order) {
-                    return [
-                        'order_id' => $order->id,
-                        'product_id' => $item['product_id'],
-                        'total_quantity' => $item['total_quantity'],
-                        'balance_quantity' => $item['balance_quantity'],
-                        'product_details' => json_encode($item['product_details']),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }, $details['order_items']);
-
-                OrderItem::insert($items);
+            $mainProductId = null;
+            if (!empty($details['order_items']) && isset($details['order_items'][0]['product_id'])) {
+                $mainProductId = $details['order_items'][0]['product_id'];
             }
+
+            $orderData = [
+                'influencer_visit_id' => $visit->id,
+                'order_type'          => $details['order_type'] ?? null,
+                'customer_type_id'    => $details['customer_type_id'] ?? null,
+                'order_category'      => $details['order_category'] ?? null,
+                'lead_id'             => $details['lead_id'] ?? null,
+                'dealer_id'           => $details['dealer_id'] ?? null,
+                'payment_terms_id'    => $details['payment_terms_id'],
+                'credit_days'         => $details['credit_days'] ?? null,
+                'advance_amount'      => $details['advance_amount'] ?? null,
+                'payment_date'        => $details['payment_date'] ?? null,
+                'billing_date'        => $details['billing_date'] ?? now()->format('Y-m-d'),
+                'delivery_date'       => $details['delivery_date'] ?? now()->addDays(2)->format('Y-m-d'),
+                'total_amount'        => (float) ($details['total_amount'] ?? 0),
+                'additional_information' => $details['additional_information'] ?? null,
+                'status'              => 'Pending',
+                'vehicle_category_id' => $details['vehicle_category_id'] ?? null,
+                'vehicle_type'        => $details['vehicle_type'] ?? null,
+                'vehicle_number'      => $details['vehicle_number'] ?? null,
+                'driver_name'         => $details['driver_name'] ?? null,
+                'driver_phone'        => $details['driver_phone'] ?? null,
+                'scheme'              => $details['scheme'] ?? null,
+                'source'              => 'influencer_won',
+                'created_by'          => $employee->id,
+                'attachment'          => $details['attachment'] ?? [],
+                'product_id'          => $mainProductId, // ✅ new field added
+            ];
+
+            $order = Order::create($orderData);
+
+            foreach ($details['order_items'] as $orderItem) {
+                $totalPieces = 0;
+                $totalTon = 0;
+                $productDetails = [];
+
+                if (!empty($orderItem['product_details'])) {
+                    foreach ($orderItem['product_details'] as $pd) {
+                        $pieces = isset($pd['pieces']) ? (float)$pd['pieces'] : 0;
+                        $tonnage = isset($pd['tonnage']) ? (float)$pd['tonnage'] : 0;
+
+                        $totalPieces += $pieces;
+                        $totalTon += $tonnage;
+
+                        $typeName = \App\Models\ProductType::where('id', $pd['product_type_id'])->value('type_name');
+                        $pd['type_name'] = $typeName ?? null;
+                        $pd['quantity_type'] = $orderItem['quantity_type'] ?? null;
+
+                        $productDetails[] = $pd;
+                    }
+                }
+
+                $orderItem['total_quantity'] = $orderItem['quantity_type'] === 'Pieces'
+                    ? round($totalPieces, 2)
+                    : round($totalTon, 2);
+
+                $orderItem['product_details'] = $productDetails;
+                unset($orderItem['quantity_type']);
+
+                $order->orderItems()->create($orderItem);
+            }
+
+            $visit->update(['status' => 'Won']);
         }
+
 
         DB::commit();
     
