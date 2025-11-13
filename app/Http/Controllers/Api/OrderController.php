@@ -350,6 +350,24 @@ class OrderController extends Controller
             if ($order->orderItems && count($order->orderItems)) {
                 foreach ($order->orderItems as $item) {
                     $item->total_quantity = (float) $item->total_quantity;
+                    unset($item->quantity_type);
+            
+                    $totalPieces = 0;
+                    $totalTon = 0;
+                    
+                    if (isset($item->product_details) && is_array($item->product_details)) {
+                        foreach ($item->product_details as $pd) {
+                            $totalPieces += $pd['pieces'] ?? 0;
+                    
+                            $totalTon += $pd['tonnage'] ?? 0;
+                        }
+                    }
+                    
+                    $item->total_pieces = $totalPieces;
+                    $item->total_ton = $totalTon;
+            
+            
+                    $item->product_name = $item->product['product_name'] ?? null;
                 }
             }
     	    if($order->dealer_flag_order!="0"){
@@ -357,7 +375,7 @@ class OrderController extends Controller
                 $authController = new AuthController();
                 $authController->changeNotificationStatus('orders', $orderId,'opened');
     	    }
-	    return response()->json([
+	        return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Orders details fetched successfully',
