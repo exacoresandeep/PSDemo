@@ -78,44 +78,47 @@ class Order extends Model
         'aashiyana_attachment' => 'array',  
         'advance_attachment' => 'array',
         'invoice_date' => 'date',
+        'billing_date' => 'date:Y-m-d',
+        'delivery_date' => 'date:Y-m-d',
+        'payment_date' => 'date:Y-m-d',
         
     ];
-    public function getBillingDateAttribute($value)
-    {
-        return $this->formatDateValue($value);
-    }
+    // public function getBillingDateAttribute($value)
+    // {
+    //     return $this->formatDateValue($value);
+    // }
 
-    public function getDeliveryDateAttribute($value)
-    {
-        return $this->formatDateValue($value);
-    }
+    // public function getDeliveryDateAttribute($value)
+    // {
+    //     return $this->formatDateValue($value);
+    // }
 
-    public function getPaymentDateAttribute($value)
-    {
-        return $this->formatDateValue($value);
-    }
+    // public function getPaymentDateAttribute($value)
+    // {
+    //     return $this->formatDateValue($value);
+    // }
 
-   protected function formatDateValue($value)
-    {
-        if (empty($value)) {
-            return null;
-        }
+    // protected function formatDateValue($value)
+    // {
+    //     if (empty($value)) {
+    //         return null;
+    //     }
     
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return Carbon::createFromFormat('Y-m-d', $value)->format('d/m/Y');
-        }
+    //     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+    //         return Carbon::createFromFormat('Y-m-d', $value)->format('d/m/Y');
+    //     }
     
        
-        if (preg_match('/^\d{2}[\/-]\d{2}[\/-]\d{4}$/', $value)) {
-            return str_replace('-', '/', $value);
-        }
+    //     if (preg_match('/^\d{2}[\/-]\d{2}[\/-]\d{4}$/', $value)) {
+    //         return str_replace('-', '/', $value);
+    //     }
     
-        try {
-            return Carbon::parse($value)->format('d/m/Y');
-        } catch (\Exception $e) {
-            return $value;
-        }
-    }
+    //     try {
+    //         return Carbon::parse($value)->format('d/m/Y');
+    //     } catch (\Exception $e) {
+    //         return $value;
+    //     }
+    // }
 
 
     
