@@ -33,81 +33,8 @@ use App\Http\Controllers\Api\AuthController;
 
 class OrderController extends Controller
 {
-    public function outstandingPaymentsStore(Request $request)
-    {
-        $dsn = 'odbc:HANAODBC';
-        $username = 'INDUS';
-        $password = 'Indus@123';
     
-        try {
-            $pdo = new PDO($dsn, $username, $password);
-            $stmt = $pdo->prepare('CALL "MOBILE_APPLICATION_TEST"."MobileApp_OutstandingPayment"()');
-            $stmt->execute();
-    
-            $response = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-            DB::beginTransaction();
-            
-            foreach ($response as $data) {
-                $invoiceNumber = $data['Invoice Number'];
-                $customerCode = $data['Customer Code'];
-              
-                $dealer = Dealer::where('dealer_code', $customerCode)->first();
-                if (!$dealer) {
-                    continue; 
-                }
-    
-                // Get order_id from orders table using invoice_number
-                $order = Order::where('invoice_number', $invoiceNumber)->first();
-                if (!$order) {
-                    continue; // Skip if order not found
-                }
-    
-                // Check if an entry already exists for this invoice_number
-                $outstandingPayment = OutstandingPayment::where('invoice_number', $invoiceNumber)->first();
-    
-                if ($outstandingPayment) {
-                    // Update existing record
-                    $outstandingPayment->update([
-                        'paid_amount' => $data['Paid Amount'],
-                        'outstanding_amount' => $data['Outstanding Amount'],
-                        'status' => $data['Status']
-                    ]);
-                } else {
-    
-    
-                   // Create new outstanding payment entry
-                    $outstandingPayment = OutstandingPayment::create([
-                        'dealer_id' => $dealer->id,
-                        'order_id' => $order->id,
-                        'invoice_number' => $invoiceNumber,
-                        'invoice_date' => Carbon::parse($data['Invoice Date'])->format('Y-m-d'),
-                        'invoice_total' => $data['Invoice Total'],
-                        'due_date' => Carbon::parse($data['Due Date'])->format('Y-m-d'),
-                        'paid_amount' => $data['Paid Amount'],
-                        'outstanding_amount' => $data['Outstanding Amount'],
-                        'status' => 'open'
-                    ]);
-                }
-    
-    		Payment::create([
-                'order_id' => $outstandingPayment->order_id, // Ensure you have this
-                'dealer_id' => $outstandingPayment->dealer_id, // Ensure you have this
-                'invoice_number' => $data['Invoice Number'], // Adjust based on your data
-                'payment_document_no' => $data['Payment Doc Number'], 
-                'payment_date' => Carbon::parse($data['Payment Date'])->format('Y-m-d'),
-                'payment_amount' => $data['Payment Amount Applied'], 
-            ]);	
-                }
-    
-            DB::commit();
-            return response()->json(['message' => 'Outstanding payments stored successfully']);
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
+
     public function index(Request $request)
     {
         try {
@@ -115,50 +42,57 @@ class OrderController extends Controller
                 return $this->orderFilter($request); 
             }
 
-
             $employee = Auth::user();
-            if($employee)
-            {
-                $orders = Order::where('created_by', $employee->id)
-                    ->where('dealer_flag_order',"0")
-                    ->with(['dealer:id,dealer_name,dealer_code'])
-                    ->select('id', 'total_amount', 'status', 'created_at', 'dealer_id')
-                    ->orderBy('id','desc')
-                    ->get()
-                    ->map(function ($order) {
-                
-                    $order->total_amount = round((float) $order->total_amount, 6);
-                        return $order;
-                        
-                    });  
-                return response()->json([
-                    'success' => true,
-                    'statusCode' => 200,
-                    'message' => 'Orders fetched successfully',
-                    'data' => $orders->map(function ($order) {
-                    return [
-                            'id' => $order->id,
-                            'total_amount' => $order->total_amount,
-                            'status' => $order->status,
-                            'date'       => $order->created_at->format('d-m-Y'),
-            			    'time'       => $order->created_at->format('H:i:s'),
-            			    'created_at' => $order->created_at->format('d-m-Y'),
-            			    'dealer' => [
-            				    'name' => optional($order->dealer)->dealer_name,
-                                        'dealer_code' => optional($order->dealer)->dealer_code,
-                                          //  'name' => $order->dealer->dealer_name,
-                                        //    'dealer_code' => $order->dealer->dealer_code, 
-                                        ],
-                    ];
-                    }),
-                ], 200);
-            }else{
+
+            if (!$employee) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 401,
                     'message' => "User not Authenticated",
                 ], 401);
             }
+
+            $query = Order::where('created_by', $employee->id)
+                ->where('dealer_flag_order', "0")
+                ->with([
+                    'dealer:id,dealer_name,dealer_code',
+                    'orderItems:id,order_id,product_id,total_quantity' // optional, if you want to see products
+                ]);
+
+            if ($request->has('product_id') && !empty($request->product_id)) {
+                $productId = $request->product_id;
+                $query->whereHas('orderItems', function ($q) use ($productId) {
+                    $q->where('product_id', $productId);
+                });
+            }
+
+            $orders = $query->select('id', 'total_amount', 'status', 'created_at', 'dealer_id')
+                ->orderBy('id', 'desc')
+                ->get()
+                ->map(function ($order) {
+                    $order->total_amount = round((float) $order->total_amount, 6);
+                    return $order;
+                });
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Orders fetched successfully',
+                'data' => $orders->map(function ($order) {
+                    return [
+                        'id' => $order->id,
+                        'total_amount' => $order->total_amount,
+                        'status' => $order->status,
+                        // 'date' => $order->created_at->format('d-m-Y'),
+                        // 'time' => $order->created_at->format('H:i:s'),
+                        'created_at' => $order->created_at->format('d/m/Y h:i:s A'),
+                        'dealer' => [
+                            'name' => optional($order->dealer)->dealer_name,
+                            'dealer_code' => optional($order->dealer)->dealer_code,
+                        ],
+                    ];
+                }),
+            ], 200);
 
         } catch (Exception $e) {
             return response()->json([
@@ -168,20 +102,19 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
     
     public function store(Request $request)
     {
         try {
             $employee = Auth::user();
-                if (!$employee) {
-                    return response()->json([
-                        'success' => false,
-                        'statusCode' => 401,
-                        'message' => "User not Authenticated",
-    		], 401);
-                }
-              
-    
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => "User not Authenticated",
+                ], 401);
+            }
               $rules = [
                 'order_type' => 'nullable|exists:order_types,id',
                 'customer_type_id' => 'nullable|exists:customer_types,id',
@@ -221,9 +154,11 @@ class OrderController extends Controller
      
             foreach (['billing_date', 'delivery_date', 'payment_date'] as $dateField) {
                 if (!empty($validatedData[$dateField])) {
-                    $dateValue = trim($validatedData[$dateField]);
+                    // $dateValue = trim($validatedData[$dateField]);
+                    // $dateValue = str_replace('/', '-', $dateValue);
+                    $dateValue = trim(str_replace('\\', '', $validatedData[$dateField])); 
                     $dateValue = str_replace('/', '-', $dateValue);
-            
+
                     try {
                         $validatedData[$dateField] = Carbon::createFromFormat('d-m-Y', $dateValue)->format('Y-m-d');
                     } catch (\Exception $e) {
@@ -237,22 +172,41 @@ class OrderController extends Controller
             if (in_array($employee->employee_type_id, [2, 3, 4, 5])) {
                 $validatedData['order_approved'] = '0';
             }
+            $validatedData['product_id'] = $validatedData['order_items'][0]['product_id'] ?? null;
             $order = Order::create($validatedData);
            
-            if (!empty($validatedData['order_items'])) {
-                foreach ($validatedData['order_items'] as $orderItem) {
-                    $totalQuantity = 0;
-                    if (!empty($orderItem['product_details'])) {
-                        foreach ($orderItem['product_details'] as $productDetail) {
-                            $totalQuantity += $productDetail['quantity'];
+      
+            foreach ($validatedData['order_items'] as $orderItem) {
+                $totalQuantity = 0;
+
+                if (!empty($orderItem['product_details'])) {
+                    foreach ($orderItem['product_details'] as $productDetail) {
+                        if (isset($productDetail['pieces'])) {
+                            $totalQuantity += (float)$productDetail['pieces'];
                         }
+                        if (isset($productDetail['tonnage'])) {
+                            $totalQuantity += (float)$productDetail['tonnage'];
+                        }
+                        $typeName = \App\Models\ProductType::where('id', $productDetail['product_type_id'])
+                        ->value('type_name');
+
+                        $productDetail['quantity_type'] = $orderItem['quantity_type'] ?? null;
+                        $productDetail['type_name'] = $typeName ?? null;
+
+                        $productDetails[] = $productDetail;
                     }
-            
-                    $orderItem['total_quantity'] = round($totalQuantity, 6);
-            
-                    $order->orderItems()->create($orderItem);
+
+                } else {
+                    $totalQuantity = (float)($orderItem['quantity'] ?? 0);
+                    $orderItem['product_details'] = null;
                 }
+
+                $orderItem['total_quantity'] = round($totalQuantity, 6);
+                unset($orderItem['quantity_type']);
+
+                $order->orderItems()->create($orderItem);
             }
+
      
 
             $responseData = [
@@ -261,10 +215,8 @@ class OrderController extends Controller
                     'lead_id' => $order->lead_id,
                     'dealer_id' => $order->dealer_id,
                     'payment_terms_id' => $order->payment_terms_id,
-                    
                     'credit_days' => $order->credit_days,
-                  
-                    'billing_date' => "12-12-2025",
+                    'billing_date' => $order->billing_date,
                     'total_amount' => round((float) $order->total_amount, 6),
                     'additional_information' => $order->additional_information,
                     'status' => $order->status,
@@ -272,6 +224,7 @@ class OrderController extends Controller
                     'updated_at' => Carbon::parse($order->updated_at)->format('d-m-Y'),
                     'created_at' => Carbon::parse($order->created_at)->format('d-m-Y'),
                     'id' => $order->id,
+                    'product_id' => $order->product_id,
 
             ];
            
@@ -324,6 +277,24 @@ class OrderController extends Controller
             if ($order->orderItems && count($order->orderItems)) {
                 foreach ($order->orderItems as $item) {
                     $item->total_quantity = (float) $item->total_quantity;
+                    unset($item->quantity_type);
+            
+                    $totalPieces = 0;
+                    $totalTon = 0;
+                    
+                    if (isset($item->product_details) && is_array($item->product_details)) {
+                        foreach ($item->product_details as $pd) {
+                            $totalPieces += $pd['pieces'] ?? 0;
+                    
+                            $totalTon += $pd['tonnage'] ?? 0;
+                        }
+                    }
+                    
+                    $item->total_pieces = $totalPieces;
+                    $item->total_ton = $totalTon;
+            
+            
+                    $item->product_name = $item->product['product_name'] ?? null;
                 }
             }
     	    if($order->dealer_flag_order!="0"){
@@ -331,7 +302,7 @@ class OrderController extends Controller
                 $authController = new AuthController();
                 $authController->changeNotificationStatus('orders', $orderId,'opened');
     	    }
-	    return response()->json([
+	        return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Orders details fetched successfully',
@@ -449,196 +420,6 @@ class OrderController extends Controller
         }
     }
 
-    // public function dealerOrderDetails($orderId)
-    // {
-    //     try {
-    //         $user = Auth::user();
-
-    //         if (!$user) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 400,
-    //                 'message' => 'You must be logged in to view this order.'
-    //             ], 400);
-    //         }
-
-    //         $order = Order::with([
-    //             'orderType:id,name',
-    //             'dealers:id,dealer_name,dealer_code,assigned_route_id', 
-    //             'orderItems.product:id,product_name',
-    //             'paymentTerm:id,name',
-    //             'vehicleCategory:id,vehicle_category_name' 
-    //         ])->findOrFail($orderId);
-
-    //         $dealer = $order->dealers;
-    //         if (!$dealer) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => 'Dealer not found for this order.'
-    //             ], 404);
-    //         }
-
-    //         $allowedRoutes = AssignRoute::where('employee_id', $user->id)->pluck('id')->toArray();
-
-    //         if (!in_array($dealer->assigned_route_id, $allowedRoutes)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 403,
-    //                 'message' => 'You are not authorized to view this order.'
-    //             ], 403);
-    //         }
-
-    //         $totalOutstandingPayments = (float) OutstandingNew::where('dealer_id', $dealer->id)
-    //             ->orderBy('created_at', 'desc')
-    //             ->value('outstanding_amount');
-    //         $billingDate = $order->billing_date ? Carbon::parse($order->billing_date)->format('d/m/Y') : null;
-    //         $createdAt = Carbon::parse($order->created_at)->format('d/m/Y');
-
-    //         $orderItems = $order->orderItems->map(function ($item) {
-    //             $productDetails = collect($item->product_details)->map(function ($detail) {
-    //                 $productType = ProductType::find($detail['product_type_id']);
-    //                 return [
-    //                     'product_type_id' => $detail['product_type_id'],
-    //                     'type_name' => $productType->type_name ?? null, 
-    //                     'quantity' => (float) $detail['quantity'],
-    //                     'rate' => $detail['rate']
-    //                 ];
-    //             });
-
-    //             return [
-    //                 'product_id' => $item->product_id,
-    //                 'product_name' => $item->product->product_name ?? null,
-    //                 'total_quantity' => (float) $item->total_quantity,
-    //                 'product_details' => $productDetails,
-    //             ];
-    //         });
-
-    //         // Build the response
-    //         $response = [
-    //             'id' => $order->id,
-    //             'order_type' => $order->orderType->name ?? null,
-    //             'payment_term' => $order->paymentTerm->name ?? null,
-    //             'credit_days' => $order->credit_days ?? null,
-    //             'billing_date' => $billingDate,
-    //             'attachment' => $order->attachment,
-    //             'aashiyana_attachment' => $order->aashiyana_attachment ?? null,
-    //             'advance_attachment' => $order->advance_attachment ?? null,
-    //             'total_amount' => $order->total_amount,
-    //             'additional_information' => $order->additional_information,
-    //             'created_at' => $createdAt,
-    //             'order_items' => $orderItems,
-    //             'vehicle_category' => $order->vehicleCategory->vehicle_category_name ?? null,
-    //             'vehicle_number' => $order->vehicle_number,
-    //             'driver_name' => $order->driver_name,
-    //             'driver_phone' => $order->driver_phone,
-    //             'status' => $order->status,
-    //              'total_outstanding_payments' => (float) $totalOutstandingPayments,
-    //             'dealer_code' => $dealer->dealer_code,
-    //             'dealer_name' => $dealer->dealer_name
-    //         ];
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Order details fetched successfully',
-    //             'data' => $response,
-    //         ], 200);
-
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-
-    // public function dealerOrderList(Request $request)
-    // {
-    //     try {
-    //         if ($request->has('search_key')) {
-    //             return $this->orderFilter($request);
-    //         }
-    
-    //         $employee = Auth::user();
-    
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not Authenticated",
-    //             ], 401);
-    //         }
-    
-    //         $assignedRoutes = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-
-    //         if (empty($assignedRoutes)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No assigned routes found for the employee.",
-    //                 'data' => []
-    //             ], 404);
-    //         }
-
-    //         // Get dealers linked to these routes
-    //         $dealers = Dealer::whereIn('assigned_route_id', $assignedRoutes)->pluck('id')->toArray();
-    
-    //         if (empty($dealers)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No dealers found for the assigned routes.",
-    //                 'data' => []
-    //             ], 404);
-    //         }
-    
-    //         $orders = Order::join('dealers', 'orders.created_by_dealer', '=', 'dealers.id')
-    //             ->where('orders.dealer_flag_order', '1')
-    //             ->whereIn('orders.created_by_dealer', $dealers)
-    //             ->select([
-    //                 'orders.id',
-    //                 'orders.total_amount',
-    //                 'orders.status',
-    //                 'orders.created_at',
-    //                 'dealers.id as dealer_id',
-    //                 'dealers.dealer_name',
-    //                 'dealers.dealer_code'
-    //             ])
-    //             ->get();
-    //             // ->map(function ($order) {
-    //             //     $order->total_amount = (float) sprintf("%.2f", $order->total_amount);
-    //             //     return $order;
-    //             // });
-    
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Dealer-created orders fetched successfully',
-    //             'data' => $orders->map(function ($order) {
-    //                 return [
-    //                     'id' => $order->id,
-    //                     'total_amount' => (float) $order->total_amount,
-    //                     'status' => $order->status,
-    //                     'created_at' => $order->created_at->format('d/m/Y'),
-    //                     'dealer' => [
-    //                         'id' => $order->dealer_id,
-    //                         'name' => $order->dealer_name,
-    //                         'code' => $order->dealer_code,
-    //                     ],
-    //                 ];
-    //             }),
-    //         ], 200);
-    
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
     public function dealerOrderList(Request $request)
     {
         try {
@@ -922,93 +703,7 @@ class OrderController extends Controller
     }
 
 
-    // public function dealerOrderFilter(Request $request)
-    // {
-    //     try {
-    //         $validatedData = $request->validate([
-    //             'search_key' => 'required|string|in:All,Pending,Accepted,Rejected',
-    //         ]);
-
-    //         $searchKey = $validatedData['search_key'];
-    //         $employee = Auth::user();
-
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not Authenticated",
-    //             ], 401);
-    //         }
-
-    //         $assignedRoutes = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-
-    //         if (empty($assignedRoutes)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No assigned routes found for the employee.",
-    //                 'data' => []
-    //             ], 404);
-    //         }
-
-    //         $dealers = Dealer::whereIn('assigned_route_id', $assignedRoutes)->pluck('id')->toArray();
-
-    //         if (empty($dealers)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No dealers found for the assigned routes.",
-    //                 'data' => []
-    //             ], 404);
-    //         }
-
-    //         $ordersQuery = Order::join('dealers', 'orders.created_by_dealer', '=', 'dealers.id')
-    //             ->where('orders.dealer_flag_order', '1')
-    //             ->whereIn('orders.created_by_dealer', $dealers)
-    //             ->select([
-    //                 'orders.id',
-    //                 'orders.total_amount',
-    //                 'orders.status',
-    //                 'orders.created_at',
-    //                 'dealers.id as dealer_id',
-    //                 'dealers.dealer_name',
-    //                 'dealers.dealer_code'
-    //             ]);
-
-    //         if ($searchKey !== 'All') {
-    //             $ordersQuery->where('orders.status', $searchKey);
-    //         }
-
-    //         $orders = $ordersQuery->get()->map(function ($order) {
-    //             return [
-    //                 'id' => $order->id,
-    //                 'total_amount' => (float) sprintf("%.2f", $order->total_amount),
-    //                 'status' => $order->status,
-    //                 'created_at' => $order->created_at->format('d/m/Y'),
-    //                 'dealer' => [
-    //                     'id' => $order->dealer_id,
-    //                     'name' => $order->dealer_name,
-    //                     'code' => $order->dealer_code,
-    //                 ],
-    //             ];
-    //         });
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => "Filtered dealer-created orders fetched successfully",
-    //             'data' => $orders,
-    //         ], 200);
-
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-    public function dealerOrderFilter(Request $request)
+     public function dealerOrderFilter(Request $request)
     {
         try {
             $validatedData = $request->validate([
@@ -1100,114 +795,7 @@ class OrderController extends Controller
         }
     }
 
-
     
-    // public function outstandingPaymentsList()
-    // {
-    //     try {
-    //         $employee = Auth::user();
-    
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not Authenticated",
-    //             ], 401);
-    //         }
-    
-    //         $dealers = [];
-    
-    //         switch ($employee->employee_type_id) {
-    //             case 2: // ASO
-    //                 $assignedRoutes = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-    //                 if (empty($assignedRoutes)) {
-    //                     return response()->json([
-    //                         'success' => false,
-    //                         'statusCode' => 404,
-    //                         'message' => "No assigned routes found for the employee.",
-    //                     ], 404);
-    //                 }
-    //                 $dealers = Dealer::whereIn('assigned_route_id', $assignedRoutes)->pluck('id')->toArray();
-    //                 break;
-    
-    //             case 3: // DSM
-    //                 $dealers = Dealer::where('district_id', $employee->district_id)->pluck('id')->toArray();
-    //                 break;
-    
-    //             case 4: // RSM
-    //                 $region = Regions::whereHas('districts', function ($query) use ($employee) {
-    //                     $query->where('id', $employee->district_id);
-    //                 })->first();
-    
-    //                 if (!$region) {
-    //                     return response()->json([
-    //                         'success' => false,
-    //                         'statusCode' => 404,
-    //                         'message' => "Region not found for the employee's district.",
-    //                     ], 404);
-    //                 }
-    
-    //                 $districtsInRegion = District::where('regions_id', $region->id)->pluck('id')->toArray();
-    //                 $dealers = Dealer::whereIn('district_id', $districtsInRegion)->pluck('id')->toArray();
-    //                 break;
-    
-    //             case 5: // SM
-    //                 $dealers = Dealer::pluck('id')->toArray();
-    //                 break;
-    //         }
-    
-    //         if (empty($dealers)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No dealers found for the given criteria.",
-    //             ], 404);
-    //         }
-    
-    //         // Aggregate total outstanding amount per dealer
-    //         // $outstandingSummaries = OutstandingNew::select('dealer_id, outstanding_amount')
-    //         //     ->whereIn('dealer_id', $dealers)
-    //         //     ->where('outstanding_amount', '>', 0)
-    //         //     ->groupBy('dealer_id')
-    //         //     ->with('dealer:id,dealer_name,dealer_code')
-    //         //     ->get()
-    //         //     ->map(function ($item) {
-    //         //         return [
-    //         //             'dealer_id' => $item->dealer_id,
-    //         //             'dealer_code' => $item->dealer->dealer_code,
-    //         //             'dealer_name' => $item->dealer->dealer_name,
-    //         //             'total_outstanding_amount' => (float) $item->total_outstanding_amount,
-    //         //         ];
-    //         //     });
-    //             $outstandingSummaries = OutstandingNew::select('dealer_id', 'outstanding_amount')
-    //                 ->whereIn('dealer_id', $dealers)
-    //                 ->where('outstanding_amount', '>', 0)
-    //                 ->with(['dealers:id,dealer_name,dealer_code']) // eager load dealer info
-    //                 ->get()
-    //                 ->map(function ($item) {
-    //                     return [
-    //                         'dealer_id' => $item->dealer_id,
-    //                         'dealer_code' => $item->dealer->dealer_code ?? null,
-    //                         'dealer_name' => $item->dealer->dealer_name ?? null,
-    //                         'total_outstanding_amount' => (float) $item->outstanding_amount,
-    //                     ];
-    //             });
-    
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Dealer-wise outstanding amounts fetched successfully',
-    //             'data' => $outstandingSummaries,
-    //         ], 200);
-    
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
     public function outstandingPaymentsList()
     {
         try {
@@ -1275,116 +863,8 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
   
-    // public function searchOutstandingPayments(Request $request)
-    // {
-    //     try {
-    //         $employee = Auth::user();
-    
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not Authenticated",
-    //             ], 401);
-    //         }
-    
-    //         $search = $request->input('search');
-
-    //         if (!$search) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 422,
-    //                 'message' => "Search query is required.",
-    //             ], 422);
-    //         }
-    
-    //         $dealersQuery = Dealer::query()
-    //             ->where(function ($q) use ($search) {
-    //                 $q->where('dealer_name', 'like', "%{$search}%")
-    //                   ->orWhere('dealer_code', 'like', "%{$search}%");
-    //             });
-    
-    //         // Scope dealers based on employee type
-    //         switch ($employee->employee_type_id) {
-    //             case 2: // ASO
-    //                 $assignedRoutes = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-    //                 $dealersQuery->whereIn('assigned_route_id', $assignedRoutes);
-    //                 break;
-    
-    //             case 3: // DSM
-    //                 $dealersQuery->where('district_id', $employee->district_id);
-    //                 break;
-    
-    //             case 4: // RSM
-    //                 $region = Regions::whereHas('districts', function ($query) use ($employee) {
-    //                     $query->where('id', $employee->district_id);
-    //                 })->first();
-    //                 if ($region) {
-    //                     $districts = District::where('regions_id', $region->id)->pluck('id')->toArray();
-    //                     $dealersQuery->whereIn('district_id', $districts);
-    //                 } else {
-    //                     return response()->json([
-    //                         'success' => false,
-    //                         'statusCode' => 404,
-    //                         'message' => "Region not found for employee's district.",
-    //                     ], 404);
-    //                 }
-    //                 break;
-    
-    //             case 5: // SM
-    //                 // No restriction
-    //                 break;
-    
-    //             default:
-    //                 return response()->json([
-    //                     'success' => false,
-    //                     'statusCode' => 403,
-    //                     'message' => "Access denied.",
-    //                 ], 403);
-    //         }
-    
-    //         $dealerIds = $dealersQuery->pluck('id');
-    
-    //         if ($dealerIds->isEmpty()) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No dealers found matching the search criteria.",
-    //                 'data' => [],
-    //             ], 404);
-    //         }
-    
-    //         $outstandingSummaries = OutstandingNew::whereIn('dealer_id', $dealerIds)
-    //             ->where('outstanding_amount', '>', 0)
-    //             ->with('dealer:id,dealer_name,dealer_code')
-    //             ->get()
-    //             ->map(function ($item) {
-    //                 return [
-    //                     'dealer_id' => $item->dealer_id,
-    //                     'dealer_code' => $item->dealer->dealer_code ?? '',
-    //                     'dealer_name' => $item->dealer->dealer_name ?? '',
-    //                     'total_outstanding_amount' => (float) $item->outstanding_amount,
-    //                 ];
-    //             });
-    
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Filtered outstanding payments fetched successfully',
-    //             'data' => $outstandingSummaries,
-    //         ], 200);
-    
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-    public function searchOutstandingPayments(Request $request)
+     public function searchOutstandingPayments(Request $request)
     {
         try {
             $employee = Auth::user();
@@ -1483,97 +963,6 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
-    // public function viewOutstandingPaymentByDealer($dealer_id)
-    // {
-    //     try {
-    //         $employee = Auth::user();
-    
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not authenticated",
-    //             ], 401);
-    //         }
-    
-    //         // Check if the dealer is accessible by the employee
-    //         $dealer = Dealer::find($dealer_id);
-    
-    //         if (!$dealer) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "Dealer not found.",
-    //             ], 404);
-    //         }
-    
-    //         // Access control based on employee type
-    //         $hasAccess = false;
-    
-    //         switch ($employee->employee_type_id) {
-    //             case 2: // ASO
-    //                 $assignedRouteIds = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-    //                 $hasAccess = in_array($dealer->assigned_route_id, $assignedRouteIds);
-    //                 break;
-    
-    //             case 3: // DSM
-    //                 $hasAccess = $dealer->district_id == $employee->district_id;
-    //                 break;
-    
-    //             case 4: // RSM
-    //                 $region = Regions::whereHas('districts', function ($q) use ($employee) {
-    //                     $q->where('id', $employee->district_id);
-    //                 })->first();
-    //                 if ($region) {
-    //                     $districts = District::where('regions_id', $region->id)->pluck('id')->toArray();
-    //                     $hasAccess = in_array($dealer->district_id, $districts);
-    //                 }
-    //                 break;
-    
-    //             case 5: // SM
-    //                 $hasAccess = true;
-    //                 break;
-    //         }
-    
-    //         if (!$hasAccess) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 403,
-    //                 'message' => "You do not have access to this dealer's outstanding payments.",
-    //             ], 403);
-    //         }
-    
-    //         // Fetch outstanding invoices for the dealer
-    //         $outstandingPayments = OutstandingPayment::where('dealer_id', $dealer_id)
-    //             ->where('outstanding_amount', '>', 0)
-    //             ->orderBy('due_date', 'asc')
-    //             ->get()
-    //             ->map(function ($item) {
-    //                 return [
-    //                     'order_id' => $item->order_id,
-    //                     'invoice_number' => $item->invoice_number,
-    //                     'invoice_date' => optional($item->invoice_date)->format('d/m/Y'),
-    //                     'due_date' => optional($item->due_date)->format('d/m/Y'),
-    //                     'outstanding_amount' => (float) $item->outstanding_amount,
-    //                 ];
-    //             });
-    
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Outstanding payments fetched successfully.',
-    //             'data' => $outstandingPayments,
-    //         ], 200);
-    
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
     public function viewOutstandingPaymentByDealer($dealer_id)
     {
         try {
@@ -1651,114 +1040,6 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
-    // public function searchOutstandingByInvoice(Request $request)
-    // {
-    //     try {
-    //         $employee = Auth::user();
-    
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not authenticated",
-    //             ], 401);
-    //         }
-    
-    //         $invoiceNumber = $request->input('invoice_number');
-    //         $dealerId = $request->input('dealer_id');
-    
-    //         if (!$invoiceNumber || !$dealerId) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 422,
-    //                 'message' => "Both invoice number and dealer ID are required.",
-    //             ], 422);
-    //         }
-    
-    //         // Fetch dealer
-    //         $dealer = Dealer::find($dealerId);
-    //         if (!$dealer) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "Dealer not found.",
-    //             ], 404);
-    //         }
-    
-    //         $hasAccess = false;
-    //         switch ($employee->employee_type_id) {
-    //             case 2: // ASO
-    //                 $assignedRouteIds = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-    //                 $hasAccess = in_array($dealer->assigned_route_id, $assignedRouteIds);
-    //                 break;
-    //             case 3: // DSM
-    //                 $hasAccess = $dealer->district_id == $employee->district_id;
-    //                 break;
-    //             case 4: // RSM
-    //                 $region = Regions::whereHas('districts', function ($q) use ($employee) {
-    //                     $q->where('id', $employee->district_id);
-    //                 })->first();
-    //                 if ($region) {
-    //                     $districts = District::where('regions_id', $region->id)->pluck('id')->toArray();
-    //                     $hasAccess = in_array($dealer->district_id, $districts);
-    //                 }
-    //                 break;
-    //             case 5: // SM
-    //                 $hasAccess = true;
-    //                 break;
-    //         }
-    
-    //         if (!$hasAccess) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 403,
-    //                 'message' => "You do not have access to this dealer's outstanding payments.",
-    //             ], 403);
-    //         }
-    
-    //         // Filter by dealer ID and invoice number
-    //         $outstandingRecords = OutstandingPayment::where('dealer_id', $dealerId)
-    //             ->where('invoice_number', 'like', "%{$invoiceNumber}%")
-    //             ->where('outstanding_amount', '>', 0)
-    //             ->orderBy('due_date', 'asc')
-    //             ->get();
-    
-    //         if ($outstandingRecords->isEmpty()) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No outstanding payments found for this invoice and dealer.",
-    //                 'data' => [],
-    //             ], 404);
-    //         }
-    
-    //         // Format and return
-    //         $formattedResults = $outstandingRecords->map(function ($item) {
-    //             return [
-    //                 'order_id' => $item->order_id,
-    //                 'invoice_number' => $item->invoice_number,
-    //                 'invoice_date' => optional($item->invoice_date)->format('d/m/Y'),
-    //                 'due_date' => optional($item->due_date)->format('d/m/Y'),
-    //                 'outstanding_amount' => (float) $item->outstanding_amount,
-    //             ];
-    //         });
-    
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Outstanding payment details found successfully.',
-    //             'data' => $formattedResults,
-    //         ], 200);
-    
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
     public function searchOutstandingByInvoice(Request $request)
     {
         try {
@@ -1858,184 +1139,6 @@ class OrderController extends Controller
         }
     }
 
-
-    // public function viewOutstandingPaymentOrderDetails($orderId)
-    // {
-    //     try {
-    //         $employee = Auth::user();
-    
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not Authenticated",
-    //             ], 401);
-    //         }
-    
-    //         $dealers = [];
-    
-    //         if ($employee->employee_type_id == 2) { // ASO
-    //             $assignedRoutes = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-    
-    //             if (empty($assignedRoutes)) {
-    //                 return response()->json([
-    //                     'success' => false,
-    //                     'statusCode' => 404,
-    //                     'message' => "No assigned routes found for the employee.",
-    //                 ], 404);
-    //             }
-    
-              
-    //             $dealers = Dealer::whereIn('assigned_route_id', $assignedRoutes)->pluck('id')->toArray();
-    
-    //         } elseif ($employee->employee_type_id == 3) { // DSM
-    //             $dealers = Dealer::where('district_id', $employee->district_id)->pluck('id')->toArray();
-    
-    //         } elseif ($employee->employee_type_id == 4) { // RSM
-    //             $region = Regions::whereHas('districts', function ($query) use ($employee) {
-    //                 $query->where('id', $employee->district_id);
-    //             })->first();
-    
-    //             if (!$region) {
-    //                 return response()->json([
-    //                     'success' => false,
-    //                     'statusCode' => 404,
-    //                     'message' => "Region not found for the employee's district.",
-    //                 ], 404);
-    //             }
-    
-    //             $districtsInRegion = District::where('regions_id', $region->id)->pluck('id')->toArray();
-    //             $dealers = Dealer::whereIn('district_id', $districtsInRegion)->pluck('id')->toArray();
-    
-    //         } elseif ($employee->employee_type_id == 5) { // SM
-    //             $dealers = Dealer::pluck('id')->toArray();
-    //         }
-    
-    //         if (empty($dealers)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No dealers found for the given criteria.",
-    //             ], 404);
-    //         }
-    
-    //         $outstandingPayment = OutstandingPayment::with([
-    //             'dealer:id,dealer_name,dealer_code,district_id',
-    //             'order.orderType:id,name',
-    //             'order.orderItems.product:id,product_name',
-    //             'order.paymentTerm:id,name',
-    //             'order.vehicleCategory:id,vehicle_category_name','commitments'
-    //         ])->where('order_id', $orderId)->first();
-    
-    //         if (!$outstandingPayment) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No outstanding payment found for this order.",
-    //                 'data' => []
-    //             ], 404);
-    //         }
-    
-    //         if (!in_array($outstandingPayment->dealer->id, $dealers)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 403,
-    //                 'message' => "You do not have permission to view this order.",
-    //             ], 403);
-    //         }
-            
-    
-    //         $order = $outstandingPayment->order;
-    //         $payments = Payment::where('order_id', $order->id)
-    //             ->where('dealer_id', $outstandingPayment->dealer->id)
-    //             ->select('payment_date', 'payment_amount', 'payment_document_no')
-    //             ->orderBy('payment_date', 'asc')
-    //             ->get();
-
-    //         $totalPaidAmount = $payments->sum('payment_amount');
-    //         $totalOutstandingAmount = $order->invoice_total - $totalPaidAmount;
-    
-    //         $orderItems = $order->orderItems->map(function ($item) {
-    //             $productDetails = collect($item->product_details)->map(function ($detail) {
-    //                 $productType = ProductType::find($detail['product_type_id']);
-    //                 return [
-    //                     'product_type_id' => $detail['product_type_id'],
-    //                     'type_name' => $productType->type_name ?? null,
-    //                     'quantity' => (float) $detail['quantity'],
-    //                     'rate' => $detail['rate']
-    //                 ];
-    //             });
-    
-    //             return [
-    //                 'product_id' => $item->product_id,
-    //                 'product_name' => $item->product->product_name ?? null,
-    //                 'total_quantity' => (float) $item->total_quantity,
-    //                 'product_details' => $productDetails,
-    //             ];
-    //         });
-    //         $commitment_data=$outstandingPayment->commitments->map(function ($commitment) {
-    //             return [
-    //                 'id' => $commitment->id,
-    //                 'committed_date' => $commitment->committed_date 
-    //                     ? \Carbon\Carbon::parse($commitment->committed_date)->format('d/m/Y') 
-    //                     : null,
-    //                 'committed_amount' => (float) $commitment->committed_amount,
-    //                 'notification_status' => $commitment->notification_status,
-    //             ];
-    //         })->toArray();
-    //         $response = [
-    //             'id'       => $outstandingPayment->id,
-    //             'order_id' => $order->id,
-    //             'order_type' => $order->orderType->name ?? null,
-    //             'payment_term' => $order->paymentTerm->name ?? null,
-    //             'billing_date' => $order->billing_date ? \Carbon\Carbon::parse($order->billing_date)->format('d/m/Y') : null,
-    //             'attachment' => $order->attachment,
-    //             'aashiyana_attachment' => $order->aashiyana_attachment ? asset('uploads/orders/' . $order->aashiyana_attachment) : null,
-    //             'advance_attachment' => $order->advance_attachment ? asset('uploads/orders/' . $order->advance_attachment) : null,
-    //             'total_amount' => $order->total_amount,
-    //             'additional_information' => $order->additional_information,
-    //             'created_at' => \Carbon\Carbon::parse($order->created_at)->format('d/m/Y'),
-    //             'order_items' => $orderItems,
-    //             'vehicle_category' => $order->vehicleCategory->vehicle_category_name ?? null,
-    //             'vehicle_number' => $order->vehicle_number,
-    //             'driver_name' => $order->driver_name,
-    //             'driver_phone' => $order->driver_phone,
-    //             'outstanding_payment' => [
-    //                 'outstanding_payment_id' =>  $outstandingPayment->id,
-    //                 'invoice_number' => $outstandingPayment->invoice_number,
-    //                 'invoice_date' => $outstandingPayment->invoice_date ? \Carbon\Carbon::parse($outstandingPayment->invoice_date)->format('d/m/Y') : null,
-    //                 'due_date' => $outstandingPayment->due_date ? \Carbon\Carbon::parse($outstandingPayment->due_date)->format('d/m/Y') : null,
-    //                 'invoice_total' => (float) $outstandingPayment->invoice_total,
-	// 	        'paid_amount' => (float) $outstandingPayment->paid_amount,
-    //                 'outstanding_amount' => (float) $outstandingPayment->outstanding_amount,
-	// 	        'payment_doc_number' => $outstandingPayment->payment_doc_number,
-    //                 'payment_date' => $outstandingPayment->payment_date ? \Carbon\Carbon::parse($outstandingPayment->payment_date)->format('d/m/Y') : null,
-    //                 'payment_amount_applied' => (float) $outstandingPayment->payment_amount_applied,
-    //                 'status' => $outstandingPayment->status,
-    //             ],
-    //             "commitment_data"=>$commitment_data,
-    //             'dealer' => [
-    //                 'id' => $outstandingPayment->dealer->id,
-    //                 'name' => $outstandingPayment->dealer->dealer_name,
-    //                 'code' => $outstandingPayment->dealer->dealer_code,
-    //             ]
-    //         ];
-    
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Outstanding Payment Order details fetched successfully',
-    //             'data' => $response,
-    //         ], 200);
-    
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
     public function viewOutstandingPaymentOrderDetails($orderId)
     {
         try {
@@ -2192,110 +1295,7 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
-    // public function addOutstandingPaymentCommitment(Request $request, $outstandingPaymentId)
-    // {
-    //     try {
-    //         $employee = Auth::user();
-
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not Authenticated",
-    //             ], 401);
-    //         }
-
-    //         $validatedData = $request->validate([
-    //             'commitments' => 'required|array|min:1',
-    //             'commitments.*.committed_date' => 'required|date|after_or_equal:today',
-    //             'commitments.*.committed_amount' => 'required|numeric|min:1',
-    //         ]);
-
-    //         $outstandingPayment = OutstandingPayment::with('dealer')->findOrFail($outstandingPaymentId);
-    //         $dealer = $outstandingPayment->dealer;
-
-    //         $allowed = false;
-
-    //         switch ($employee->employee_type_id) {
-    //             case 2: 
-    //                 $assignedRoutes = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-    //                 $allowed = in_array($dealer->assigned_route_id, $assignedRoutes);
-    //                 break;
-
-    //             case 3: 
-    //                 $allowed = ($dealer->district_id == $employee->district_id);
-    //                 break;
-
-    //             case 4: // RSM - Check region
-    //                 $region = Regions::whereHas('districts', function ($query) use ($employee) {
-    //                     $query->where('id', $employee->district_id);
-    //                 })->first();
-
-    //                 if ($region) {
-    //                     $districtsInRegion = District::where('regions_id', $region->id)->pluck('id')->toArray();
-    //                     $allowed = in_array($dealer->district_id, $districtsInRegion);
-    //                 }
-    //                 break;
-
-    //             case 5: // SM - Unrestricted access
-    //                 $allowed = true;
-    //                 break;
-    //         }
-
-    //         if (!$allowed) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 403,
-    //                 'message' => "You do not have permission to add commitments for this order.",
-    //             ], 403);
-    //         }
-
-    //         // Calculate remaining outstanding amount
-    //         $totalCommitted = OutstandingPaymentCommitment::where('outstanding_payment_id', $outstandingPaymentId)->sum('committed_amount');
-    //         $remainingOutstanding = $outstandingPayment->outstanding_amount - $totalCommitted;
-
-    //         $commitmentsToInsert = [];
-    //         $totalNewCommitments = 0;
-
-    //         foreach ($validatedData['commitments'] as $commitment) {
-    //             $totalNewCommitments += $commitment['committed_amount'];
-
-    //             if ($totalNewCommitments > $remainingOutstanding) {
-    //                 return response()->json([
-    //                     'success' => false,
-    //                     'statusCode' => 400,
-    //                     'message' => "Total committed amount exceeds remaining outstanding balance of $remainingOutstanding.",
-    //                 ], 400);
-    //             }
-
-    //             $commitmentsToInsert[] = [
-    //                 'outstanding_payment_id' => $outstandingPaymentId,
-    //                 'committed_date' => $commitment['committed_date'],
-    //                 'committed_amount' => $commitment['committed_amount'],
-    //                 'created_at' => now(),
-    //                 'updated_at' => now(),
-    //             ];
-    //         }
-
-    //         // Bulk insert commitments
-    //         OutstandingPaymentCommitment::insert($commitmentsToInsert);
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Commitments added successfully!',
-    //             'data' => $commitmentsToInsert,
-    //         ], 200);
-
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
+    
     public function addOutstandingPaymentCommitment(Request $request, $outstandingPaymentId)
     {
         try {
@@ -2389,163 +1389,6 @@ class OrderController extends Controller
         }
     }
 
-
-    // public function addOutstandingPaymentCommitmentNew(Request $request, $outstandingPaymentId)
-    // {
-    //     try {
-    //         $employee = Auth::user();
-
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not Authenticated",
-    //             ], 401);
-    //         }
-
-    //         $validatedData = $request->validate([
-    //             'commitments' => 'required|array|min:1',
-    //             'commitments.*.committed_date' => 'required|date|after_or_equal:today',
-    //             'commitments.*.committed_amount' => 'required|numeric|min:1',
-    //         ]);
-
-    //         $outstandingPayment = OutstandingPayment::with('dealer')->findOrFail($outstandingPaymentId);
-    //         $dealer = $outstandingPayment->dealer;
-
-    //         $allowed = false;
-
-    //         switch ($employee->employee_type_id) {
-    //             case 2: 
-    //                 $assignedRoutes = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-    //                 $allowed = in_array($dealer->assigned_route_id, $assignedRoutes);
-    //                 break;
-
-    //             case 3: 
-    //                 $allowed = ($dealer->district_id == $employee->district_id);
-    //                 break;
-
-    //             case 4: // RSM - Check region
-    //                 $region = Regions::whereHas('districts', function ($query) use ($employee) {
-    //                     $query->where('id', $employee->district_id);
-    //                 })->first();
-
-    //                 if ($region) {
-    //                     $districtsInRegion = District::where('regions_id', $region->id)->pluck('id')->toArray();
-    //                     $allowed = in_array($dealer->district_id, $districtsInRegion);
-    //                 }
-    //                 break;
-
-    //             case 5: // SM - Unrestricted access
-    //                 $allowed = true;
-    //                 break;
-    //         }
-
-    //         if (!$allowed) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 403,
-    //                 'message' => "You do not have permission to add commitments for this order.",
-    //             ], 403);
-    //         }
-
-    //         // Calculate remaining outstanding amount
-    //         $totalCommitted = OutstandingPaymentCommitment::where('outstanding_payment_id', $outstandingPaymentId)->sum('committed_amount');
-    //         $remainingOutstanding = $outstandingPayment->outstanding_amount - $totalCommitted;
-
-    //         $commitmentsToInsert = [];
-    //         $totalNewCommitments = 0;
-
-    //         foreach ($validatedData['commitments'] as $commitment) {
-    //             $totalNewCommitments += $commitment['committed_amount'];
-
-    //             if ($totalNewCommitments > $remainingOutstanding) {
-    //                 return response()->json([
-    //                     'success' => false,
-    //                     'statusCode' => 400,
-    //                     'message' => "Total committed amount exceeds remaining outstanding balance of $remainingOutstanding.",
-    //                 ], 400);
-    //             }
-
-    //             $commitmentsToInsert[] = [
-    //                 'outstanding_payment_id' => $outstandingPaymentId,
-    //                 'committed_date' => $commitment['committed_date'],
-    //                 'committed_amount' => $commitment['committed_amount'],
-    //                 'created_at' => now(),
-    //                 'updated_at' => now(),
-    //             ];
-    //         }
-
-    //         // Bulk insert commitments
-    //         OutstandingPaymentCommitment::insert($commitmentsToInsert);
-
-    //         $hasAccess = false;
-    
-    //         switch ($employee->employee_type_id) {
-    //             case 2: // ASO
-    //                 $assignedRouteIds = AssignRoute::where('employee_id', $employee->id)->pluck('id')->toArray();
-    //                 $hasAccess = in_array($dealer->assigned_route_id, $assignedRouteIds);
-    //                 break;
-    
-    //             case 3: // DSM
-    //                 $hasAccess = $dealer->district_id == $employee->district_id;
-    //                 break;
-    
-    //             case 4: // RSM
-    //                 $region = Regions::whereHas('districts', function ($q) use ($employee) {
-    //                     $q->where('id', $employee->district_id);
-    //                 })->first();
-    //                 if ($region) {
-    //                     $districts = District::where('regions_id', $region->id)->pluck('id')->toArray();
-    //                     $hasAccess = in_array($dealer->district_id, $districts);
-    //                 }
-    //                 break;
-    
-    //             case 5: // SM
-    //                 $hasAccess = true;
-    //                 break;
-    //         }
-    
-    //         if (!$hasAccess) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 403,
-    //                 'message' => "You do not have access to this dealer's outstanding payments.",
-    //             ], 403);
-    //         }
-    
-    //         // Fetch outstanding invoices for the dealer
-    //         $outstandingPayments = OutstandingPayment::where('dealer_id', $dealer->id)
-    //             ->where('outstanding_amount', '>', 0)
-    //             ->orderBy('due_date', 'asc')
-    //             ->get()
-    //             ->map(function ($item) {
-    //                 return [
-    //                     'order_id' => $item->order_id,
-    //                     'invoice_number' => $item->invoice_number,
-    //                     'invoice_date' => optional($item->invoice_date)->format('d/m/Y'),
-    //                     'due_date' => optional($item->due_date)->format('d/m/Y'),
-    //                     'outstanding_amount' => (float) $item->outstanding_amount,
-    //                 ];
-    //             });
-                
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Commitments added successfully!',
-    //             'data' => [
-    //                "inserted_data" => $commitmentsToInsert,
-    //                "outstandingPayments" => $outstandingPayments
-    //             ]
-    //         ], 200);
-
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
     public function addOutstandingPaymentCommitmentNew(Request $request, $outstandingPaymentId)
     {
         try {
@@ -2656,7 +1499,6 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
     public function salesExecutiveSalesReport(Request $request)
     {
         try {
@@ -3998,7 +2840,7 @@ class OrderController extends Controller
 
             $rules = [
                 'dealer_id' => 'required|exists:dealers,id',
-                'aso_id' => 'exists:employees,id',
+                'aso_id' => 'nullable|exists:employees,id',
                 'purpose_of_visit' => 'required|string',
                 'remarks' => 'nullable|string',
                 'attachments' => 'nullable|array',
@@ -4042,7 +2884,7 @@ class OrderController extends Controller
             // Create Dealer Visit
             $dealerVisit = DealerVisit::create([
                 'dealer_id' => $validatedData['dealer_id'],
-                'aso_id' => $validatedData['aso_id'],
+                'aso_id' => $validatedData['aso_id'] ?? null,
                 'purpose_of_visit' => $validatedData['purpose_of_visit'],
                 'item_type' => $validatedData['item_type'] ?? null,
                 'remarks' => $validatedData['remarks'] ?? null,
@@ -4061,7 +2903,7 @@ class OrderController extends Controller
                 ($purpose === 'Casual Visit' && $request->input('new_order') === 'Yes')
             ) {
                 $orderData = $request->only([
-                    'order_type', 'customer_type_id', 'order_category', 'lead_id', 'dealer_id',
+                    'order_type', 'customer_type_id', 'order_category', 'lead_id', 'dealer_id','product_id',
                     'payment_terms_id', 'credit_days', 'advance_amount', 'payment_date', 'utr_number',
                     'billing_date', 'delivery_date', 'total_amount', 'additional_information', 'status', 'source',
                     'vehicle_category_id', 'vehicle_type', 'vehicle_number', 'driver_name', 'driver_phone',
@@ -4092,12 +2934,29 @@ class OrderController extends Controller
                 if (!empty($orderData['order_items'])) {
                     foreach ($orderData['order_items'] as $item) {
                         $totalQty = 0;
+                        $totalPieces = 0;
+                        $totalTon = 0;
+
                         if (!empty($item['product_details'])) {
                             foreach ($item['product_details'] as $detail) {
-                                $totalQty += $detail['quantity'];
+                                // Flexible quantity key handling
+                                if (isset($detail['quantity'])) {
+                                    $totalQty += $detail['quantity'];
+                                }
+                                if (isset($detail['pieces'])) {
+                                    $totalPieces += $detail['pieces'];
+                                }
+                                if (isset($detail['tonnage'])) {
+                                    $totalTon += $detail['tonnage'];
+                                }
                             }
                         }
+
+                        // Assign totals based on available data
                         $item['total_quantity'] = round($totalQty, 6);
+                        $item['total_pieces'] = round($totalPieces, 6);
+                        $item['total_ton'] = round($totalTon, 6);
+
                         $order->orderItems()->create($item);
                     }
                 }
@@ -4282,25 +3141,50 @@ class OrderController extends Controller
             'credit_days' => $order->credit_days,
             'billing_date' => $order->billing_date,
             'delivery_date' => $order->delivery_date,
+
             'product_details' => $order->orderItems->map(function ($item) {
                 $productDetails = collect($item->product_details)->map(function ($detail) {
                     $productType = \App\Models\ProductType::find($detail['product_type_id']);
+
                     return [
                         'product_type_id' => $detail['product_type_id'],
                         'type_name' => $productType->type_name ?? null,
-                        'quantity' => (float) $detail['quantity'],
-                        'rate' => $detail['rate']
+                        'quantity' => isset($detail['quantity']) ? (float)$detail['quantity'] : null,
+                        'pieces' => isset($detail['pieces']) ? (float)$detail['pieces'] : null,
+                        'tonnage' => isset($detail['tonnage']) ? (float)$detail['tonnage'] : null,
+                        'rate' => $detail['rate'] ?? null,
+                        'quantity_type' => $detail['quantity_type'] ?? null,
                     ];
                 });
+
+                // Compute total pieces and total tonnage
+                $totalPieces = $productDetails->sum('pieces');
+                $totalTon = $productDetails->sum('tonnage');
+                $totalQty = $productDetails->sum('quantity');
 
                 return [
                     'product_id' => $item->product_id,
                     'product_name' => $item->product->product_name ?? null,
-                    'total_quantity' => (float) $item->total_quantity,
+                    'total_quantity' => (float)$totalQty,
+                    'total_pieces' => (float)$totalPieces,
+                    'total_ton' => (float)$totalTon,
                     'product_details' => $productDetails,
                 ];
             }),
-            'total_quantity' => $order->orderItems->sum('total_quantity'),
+
+            // Calculate overall totals across all order items
+            'total_quantity' => $order->orderItems->map(function ($item) {
+                return collect($item->product_details)->sum('quantity');
+            })->sum(),
+
+            'total_pieces' => $order->orderItems->map(function ($item) {
+                return collect($item->product_details)->sum('pieces');
+            })->sum(),
+
+            'total_ton' => $order->orderItems->map(function ($item) {
+                return collect($item->product_details)->sum('tonnage');
+            })->sum(),
+
             'total_amount' => $order->total_amount,
             'vehicle_category' => $order->vehicleCategory?->vehicle_category_name,
             'vehicle_number' => $order->vehicle_number,
@@ -4309,6 +3193,8 @@ class OrderController extends Controller
             'additional_info' => $order->additional_information,
         ];
     }
+
+
     
     public function SalesReportExport(Request $request)
     {

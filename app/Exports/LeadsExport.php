@@ -85,15 +85,16 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             $lead->type_of_visit,
             $lead->construction_type,
             $lead->stage_of_construction,
-            
+            $lead->follow_up_date 
+                ? \Carbon\Carbon::parse($lead->follow_up_date)->format('Y-m-d') 
+                : 'NA',
+
             $lead->lead_score,
             $lead->lead_source,
             $lead->source_name,
             $lead->total_quantity,
             $lead->status,
-            $lead->follow_up_date 
-                ? \Carbon\Carbon::parse($lead->follow_up_date)->format('Y-m-d') 
-                : 'NA',
+            $newFollowUpDate,
             $newFollowUpReason,
             $dealerName,
             $paymentTerm,
@@ -132,7 +133,7 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             'Type of Visit',
             'Construction Type',
             'Stage of Construction',
-           
+            'Follow Up Date',
             'Lead Score',
             'Source',
             'Source Name',

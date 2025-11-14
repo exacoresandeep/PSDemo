@@ -23,6 +23,13 @@ class RescheduledRoute extends Model
         'notification_status', 
     ];
 
+    // protected $casts = [
+    //     'assign_date' => 'date', 
+    //     'locations' => 'array', 
+    //     'customers' => 'array', 
+    // ];
+
+   
     public function employee()
     {
         return $this->belongsTo(Employee::class);

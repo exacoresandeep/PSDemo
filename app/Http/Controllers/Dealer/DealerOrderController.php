@@ -523,6 +523,68 @@ class DealerOrderController extends Controller
             ], 500);
         }
     }
+    public function monthlyTargetAchievement(Request $request)
+    {
+        try {
+            $dealer = Auth::user();
+
+            if (!$dealer) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => "User not Authenticated",
+                ], 401);
+            }
+
+            $month = $request->input('month', Carbon::now()->format('m'));
+            $year = $request->input('year', Carbon::now()->format('Y'));
+
+            // 1️⃣ Get target for the dealer for that month/year
+            // $target = DB::table('dealer_targets')
+            //     ->where('dealer_id', $dealer->id)
+            //     ->where('month', $month)
+            //     ->where('year', $year)
+            //     ->select('target_quantity')
+            //     ->first();
+
+            // 2️⃣ Get achieved sales (same logic as in your existing API)
+            $salesData = Order::where(function ($query) use ($dealer) {
+                    $query->where('created_by_dealer', $dealer->id)
+                        ->orWhere('dealer_id', $dealer->id);
+                })
+                ->where('status', 'Delivered')
+                ->whereMonth('created_at', $month)
+                ->whereYear('created_at', $year)
+                ->selectRaw('
+                    SUM(invoice_quantity) as achieved_quantity
+                ')
+                ->first();
+
+            // 3️⃣ Format response
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Monthly Target vs Achieved Data',
+                'data' => [
+                    'year' => $year,
+                    'month' => $month,
+                    // 'target_quantity' => round((float) ($target->target_quantity ?? 0), 2),
+                    'target_quantity' => '0',
+                    'achieved_quantity' => round((float) ($salesData->achieved_quantity ?? 0), 2),
+                    // 'achievement_percentage' => $target && $target->target_quantity > 0
+                    //     ? round(($salesData->achieved_quantity / $target->target_quantity) * 100, 2)
+                    //     : 0,
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function outstandingPaymentsList()
     {
@@ -809,11 +871,110 @@ class DealerOrderController extends Controller
     //         ], 500);
     //     }
     // }
+    // public function orderRequestList(Request $request)
+    // {
+    //     try {
+    //         $dealer = Auth::user();
+
+    //         if (!$dealer) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 401,
+    //                 'message' => "User not Authenticated",
+    //             ], 401);
+    //         }
+
+    //         $assignedRouteIds = AssignRoute::whereIn('employee_id', function ($query) {
+    //                 $query->select('id')
+    //                     ->from('employees')
+    //                     ->where('employee_type_id', 1); 
+    //             })->pluck('id')->toArray();
+    //         if (empty($assignedRouteIds)) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 404,
+    //                 'message' => "No assigned routes found for Sales Executives.",
+    //                 'data' => []
+    //             ], 404);
+    //         }
+
+    //         $dealerRouteIds = DB::table('dealer_route_assignments')
+    //             ->where('dealer_id', $dealer->id)
+    //             ->pluck('assign_route_id')
+    //             ->toArray();
+   
+    //         if (empty($dealerRouteIds)) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 404,
+    //                 'message' => "No route assignments found for this dealer.",
+    //                 'data' => []
+    //             ], 404);
+    //         }
+
+    //         $matchedRouteIds = array_intersect($dealerRouteIds, $assignedRouteIds);
+
+    //         if (empty($matchedRouteIds)) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 403,
+    //                 'message' => "Dealer is not assigned under any Sales Executive's route.",
+    //                 'data' => []
+    //             ], 403);
+    //         }
+
+    //         $salesExecutives = AssignRoute::whereIn('id', $matchedRouteIds)
+    //             ->pluck('employee_id');
+
+    //         if ($salesExecutives->isEmpty()) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 404,
+    //                 'message' => "No Sales Executives found for this dealer's assigned routes.",
+    //                 'data' => []
+    //             ], 404);
+    //         }
+           
+    //         $orders = Order::where('dealer_id', $dealer->id)
+    //             ->whereIn('created_by', $salesExecutives)
+    //             ->select('id', 'total_amount', 'status', 'created_at')
+    //             ->orderBy('id', 'desc')
+    //             ->get();
+
+    //         $formattedOrders = $orders->map(function ($order) {
+    //             return [
+    //                 'id' => $order->id,
+    //                 'created_at' => $order->created_at->format('d/m/Y'),
+    //                 'total_amount' => round($order->total_amount, 2),
+    //                 'status' => match ($order->status) {
+    //                     'Pending' => 'Order Received',
+    //                     'Accepted' => 'Order Accepted',
+    //                     'Rejected' => 'Order Rejected',
+    //                     default => ucfirst($order->status),
+    //                 },
+    //             ];
+    //         });
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'statusCode' => 200,
+    //             'message' => 'Order Request List fetched successfully',
+    //             'data' => $formattedOrders,
+    //         ], 200);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 500,
+    //             'message' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
     public function orderRequestList(Request $request)
     {
         try {
             $dealer = Auth::user();
-
+    
             if (!$dealer) {
                 return response()->json([
                     'success' => false,
@@ -821,13 +982,13 @@ class DealerOrderController extends Controller
                     'message' => "User not Authenticated",
                 ], 401);
             }
-
+  
             $assignedRouteIds = AssignRoute::whereIn('employee_id', function ($query) {
                     $query->select('id')
                         ->from('employees')
                         ->where('employee_type_id', 1); 
                 })->pluck('id')->toArray();
-
+    
             if (empty($assignedRouteIds)) {
                 return response()->json([
                     'success' => false,
@@ -836,12 +997,13 @@ class DealerOrderController extends Controller
                     'data' => []
                 ], 404);
             }
+    
 
             $dealerRouteIds = DB::table('dealer_route_assignments')
                 ->where('dealer_id', $dealer->id)
                 ->pluck('assign_route_id')
                 ->toArray();
-
+    
             if (empty($dealerRouteIds)) {
                 return response()->json([
                     'success' => false,
@@ -850,9 +1012,10 @@ class DealerOrderController extends Controller
                     'data' => []
                 ], 404);
             }
+    
 
             $matchedRouteIds = array_intersect($dealerRouteIds, $assignedRouteIds);
-
+    
             if (empty($matchedRouteIds)) {
                 return response()->json([
                     'success' => false,
@@ -861,10 +1024,11 @@ class DealerOrderController extends Controller
                     'data' => []
                 ], 403);
             }
+    
 
             $salesExecutives = AssignRoute::whereIn('id', $matchedRouteIds)
                 ->pluck('employee_id');
-
+    
             if ($salesExecutives->isEmpty()) {
                 return response()->json([
                     'success' => false,
@@ -873,14 +1037,41 @@ class DealerOrderController extends Controller
                     'data' => []
                 ], 404);
             }
+    
 
             $orders = Order::where('dealer_id', $dealer->id)
                 ->whereIn('created_by', $salesExecutives)
                 ->select('id', 'total_amount', 'status', 'created_at')
                 ->orderBy('id', 'desc')
                 ->get();
+    
 
-            $formattedOrders = $orders->map(function ($order) {
+            $influencerOrders = Order::where('dealer_id', $dealer->id)
+                ->whereNotNull('influencer_visit_id')
+                ->whereHas('influencerVisit', function ($query) {
+                    $query->where('status', 'Won');
+                })
+                ->select('id', 'total_amount', 'status', 'created_at')
+                ->orderBy('id', 'desc')
+                ->get();
+            
+            $leadOrders = Order::where('dealer_id', $dealer->id)
+                ->whereNotNull('lead_id')
+                ->whereHas('lead', function ($query) {
+                    $query->where('status', 'Won');
+                })
+                ->select('id', 'total_amount', 'status', 'created_at')
+                ->orderBy('id', 'desc')
+                ->get();
+
+            $allOrders = $orders
+                ->merge($influencerOrders)
+                ->merge($leadOrders)
+                ->unique('id')
+                ->sortByDesc('id')
+                ->values();
+
+            $formattedOrders = $allOrders->map(function ($order) {
                 return [
                     'id' => $order->id,
                     'created_at' => $order->created_at->format('d/m/Y'),
@@ -889,18 +1080,19 @@ class DealerOrderController extends Controller
                         'Pending' => 'Order Received',
                         'Accepted' => 'Order Accepted',
                         'Rejected' => 'Order Rejected',
+                        'Won' => 'Order Won',
                         default => ucfirst($order->status),
                     },
                 ];
             });
-
+    
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'message' => 'Order Request List fetched successfully',
+                'message' => 'Order Request List (including influencer and lead won orders) fetched successfully',
                 'data' => $formattedOrders,
             ], 200);
-
+    
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -910,12 +1102,11 @@ class DealerOrderController extends Controller
         }
     }
 
-
     public function orderRequestDetails($orderId)
     {
         try {
             $dealer = Auth::user();
-
+    
             if (!$dealer) {
                 return response()->json([
                     'success' => false,
@@ -923,22 +1114,24 @@ class DealerOrderController extends Controller
                     'message' => "User not authenticated",
                 ], 401);
             }
-
+    
+            // Load the order with all possible relationships
             $order = Order::with([
                 'createdBy:id,name,employee_code',
                 'orderType:id,name',
                 'customerType:id,name',
                 'lead.customerType:id,name',
-                'lead:id,customer_name,phone,address,construction_type,stage_of_construction',
+                'lead:id,customer_name,phone,address,construction_type,stage_of_construction,status',
+                'influencerVisit:id,influencer_name,phone,status',
                 'paymentTerm:id,name',
                 'orderItems.product.productTypes:id,product_id,type_name',
                 'orderItems.product:id,product_name',
                 'dealers:id,dealer_name,dealer_code',
                 'vehicleCategory:id,vehicle_category_name',
             ])
-            ->where('dealer_id', $dealer->id) 
+            ->where('dealer_id', $dealer->id)
             ->find($orderId);
-
+    
             if (!$order) {
                 return response()->json([
                     'success' => false,
@@ -946,39 +1139,63 @@ class DealerOrderController extends Controller
                     'message' => 'Order not found or unauthorized access',
                 ], 404);
             }
-
-            // Format response data
+    
+            // Determine which type of customer data to show
+            $customerTypeName = ' ';
+            $customerName = ' ';
+            $phone = ' ';
+            $address = ' ';
+            $constructionType = ' ';
+            $stageOfConstruction = ' ';
+    
+            if ($order->lead_id && optional($order->lead)->status === 'Won') {
+                // Lead-based order
+                $customerTypeName = $order->lead->customerType->name ?? ' ';
+                $customerName = $order->lead->customer_name ?? ' ';
+                $phone = $order->lead->phone ?? ' ';
+                $address = $order->lead->address ?? ' ';
+                $constructionType = $order->lead->construction_type ?? ' ';
+                $stageOfConstruction = $order->lead->stage_of_construction ?? ' ';
+            } elseif ($order->influencer_visit_id && optional($order->influencerVisit)->status === 'Won') {
+                // Influencer-based order
+                $customerTypeName = 'Influencer';
+                $customerName = $order->influencerVisit->influencer_name ?? ' ';
+                $phone = $order->influencerVisit->phone ?? ' ';
+                $address = $order->influencerVisit->address ?? ' ';
+                
+            } else {
+                // Dealer-based order
+                $customerTypeName = $order->customerType->name ?? ' ';
+                $customerName = $order->dealers->dealer_name ?? ' ';
+                $address = $order->dealers->dealer_code ?? ' ';
+            }
+    
+            // Format response
             $orderDetails = [
                 'id' => $order->id,
                 'order_placed_by' => [
                     'name' => $order->createdBy->name ?? ' ',
                     'employee_code' => $order->createdBy->employee_code ?? ' ',
-                    'designation' => 'Sales Executive', // Fixed designation
+                    'designation' => 'Sales Executive',
                 ],
                 'order_date' => $order->created_at->format('d/m/Y'),
                 'order_type' => $order->orderType->name ?? ' ',
                 'total_amount' => $order->total_amount,
                 'customer_details' => [
-                    'customer_type' => $order->customerType->name ?? ($order->lead->customerType->name ?? ' '),
-                    'customer_name' => $order->lead->customer_name ?? ' ',
-                    'phone' => $order->lead->phone ?? ' ',
-                    'address' => $order->lead->address ?? ' ',
-                    'construction_type' => $order->lead->construction_type ?? ' ',
-                    'stage_of_construction' => $order->lead->stage_of_construction ?? ' ',
+                    'customer_type' => $customerTypeName,
+                    'customer_name' => $customerName,
+                    'phone' => $phone,
+                    'address' => $address,
+                    'construction_type' => $constructionType,
+                    'stage_of_construction' => $stageOfConstruction,
                 ],
-
-                'billing_date' => $order->billing_date ? Carbon::parse($order->billing_date)->format('d/m/Y') : ' ',
+                'billing_date' => $order->billing_date,
+                'delivery_date' => $order->delivery_date,
                 'payment_terms' => $order->paymentTerm->name ?? ' ',
                 'additional_information' => $order->additional_information ?? ' ',
                 'status' => $order->status,
-
-                
-
                 'attachments' => $order->attachment ?? [],
-
-                // Order Items
                 'order_items' => $order->orderItems->map(function ($item) {
-
                     return [
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->product_name ?? 'N/A',
@@ -994,17 +1211,16 @@ class DealerOrderController extends Controller
                         }),
                     ];
                 }),
-
                 'created_at' => $order->created_at->format('d/m/Y'),
             ];
-
+    
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Order details retrieved successfully',
                 'data' => $orderDetails,
             ], 200);
-            
+    
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1013,6 +1229,110 @@ class DealerOrderController extends Controller
             ], 500);
         }
     }
+
+
+    // public function orderRequestDetails($orderId)
+    // {
+    //     try {
+    //         $dealer = Auth::user();
+
+    //         if (!$dealer) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 401,
+    //                 'message' => "User not authenticated",
+    //             ], 401);
+    //         }
+
+    //         $order = Order::with([
+    //             'createdBy:id,name,employee_code',
+    //             'orderType:id,name',
+    //             'customerType:id,name',
+    //             'lead.customerType:id,name',
+    //             'lead:id,customer_name,phone,address,construction_type,stage_of_construction',
+    //             'paymentTerm:id,name',
+    //             'orderItems.product.productTypes:id,product_id,type_name',
+    //             'orderItems.product:id,product_name',
+    //             'dealers:id,dealer_name,dealer_code',
+    //             'vehicleCategory:id,vehicle_category_name',
+    //         ])
+    //         ->where('dealer_id', $dealer->id) 
+    //         ->find($orderId);
+
+    //         if (!$order) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 404,
+    //                 'message' => 'Order not found or unauthorized access',
+    //             ], 404);
+    //         }
+
+    //         // Format response data
+    //         $orderDetails = [
+    //             'id' => $order->id,
+    //             'order_placed_by' => [
+    //                 'name' => $order->createdBy->name ?? ' ',
+    //                 'employee_code' => $order->createdBy->employee_code ?? ' ',
+    //                 'designation' => 'Sales Executive', // Fixed designation
+    //             ],
+    //             'order_date' => $order->created_at->format('d/m/Y'),
+    //             'order_type' => $order->orderType->name ?? ' ',
+    //             'total_amount' => $order->total_amount,
+    //             'customer_details' => [
+    //                 'customer_type' => $order->customerType->name ?? ($order->lead->customerType->name ?? ' '),
+    //                 'customer_name' => $order->lead->customer_name ?? ' ',
+    //                 'phone' => $order->lead->phone ?? ' ',
+    //                 'address' => $order->lead->address ?? ' ',
+    //                 'construction_type' => $order->lead->construction_type ?? ' ',
+    //                 'stage_of_construction' => $order->lead->stage_of_construction ?? ' ',
+    //             ],
+
+    //             'billing_date' => $order->billing_date ? Carbon::parse($order->billing_date)->format('d/m/Y') : ' ',
+    //             'payment_terms' => $order->paymentTerm->name ?? ' ',
+    //             'additional_information' => $order->additional_information ?? ' ',
+    //             'status' => $order->status,
+
+                
+
+    //             'attachments' => $order->attachment ?? [],
+
+    //             // Order Items
+    //             'order_items' => $order->orderItems->map(function ($item) {
+
+    //                 return [
+    //                     'product_id' => $item->product_id,
+    //                     'product_name' => $item->product->product_name ?? 'N/A',
+    //                     'total_quantity' => $item->total_quantity,
+    //                     'balance_quantity' => (float) $item->balance_quantity,
+    //                     'product_details' => collect($item->product_details)->map(function ($detail) {
+    //                         return [
+    //                             'product_type_id' => $detail['product_type_id'],
+    //                             'quantity' => $detail['quantity'],
+    //                             'rate' => $detail['rate'],
+    //                             'product_type' => ProductType::where('id', $detail['product_type_id'])->value('type_name') ?? 'N/A',
+    //                         ];
+    //                     }),
+    //                 ];
+    //             }),
+
+    //             'created_at' => $order->created_at->format('d/m/Y'),
+    //         ];
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'statusCode' => 200,
+    //             'message' => 'Order details retrieved successfully',
+    //             'data' => $orderDetails,
+    //         ], 200);
+            
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 500,
+    //             'message' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
 
     // public function orderRequestStatusUpdate(Request $request, $orderId)
     // {
@@ -1088,11 +1408,102 @@ class DealerOrderController extends Controller
     //         ], 500);
     //     }
     // }
+    // public function orderRequestStatusUpdate(Request $request, $orderId)
+    // {
+    //     try {
+    //         $dealer = Auth::user();
+
+    //         if (!$dealer) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 401,
+    //                 'message' => "User not Authenticated",
+    //             ], 401);
+    //         }
+
+    //         $validatedData = $request->validate([
+    //             'status' => 'required|in:Accepted,Rejected',
+    //             'reason_for_rejection' => 'required_if:status,Rejected|nullable|string|max:255',
+    //         ]);
+
+    //         $order = Order::find($orderId);
+
+    //         if (!$order) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 404,
+    //                 'message' => "Order not found",
+    //             ], 404);
+    //         }
+
+    //         $dealerRouteIds = DB::table('dealer_route_assignments')
+    //             ->where('dealer_id', $dealer->id)
+    //             ->pluck('assign_route_id')
+    //             ->toArray();
+
+    //         if (empty($dealerRouteIds)) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 404,
+    //                 'message' => "No route assignments found for this dealer.",
+    //             ], 404);
+    //         }
+
+    //         $salesExecutives = AssignRoute::whereIn('id', $dealerRouteIds)
+    //             ->whereIn('employee_id', function ($query) {
+    //                 $query->select('id')
+    //                     ->from('employees')
+    //                     ->where('employee_type_id', 1);
+    //             })
+    //             ->pluck('employee_id');
+
+    //         if (!$salesExecutives->contains($order->created_by)) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 403,
+    //                 'message' => "You do not have permission to update this order's status.",
+    //             ], 403);
+    //         }
+
+    //         $order->status = $validatedData['status'];
+    //         $order->reason_for_rejection = $validatedData['status'] === 'Rejected'
+    //             ? $validatedData['reason_for_rejection']
+    //             : null;
+    //         $order->save();
+
+    //         $value = match ($validatedData['status']) {
+    //             'Rejected' => 'rejected',
+    //             'Accepted' => 'approved',
+    //             default => 'pending',
+    //         };
+
+    //         $authController = new AuthController();
+    //         $authController->changeNotificationStatus('orders', $orderId, $value);
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'statusCode' => 200,
+    //             'message' => "Order status updated successfully",
+    //             'data' => [
+    //                 'id' => $order->id,
+    //                 'status' => $order->status,
+    //                 'reason_for_rejection' => $order->reason_for_rejection,
+    //             ],
+    //         ], 200);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 500,
+    //             'message' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
     public function orderRequestStatusUpdate(Request $request, $orderId)
     {
         try {
             $dealer = Auth::user();
-
+    
             if (!$dealer) {
                 return response()->json([
                     'success' => false,
@@ -1100,14 +1511,16 @@ class DealerOrderController extends Controller
                     'message' => "User not Authenticated",
                 ], 401);
             }
-
+    
+            // Validate request
             $validatedData = $request->validate([
                 'status' => 'required|in:Accepted,Rejected',
                 'reason_for_rejection' => 'required_if:status,Rejected|nullable|string|max:255',
             ]);
-
-            $order = Order::find($orderId);
-
+    
+            // Find order
+            $order = Order::with(['lead', 'influencerVisit'])->find($orderId);
+    
             if (!$order) {
                 return response()->json([
                     'success' => false,
@@ -1115,12 +1528,22 @@ class DealerOrderController extends Controller
                     'message' => "Order not found",
                 ], 404);
             }
-
+    
+            // Ensure this order belongs to the dealer
+            if ($order->dealer_id !== $dealer->id) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 403,
+                    'message' => "You are not authorized to update this order.",
+                ], 403);
+            }
+    
+            // Check if dealer is assigned under a valid Sales Executive route
             $dealerRouteIds = DB::table('dealer_route_assignments')
                 ->where('dealer_id', $dealer->id)
                 ->pluck('assign_route_id')
                 ->toArray();
-
+    
             if (empty($dealerRouteIds)) {
                 return response()->json([
                     'success' => false,
@@ -1128,7 +1551,8 @@ class DealerOrderController extends Controller
                     'message' => "No route assignments found for this dealer.",
                 ], 404);
             }
-
+    
+            // Get all Sales Executives assigned to dealer routes
             $salesExecutives = AssignRoute::whereIn('id', $dealerRouteIds)
                 ->whereIn('employee_id', function ($query) {
                     $query->select('id')
@@ -1136,41 +1560,61 @@ class DealerOrderController extends Controller
                         ->where('employee_type_id', 1);
                 })
                 ->pluck('employee_id');
-
-            if (!$salesExecutives->contains($order->created_by)) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 403,
-                    'message' => "You do not have permission to update this order's status.",
-                ], 403);
-            }
-
+    
+            // Verify the order was created by one of those Sales Executives
+            // if (!$salesExecutives->contains($order->created_by)) {
+            //     return response()->json([
+            //         'success' => false,
+            //         'statusCode' => 403,
+            //         'message' => "You do not have permission to update this order's status.",
+            //     ], 403);
+            // }
+    
+            // --- Update order status ---
             $order->status = $validatedData['status'];
             $order->reason_for_rejection = $validatedData['status'] === 'Rejected'
                 ? $validatedData['reason_for_rejection']
                 : null;
+    
+            // Optionally update status timestamps
+            if ($validatedData['status'] === 'Accepted') {
+                $order->accepted_time = now();
+            } elseif ($validatedData['status'] === 'Rejected') {
+                $order->rejected_time = now();
+            }
+    
             $order->save();
-
-            $value = match ($validatedData['status']) {
+    
+            // Update notification status
+            $notificationValue = match ($validatedData['status']) {
                 'Rejected' => 'rejected',
                 'Accepted' => 'approved',
                 default => 'pending',
             };
-
+    
             $authController = new AuthController();
-            $authController->changeNotificationStatus('orders', $orderId, $value);
-
+            $authController->changeNotificationStatus('orders', $orderId, $notificationValue);
+    
+            // --- Unified Response ---
+            $response = [
+                'id' => $order->id,
+                'status' => $order->status,
+                'reason_for_rejection' => $order->reason_for_rejection,
+                'updated_at' => $order->updated_at->format('d/m/Y H:i'),
+                'order_type' => $order->orderType->name ?? '',
+                'total_amount' => $order->total_amount,
+                'customer_name' => $order->lead->customer_name 
+                    ?? $order->influencerVisit->influencer_name 
+                    ?? ($order->dealers->dealer_name ?? ' '),
+            ];
+    
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => "Order status updated successfully",
-                'data' => [
-                    'id' => $order->id,
-                    'status' => $order->status,
-                    'reason_for_rejection' => $order->reason_for_rejection,
-                ],
+                'data' => $response,
             ], 200);
-
+    
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1179,6 +1623,7 @@ class DealerOrderController extends Controller
             ], 500);
         }
     }
+
 
     // public function getSupport(Request $request)
     // {
@@ -1261,7 +1706,7 @@ class DealerOrderController extends Controller
 
             $dealerRouteIds = DB::table('dealer_route_assignments')
                 ->where('dealer_id', $dealer->id)
-                ->pluck('assigned_route_id')
+                ->pluck('assign_route_id')
                 ->toArray();
 
             if (empty($dealerRouteIds)) {
@@ -1273,8 +1718,8 @@ class DealerOrderController extends Controller
                 ], 404);
             }
 
-            $aso = AssignRoute::whereIn('id', $dealerRouteIds)
-                ->join('employees', 'assign_routes.employee_id', '=', 'employees.id')
+            $aso = AssignRoute::whereIn('assigned_routes.id', $dealerRouteIds)
+                ->join('employees', 'assigned_routes.employee_id', '=', 'employees.id')
                 ->where('employees.employee_type_id', 2)
                 ->select('employees.id as aso_id', 'employees.name', 'employees.phone')
                 ->first();
@@ -1296,6 +1741,8 @@ class DealerOrderController extends Controller
                     'aso_id' => $aso->aso_id,
                     'name' => $aso->name,
                     'phone' => $aso->phone,
+                    'address' => '953, Temple Road, opposite Thrikkkakara, Thrikkakara, Edappally, Kochi, Kerala 682021',
+
                 ],
             ], 200);
 
@@ -1584,6 +2031,4 @@ class DealerOrderController extends Controller
             ], 500);
         }
     }
-
-
 }

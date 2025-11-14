@@ -19,6 +19,7 @@ class Order extends Model
         'influencer_visit_id',
         'lead_id',
         'dealer_id',
+        'product_id',
         'dealer_flag_order',
         'send_for_approval',
         'send_for_approval_by',
@@ -76,45 +77,48 @@ class Order extends Model
         'attachment' => 'array',
         'aashiyana_attachment' => 'array',  
         'advance_attachment' => 'array',
-        'Invoice_date' => 'date',
+        'invoice_date' => 'date',
+        'billing_date' => 'date:Y-m-d',
+        'delivery_date' => 'date:Y-m-d',
+        'payment_date' => 'date:Y-m-d',
         
     ];
-    public function getBillingDateAttribute($value)
-    {
-        return $this->formatDateValue($value);
-    }
+    // public function getBillingDateAttribute($value)
+    // {
+    //     return $this->formatDateValue($value);
+    // }
 
-    public function getDeliveryDateAttribute($value)
-    {
-        return $this->formatDateValue($value);
-    }
+    // public function getDeliveryDateAttribute($value)
+    // {
+    //     return $this->formatDateValue($value);
+    // }
 
-    public function getPaymentDateAttribute($value)
-    {
-        return $this->formatDateValue($value);
-    }
+    // public function getPaymentDateAttribute($value)
+    // {
+    //     return $this->formatDateValue($value);
+    // }
 
-   protected function formatDateValue($value)
-    {
-        if (empty($value)) {
-            return null;
-        }
+    // protected function formatDateValue($value)
+    // {
+    //     if (empty($value)) {
+    //         return null;
+    //     }
     
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return Carbon::createFromFormat('Y-m-d', $value)->format('d/m/Y');
-        }
+    //     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+    //         return Carbon::createFromFormat('Y-m-d', $value)->format('d/m/Y');
+    //     }
     
        
-        if (preg_match('/^\d{2}[\/-]\d{2}[\/-]\d{4}$/', $value)) {
-            return str_replace('-', '/', $value);
-        }
+    //     if (preg_match('/^\d{2}[\/-]\d{2}[\/-]\d{4}$/', $value)) {
+    //         return str_replace('-', '/', $value);
+    //     }
     
-        try {
-            return Carbon::parse($value)->format('d/m/Y');
-        } catch (\Exception $e) {
-            return $value;
-        }
-    }
+    //     try {
+    //         return Carbon::parse($value)->format('d/m/Y');
+    //     } catch (\Exception $e) {
+    //         return $value;
+    //     }
+    // }
 
 
     
@@ -150,7 +154,7 @@ class Order extends Model
 
     public function orderItems()
     {
-        return $this->hasMany(OrderItem::class);
+        return $this->hasMany(OrderItem::class, 'order_id', 'id');
     }
 
     public function createdBy()

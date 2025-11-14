@@ -9,6 +9,7 @@ class Scheme extends Model
     protected $table = 'scheme';
 
     protected $fillable = [
+        'product_id',
         'scheme',
         'status',
     ];

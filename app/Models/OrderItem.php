@@ -10,7 +10,7 @@ class OrderItem extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_id', 'product_id', 'total_quantity', 'balance_quantity', 'product_details'
+        'order_id', 'product_id','quantity_type', 'total_quantity', 'balance_quantity', 'product_details'
     ];
 
     protected $casts = [
@@ -20,7 +20,7 @@ class OrderItem extends Model
 
     public function order()
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'order_id', 'id');
     }
 
     public function product()

@@ -85,7 +85,7 @@ class AttendanceController extends Controller
                 'username' => $username
             ]);
             try{
-                $this->sendAttendanceToGreytHR($employeeCode,"Mobile App",1);
+               // $this->sendAttendanceToGreytHR($employeeCode,"Mobile App",1);
             } catch (\Exception $e) {
 
 
@@ -201,7 +201,7 @@ class AttendanceController extends Controller
                     'username' => $username
                 ]);
         try{
-            $this->sendAttendanceToGreytHR($employeeCode,"Mobile App",0);
+           // $this->sendAttendanceToGreytHR($employeeCode,"Mobile App",0);
         } catch (\Exception $e) {
 
 
@@ -325,7 +325,6 @@ class AttendanceController extends Controller
                     'message' => 'Unauthorized user',
                 ], 401);
             }
-
 
             $records = Attendance::where('employee_id', $employeeId)
                 ->whereBetween('date', [$fromDate, $toDate])

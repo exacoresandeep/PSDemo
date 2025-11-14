@@ -453,15 +453,27 @@
         $('#assignedRouteForm').on('submit', function(e) {
             e.preventDefault();
             let formData = new FormData(this);
+            let mode = $(this).attr('data-mode');
+            let id = $(this).attr('data-id');
+
+            let url, method;
+            if (mode === 'edit' && id) {
+                url = "{{ url('sales/routes/update') }}/" + id;
+                method = 'POST'; // Use POST but send `_method: PUT` for Laravel
+                formData.append('_method', 'PUT');
+            } else {
+                url = "{{ route('sales.route.assigned.store') }}";
+                method = 'POST';
+            }
 
             $.ajax({
-                url: "{{ route('sales.route.assigned.store') }}",
-                method: 'POST',
+                url: url,
+                method: method,
                 data: formData,
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    Swal.fire('Success', 'Route assigned successfully', 'success');
+                    Swal.fire('Success', response.message || 'Operation successful!', 'success');
                     $('#createEditAssignRouteModal').modal('hide');
                     $('#routeTable').DataTable().ajax.reload();
                 },
@@ -491,6 +503,91 @@
                 keyboard: false
             }).modal('show');
         });
+        // Handle Edit button click
+            // Handle Edit button click
+        $(document).on('click', '.editRoute', function () {
+            let id = $(this).data('id');
+            $('#assignedRouteForm')[0].reset();
+            $('.select2, .select2-multi').val(null).trigger('change');
+
+            // Always reload all location lists before loading edit data
+            loadAllLocations(function () {
+                $.get("{{ url('sales/routes/edit') }}/" + id, function (response) {
+                    if (response.success) {
+                        let data = response.data;
+
+                        $('#route_id').val(data.id);
+                        $('#employee_type').val(data.employee_type_id).trigger('change');
+
+                        // Wait until employees list finishes loading before setting the employee
+                        setTimeout(() => {
+                            $('#employee').val(data.employee_id).trigger('change');
+                        }, 600);
+
+                        // Wait another small delay to ensure all selects are ready
+                        setTimeout(() => {
+                            data.routes.forEach((route, index) => {
+                                let $row = $('.route-row').eq(index);
+
+                                // Set route name
+                                $row.find('.route-select').val(route.route_name).trigger('change');
+
+                                // Set locations
+                                let $locationSelect = $row.find('.location-select');
+                                $locationSelect.val(route.locations).trigger('change');
+
+                                // Load dealers for selected locations, then assign dealer values
+                                if (route.locations && route.locations.length > 0) {
+                                    $.get("{{ route('sales.get-dealers-by-locations') }}", { locations: route.locations }, function (dealers) {
+                                        let $dealerSelect = $row.find('.dealer-select');
+                                        $dealerSelect.empty();
+                                        $.each(dealers, function (i, dealer) {
+                                            $dealerSelect.append(`<option value="${dealer.id}">${dealer.dealer_name}</option>`);
+                                        });
+                                        $dealerSelect.val(route.dealers).trigger('change');
+                                    });
+                                }
+                            });
+                        }, 1000);
+
+                        $('#createEditAssignRouteModal .modal-title').text('Edit Assigned Route');
+                        $('#assignedRouteForm').attr('data-mode', 'edit');
+                        $('#assignedRouteForm').attr('data-id', data.id);
+
+                        $('#createEditAssignRouteModal').modal({
+                            backdrop: 'static',
+                            keyboard: false
+                        }).modal('show');
+                    } else {
+                        Swal.fire('Error', 'Failed to load route data', 'error');
+                    }
+                });
+            });
+        });
+        $(document).on('click', '.deleteRoute', function () {
+            var id = $(this).data('id');
+            if (confirm('Are you sure you want to delete this assigned route?')) {
+                $.ajax({
+                    url: '/sales/routes/delete/' + id, // adjust to your actual route
+                    type: 'DELETE',
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content')
+                    },
+                    success: function (response) {
+                        alert(response.message);
+                        $('#assignedRoutesTable').DataTable().ajax.reload(null, false);
+                        location.reload();
+                    },
+                    error: function (xhr) {
+                        console.log(xhr.responseText);
+                        alert('Something went wrong while deleting!');
+                    }
+                });
+            }
+        });
+
+
+
     });
 </script>
 

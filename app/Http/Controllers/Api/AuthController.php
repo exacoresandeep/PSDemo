@@ -64,8 +64,7 @@ class AuthController extends Controller
             ->where('employees.employee_type_id', $validated['employee_type_id'])
             ->select('employees.*', 'employee_types.id as type_id', 'employee_types.type_name') 
 	    ->first();
-//    dd(Hash($validated['password']));
- //  dd($employee->password);
+
         if (!$employee || !Hash::check($validated['password'], $employee->password)) {
             return response()->json([
                 'success' => false,
@@ -1157,44 +1156,41 @@ public function notificationList()
                 ], 404);
             }
 
-            $assignedRoute = AssignRoute::find($dealer->assigned_route_id);
+            $assignedRouteIds = DealerRouteAssignment::where('dealer_id', $dealerId)
+                                    ->pluck('assign_route_id');
 
-            if (!$assignedRoute) {
+            if ($assignedRouteIds->isEmpty()) {
                 return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => 'Assigned route not found'
-                ], 404);
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'No assigned routes found for this dealer',
+                    'data' => []
+                ]);
             }
 
-            if ($assignedRoute->employee_type_id == 1) {
-                $aso = Employee::find($assignedRoute->parent_id);
-            } elseif ($assignedRoute->employee_type_id == 2) {
-                $aso = Employee::find($assignedRoute->employee_id);
-            } else {
-                $aso = null;
-            }
+            $employeeIds = AssignRoute::whereIn('id', $assignedRouteIds)
+                            ->where('employee_type_id', 2)
+                            ->pluck('employee_id');
 
-            if (!$aso) {
+            if ($employeeIds->isEmpty()) {
                 return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => 'ASO not found'
-                ], 404);
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'No ASO found for this dealer',
+                    'data' => []
+                ]);
             }
+
+            $employees = Employee::whereIn('id', $employeeIds)
+                            ->get(['id', 'name', 'email', 'phone', 'employee_code']);
 
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'ASO fetched successfully',
-                'data' => [
-                    'aso_id' => $aso->id,
-                    'aso_name' => $aso->name,
-                    'email' => $aso->email,
-                    'phone' => $aso->phone,
-                    'employee_code' => $aso->employee_code,
-                ]
+                'data' => $employees
             ], 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1203,6 +1199,7 @@ public function notificationList()
             ], 500);
         }
     }
+
     public function getTypeofInfluencer()
     {
         try {
@@ -1335,90 +1332,6 @@ public function notificationList()
         }
     }
 
-    // public function getDealers(Request $request){
-
-    //     try {
-    //         $user = Auth::user();
-
-    //         if (!$user) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not authenticated.",
-	// 	        ], 401);
-	//         }
-
-    //         $query = Dealer::select(
-    //                 'id as dealer_id',
-    //                 'dealer_code',
-    //                 'dealer_name',
-    //                 'phone',
-    //                 'email',
-    //                 'address',
-    //                 'user_zone',
-    //                 'pincode',
-    //                 'state',
-    //                 'district',
-    //                 'taluk'
-    //             )->where('status', '1');
-
-    //             if ($user->employee_type_id == 1) { // SE (Sales Executive)
-    //                 $assignedRouteIds = AssignRoute::where('employee_id', $user->id)->pluck('id')->toArray();
-    //                 $query->whereIn('assigned_route_id', $assignedRouteIds);
-
-    //             } elseif ($user->employee_type_id == 2) { // ASO (Area Sales Officer)
-    //                 $assignedRouteIds = AssignRoute::where('employee_id', $user->id)->pluck('id')->toArray();
-    //                 $query->whereIn('assigned_route_id', $assignedRouteIds);
-
-    //             } elseif ($user->employee_type_id == 3) { // DSM (District Sales Manager)
-    //                 $query->where('district_id', $user->district_id);
-
-    //             } elseif ($user->employee_type_id == 4) { // RSM (Regional Sales Manager)
-    //                 $region = Regions::whereHas('districts', function ($q) use ($user) {
-    //                     $q->where('id', $user->district_id);
-    //                 })->first();
-
-    //                 if (!$region) {
-    //                     return response()->json([
-    //                         'success' => false,
-    //                         'statusCode' => 404,
-    //                         'message' => "Region not found for the employee's district.",
-    //                     ], 404);
-    //                 }
-
-    //                 $districtIds = District::where('regions_id', $region->id)->pluck('id')->toArray();
-    //             $query->whereIn('district_id', $districtIds);
-            
-
-    //                 } elseif ($user->employee_type_id == 5) { // SM (Sales Manager)
-    //                     // No filtering, fetch all dealers
-    //                 }
-
-    //                 if ($request->has('search_key') && !empty($request->search_key)) {
-    //                     $searchKey = $request->search_key;
-
-    //                     $query->where(function ($q) use ($searchKey) {
-    //                         $q->where('dealer_code', 'like', '%' . $searchKey . '%')
-    //                         ->orWhere('dealer_name', 'like', '%' . $searchKey . '%');
-    //             });
-    //         }
-
-    //         $data = $query->orderBy('dealer_name', 'asc')->get();
-    //         return response()->json([
-    //                 'success' => true,
-    //                 'statusCode' => 200,
-    //                 'message' => 'Dealers fetched successfully.',
-    //                 'data' => $data,
-    //             ], 200);
-
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
     public function getDealers(Request $request)
     {
         try {
@@ -1496,18 +1409,35 @@ public function notificationList()
         }
     }
 
-
     
     // Fetch Products
     public function getProducts()
     {
         try {
             $user = Auth::user();
-            if ($user !== null) {
-                $data = Product::select('id as product_id', 'product_name')->get();
-            } else {
-                $data = [];
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => 'User not authenticated',
+                    'data' => [],
+                ], 401);
             }
+
+            $productIds = json_decode($user->products, true);
+
+            if (empty($productIds) || !is_array($productIds)) {
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'No products assigned to this employee',
+                    'data' => [],
+                ], 200);
+            }
+
+            $data = \App\Models\Product::whereIn('id', $productIds)
+                ->select('id as product_id', 'product_name')
+                ->get();
 
             return response()->json([
                 'success' => true,
@@ -1730,17 +1660,27 @@ public function notificationList()
             ], 500);
         }
     }
-    public function getScheme()
+    public function getScheme(Request $request)
     {
         try {
             $user = Auth::user();
 
-            if ($user !== null) {
-                $data = Scheme::where('status', '1')
-                ->select('id as scheme_id', 'scheme')->get();
-            } else {
-                $data = [];
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => "User not Authenticated",
+                ], 401);
             }
+
+            $query = Scheme::where('status', '1')
+                ->select('id as scheme_id', 'scheme', 'product_id');
+
+            if ($request->has('product_id') && !empty($request->product_id)) {
+                $query->where('product_id', $request->product_id);
+            }
+
+            $data = $query->get();
           
             return response()->json([
                 'success' => true,
@@ -2028,7 +1968,7 @@ public function notificationList()
             ], 500);
         }
     }
-   public function changeNotificationStatus($table, $id, $value)
+    public function changeNotificationStatus($table, $id, $value)
     {
         
         $allowedTables = [
@@ -2046,42 +1986,10 @@ public function notificationList()
         DB::table($table)->where('id', $id)->update(['notification_status' => $value]);
     
         return response()->json(['status' => 'success']);
-        
-    //     switch ($table) {
-    //         case 'assigned_routes':
-    // 		DB::table('assigned_routes')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    
-    //         case 'activities':
-    //             DB::table('activities')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    
-    //         case 'orders':
-    //             DB::table('orders')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    // 	case 'targets':
-    //             DB::table('targets')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    
-    //         case 'leads':
-    //             DB::table('leads')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-    
-    //         case 'outstanding_payments':
-    //             DB::table('outstanding_payments')->where('id', $id)->update(['notification_status' => $value]);
-    //             break;
-            
-    //         case 'outstanding_payment_commitments':
-    //             DB::table('outstanding_payment_commitments')->where('id', $id)->update(['notification_status' => $value]);
-    // 	    break;
-    
-    //         default:
-    //             return response()->json(['status' => 'error', 'message' => 'Invalid parameter'], 400);
-    //     }
-    //     return response()->json(['status' => 'success']);
+   
     }
    
-   public function getRegions()
+    public function getRegions()
     {
         $regions = Regions::with(['districts:id,regions_id,name'])->get(['id', 'name']);
 
@@ -2182,5 +2090,65 @@ public function notificationList()
             'data' => $data,
         ], 200);
     }
+    public function getQuantityType()
+    {
+        $data = [
+            'Pieces',
+            'Ton',
+        ];
+
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => 'Quantity Types fetched successfully',
+            'data' => $data,
+        ], 200);
+    }
+    public function calculateQuantityDetails(Request $request)
+    {
+        $request->validate([
+            'quantity_type' => 'required|in:Pieces,Ton',
+            'quantity' => 'required|numeric|min:0',
+        ]);
+
+        $quantityType = $request->quantity_type;
+        $quantity = $request->quantity;
+
+        // Define your conversion rate
+        $piecesPerTon = 100; // example: 1 Ton = 100 Pieces
+
+        // Define base prices
+        $pricePerPiece = 50; // example: ₹50 per piece
+        $pricePerTon = $pricePerPiece * $piecesPerTon;
+
+        if ($quantityType === 'Pieces') {
+            $pieces = $quantity;
+            $tons = $quantity / $piecesPerTon;
+            $price = $pieces * $pricePerPiece;
+            $pricePerUnit = $pricePerPiece;
+        } else {
+            $tons = $quantity;
+            $pieces = $quantity * $piecesPerTon;
+            $price = $tons * $pricePerTon;
+            $pricePerUnit = $pricePerTon;
+        }
+
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => 'Quantity details calculated successfully',
+            'data' => [
+                'quantity_type' => $quantityType,
+                'entered_quantity' => $quantity,
+                'pieces' => $pieces,
+                'tons' => $tons,
+                'price' => $price,
+                'price_per_unit' => $pricePerUnit,
+            ],
+        ], 200);
+    }
+   
+
+
 
 }

@@ -5,9 +5,9 @@
 /public/storage
 /storage/*.key
 /storage/pail
-/vendor
-/.env
-/.htaccess
+vendor
+.env
+.htaccess
 .env.backup
 .env.production
 .phpactor.json
