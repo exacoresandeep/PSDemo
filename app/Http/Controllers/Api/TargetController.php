@@ -29,7 +29,10 @@ class TargetController extends Controller
     }
     public function targetList(Request $request)
     {
-        $query = Target::with(['employee.employeeType'])->where('status', '1')->withTrashed();
+        $query = Target::with(['employee.employeeType'])->where('status', '1')
+         ->whereNotNull('employee_id')
+        ->whereHas('employee')    
+        ->withTrashed();
 
         if ($request->has('employee_type') && !empty($request->employee_type)) {
             $query->whereHas('employee', function ($q) use ($request) {
@@ -53,23 +56,30 @@ class TargetController extends Controller
             ->filter(function ($query) use ($request) {
                 if (!empty($request->search['value'])) {
                     $searchValue = $request->search['value'];
-                    $query->whereHas('employee', function ($q) use ($searchValue) {
-                        $q->where('name', 'like', "%{$searchValue}%");
-                    })
-                    ->orWhereHas('employee.employeeType', function ($q) use ($searchValue) {
-                        $q->where('type_name', 'like', "%{$searchValue}%");
-                    })
-                    ->orWhere('year', 'like', "%{$searchValue}%")
-                    ->orWhere('month', 'like', "%{$searchValue}%")
-                    ->orWhere('unique_lead', 'like', "%{$searchValue}%")
-                    ->orWhere('customer_visit', 'like', "%{$searchValue}%")
-                    ->orWhere('aashiyana', 'like', "%{$searchValue}%")
-                    ->orWhere('order_quantity', 'like', "%{$searchValue}%");
+
+                    $query->where(function ($subQuery) use ($searchValue) {
+                        $subQuery->whereHas('employee', function ($q) use ($searchValue) {
+                                $q->where('name', 'like', "%{$searchValue}%");
+                            })
+                            ->orWhereHas('employee.employeeType', function ($q) use ($searchValue) {
+                                $q->where('type_name', 'like', "%{$searchValue}%");
+                            })
+                            ->orWhere('year', 'like', "%{$searchValue}%")
+                            ->orWhere('month', 'like', "%{$searchValue}%")
+                            ->orWhere('unique_lead', 'like', "%{$searchValue}%")
+                            ->orWhere('customer_visit', 'like', "%{$searchValue}%")
+                            ->orWhere('aashiyana', 'like', "%{$searchValue}%")
+                            ->orWhere('order_quantity', 'like', "%{$searchValue}%");
+                    });
                 }
+
+                // Ensure employee is not null
+                $query->whereNotNull('employee_id')
+                    ->whereHas('employee');
             })
             ->addIndexColumn() 
             ->addColumn('employee_type', function ($target) {
-                return optional($target->employee->employeeType)->type_name ?? '-';
+                return optional(optional($target->employee)->employeeType)->type_name ?? '-';
             })
             ->addColumn('employee_name', function ($target) {
                 return optional($target->employee)->name ?? '-';
