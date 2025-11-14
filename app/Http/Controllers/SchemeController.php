@@ -12,37 +12,52 @@ class SchemeController extends Controller
 {
     public function index()
     {
-        $products = Product::all(); 
-        return view('sales.scheme.index', compact('products'));
+        return view('sales.scheme.index');
     }
     public function schemeList(Request $request)
-    {
-        $query = Scheme::with('product');
+{
+    // 1. Get session value
+    $selectedCode = session('selected_product_code');
 
-        return DataTables::of($query)
-            ->addIndexColumn()
-            ->addColumn('product_name', function ($scheme) {
-                return $scheme->product->product_name ?? '-';
-            })
-            ->addColumn('scheme', function ($scheme) {
-                return $scheme->scheme ?? '-';
-            })
-            ->addColumn('status', function ($scheme) {
-                return $scheme->status == 1 
-                    ? '<span class="badge bg-success">Active</span>' 
-                    : '<span class="badge bg-secondary">Inactive</span>';
-            })
-            ->addColumn('action', function ($scheme) {
-                return '
-                    <button class="btn btn-sm btn-warning" onclick="handleAction(' . $scheme->id . ', \'edit\')" title="Edit">
-                        <i class="fa fa-edit"></i>
-                    </button>
-                    
-                ';
-            })
-            ->rawColumns(['status', 'action']) 
-            ->make(true);
+    // 2. If no session, pick first product_code
+    if (empty($selectedCode)) {
+        $firstProduct = Product::orderBy('id')->first();
+        if ($firstProduct) {
+            $selectedCode = $firstProduct->product_code;
+            session(['selected_product_code' => $selectedCode]); // store for future
+        }
     }
+
+    // Build query
+    $query = Scheme::with('product');
+
+    // 3. Filter by selected product code
+    if (!empty($selectedCode)) {
+        $query->whereHas('product', function ($q) use ($selectedCode) {
+            $q->where('product_code', $selectedCode);
+        });
+    }
+
+    return DataTables::of($query)
+        ->addIndexColumn()
+        ->addColumn('product_name', fn($scheme) => $scheme->product->product_name ?? '-')
+        ->addColumn('scheme', fn($scheme) => $scheme->scheme ?? '-')
+        ->addColumn('status', function ($scheme) {
+            return $scheme->status == 1
+                ? '<span class="badge bg-success">Active</span>'
+                : '<span class="badge bg-secondary">Inactive</span>';
+        })
+        ->addColumn('action', function ($scheme) {
+            return '
+                <button class="btn btn-sm btn-warning" onclick="handleAction(' . $scheme->id . ', \'edit\')" title="Edit">
+                    <i class="fa fa-edit"></i>
+                </button>
+            ';
+        })
+        ->rawColumns(['status','action'])
+        ->make(true);
+}
+
     public function store(Request $request)
     {
         $request->validate([

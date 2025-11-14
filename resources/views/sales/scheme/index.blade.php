@@ -32,6 +32,8 @@
 <script>
     $(document).ready(function () {
         $('#openCreateModal').click(function () {
+
+            loadProduct();
             $('#schemeForm')[0].reset(); 
             $('#scheme_id').val(''); 
             $('#createEditModalLabel').text('Create Scheme');
@@ -137,6 +139,24 @@
         };
 
     });
+    function loadProduct() {
+        $.ajax({
+            url: "{{ route('loadProduct') }}",
+            type: "GET",
+            success: function(res) {
+                console.log(res);
+                if (res.products && res.products.length > 0) {
+                let product = res.products[0];   // first product
+
+                $("#product_id").val(product.id);
+                $("#product_name").val(product.product_name);
+            }
+            },
+            error: function() {
+                console.log("Error loading product");
+            }
+        });
+    }
 </script>
 @endsection
 
