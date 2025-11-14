@@ -442,7 +442,7 @@ class LeadController extends Controller
                 'further_volume' => 'required_if:status,Lost|nullable|numeric',
     
                 'order_details.customer_type_id' => 'required_if:status,Won|nullable|exists:customer_types,id',
-                'order_details.dealer_id' => 'nullable|exists:dealers,id',
+                'order_details.dealer_id' => 'required|exists:dealers,id',
                 'order_details.dealer_flag_order' => 'nullable|numeric',
                 'order_details.payment_terms_id' => 'required_if:status,Won|nullable|exists:payment_terms,id',
                 'order_details.total_amount' => 'required_if:status,Won|nullable|numeric',
@@ -665,7 +665,7 @@ class LeadController extends Controller
                         'longitude' => $lead->longitude,
                         'status' => $lead->status,
                         'created_by' => $lead->created_by,
-                        'created_at' => $lead->created_at->format('d/M/Y'),
+                        'created_at' => $lead->created_at->format('d/M/Y h:i A'),
                     ];
                 });
 
@@ -1417,9 +1417,14 @@ class LeadController extends Controller
         }
     }
 
+    // public function LeadWonList(Request $request)
+    // {
+    //     return $this->getLeadsByStatus('Won', 'Won leads retrieved successfully!');
+    // }
     public function LeadWonList(Request $request)
     {
-        return $this->getLeadsByStatus('Won', 'Won leads retrieved successfully!');
+        $productId = $request->product_id; 
+        return $this->getLeadsByStatus('Won', 'Won leads retrieved successfully!', $productId);
     }
 
     public function LeadFollowupList(Request $request)
@@ -1431,7 +1436,7 @@ class LeadController extends Controller
     {
         return $this->getLeadsByStatus('Lost', 'Lost leads retrieved successfully!');
     }
-    private function getLeadsByStatus($status, $message)
+    private function getLeadsByStatus($status, $message, $productId = null)
     {
         try {
             $user = Auth::user();
@@ -1443,11 +1448,17 @@ class LeadController extends Controller
                 ], 401);
             }
 
-            $leads = Lead::with('customerType')
+             $query = Lead::with(['customerType'])
                 ->where('created_by', $user->id)
-                ->where('status', $status)
-                ->orderBy('customer_name', 'asc')
-                ->get();
+                ->where('status', $status);
+
+            if ($productId) {
+                $query->whereHas('orders', function ($q) use ($productId) {
+                    $q->where('product_id', $productId);
+                });
+            }
+
+            $leads = $query->orderBy('created_at', 'desc')->get();
 
             return $this->formatLeadsResponse($leads, $message);
         } catch (Exception $e) {
@@ -1480,7 +1491,7 @@ class LeadController extends Controller
                 'lead_source' => $lead->lead_source,
                 'lead_score' => $lead->lead_score,
                 'created_by' => $lead->created_by,
-                'created_at' => $lead->created_at->format('d/M/Y'),
+                'created_at' => $lead->created_at->format('d/M/Y h:i A'),
             ];
         });
 
