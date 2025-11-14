@@ -13,12 +13,8 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label for="product_id">Product</label>
-                            <select class="form-control" name="product_id" id="product_id">
-                                <option value="">-Select Product-</option>
-                                @foreach($products as $product)
-                                    <option value="{{ $product->id }}">{{ $product->product_name }}</option>
-                                @endforeach
-                            </select>
+                              <input type="text" class="form-control" id="product_name" name="product_name" readonly>
+                              <input type="hidden" class="form-control" id="product_id" name="product_id" readonly>
                         </div>
                         <div class="col-md-6">
                             <label for="scheme_amount">Scheme</label>
