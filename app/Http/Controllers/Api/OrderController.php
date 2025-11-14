@@ -33,81 +33,7 @@ use App\Http\Controllers\Api\AuthController;
 
 class OrderController extends Controller
 {
-    public function outstandingPaymentsStore(Request $request)
-    {
-        $dsn = 'odbc:HANAODBC';
-        $username = 'INDUS';
-        $password = 'Indus@123';
     
-        try {
-            $pdo = new PDO($dsn, $username, $password);
-            $stmt = $pdo->prepare('CALL "MOBILE_APPLICATION_TEST"."MobileApp_OutstandingPayment"()');
-            $stmt->execute();
-    
-            $response = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-            DB::beginTransaction();
-            
-            foreach ($response as $data) {
-                $invoiceNumber = $data['Invoice Number'];
-                $customerCode = $data['Customer Code'];
-              
-                $dealer = Dealer::where('dealer_code', $customerCode)->first();
-                if (!$dealer) {
-                    continue; 
-                }
-    
-                // Get order_id from orders table using invoice_number
-                $order = Order::where('invoice_number', $invoiceNumber)->first();
-                if (!$order) {
-                    continue; // Skip if order not found
-                }
-    
-                // Check if an entry already exists for this invoice_number
-                $outstandingPayment = OutstandingPayment::where('invoice_number', $invoiceNumber)->first();
-    
-                if ($outstandingPayment) {
-                    // Update existing record
-                    $outstandingPayment->update([
-                        'paid_amount' => $data['Paid Amount'],
-                        'outstanding_amount' => $data['Outstanding Amount'],
-                        'status' => $data['Status']
-                    ]);
-                } else {
-    
-    
-                   // Create new outstanding payment entry
-                    $outstandingPayment = OutstandingPayment::create([
-                        'dealer_id' => $dealer->id,
-                        'order_id' => $order->id,
-                        'invoice_number' => $invoiceNumber,
-                        'invoice_date' => Carbon::parse($data['Invoice Date'])->format('Y-m-d'),
-                        'invoice_total' => $data['Invoice Total'],
-                        'due_date' => Carbon::parse($data['Due Date'])->format('Y-m-d'),
-                        'paid_amount' => $data['Paid Amount'],
-                        'outstanding_amount' => $data['Outstanding Amount'],
-                        'status' => 'open'
-                    ]);
-                }
-    
-    		Payment::create([
-                'order_id' => $outstandingPayment->order_id, // Ensure you have this
-                'dealer_id' => $outstandingPayment->dealer_id, // Ensure you have this
-                'invoice_number' => $data['Invoice Number'], // Adjust based on your data
-                'payment_document_no' => $data['Payment Doc Number'], 
-                'payment_date' => Carbon::parse($data['Payment Date'])->format('Y-m-d'),
-                'payment_amount' => $data['Payment Amount Applied'], 
-            ]);	
-                }
-    
-            DB::commit();
-            return response()->json(['message' => 'Outstanding payments stored successfully']);
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
 
     public function index(Request $request)
     {
@@ -133,7 +59,6 @@ class OrderController extends Controller
                     'orderItems:id,order_id,product_id,total_quantity' // optional, if you want to see products
                 ]);
 
-            // ✅ Optional product filter
             if ($request->has('product_id') && !empty($request->product_id)) {
                 $productId = $request->product_id;
                 $query->whereHas('orderItems', function ($q) use ($productId) {
@@ -229,9 +154,11 @@ class OrderController extends Controller
      
             foreach (['billing_date', 'delivery_date', 'payment_date'] as $dateField) {
                 if (!empty($validatedData[$dateField])) {
-                    $dateValue = trim($validatedData[$dateField]);
+                    // $dateValue = trim($validatedData[$dateField]);
+                    // $dateValue = str_replace('/', '-', $dateValue);
+                    $dateValue = trim(str_replace('\\', '', $validatedData[$dateField])); 
                     $dateValue = str_replace('/', '-', $dateValue);
-            
+
                     try {
                         $validatedData[$dateField] = Carbon::createFromFormat('d-m-Y', $dateValue)->format('Y-m-d');
                     } catch (\Exception $e) {
@@ -493,7 +420,7 @@ class OrderController extends Controller
         }
     }
 
-     public function dealerOrderList(Request $request)
+    public function dealerOrderList(Request $request)
     {
         try {
             if ($request->has('search_key')) {
@@ -2913,7 +2840,7 @@ class OrderController extends Controller
 
             $rules = [
                 'dealer_id' => 'required|exists:dealers,id',
-                'aso_id' => 'exists:employees,id',
+                'aso_id' => 'nullable|exists:employees,id',
                 'purpose_of_visit' => 'required|string',
                 'remarks' => 'nullable|string',
                 'attachments' => 'nullable|array',
@@ -2957,7 +2884,7 @@ class OrderController extends Controller
             // Create Dealer Visit
             $dealerVisit = DealerVisit::create([
                 'dealer_id' => $validatedData['dealer_id'],
-                'aso_id' => $validatedData['aso_id'],
+                'aso_id' => $validatedData['aso_id'] ?? null,
                 'purpose_of_visit' => $validatedData['purpose_of_visit'],
                 'item_type' => $validatedData['item_type'] ?? null,
                 'remarks' => $validatedData['remarks'] ?? null,

@@ -1156,44 +1156,41 @@ public function notificationList()
                 ], 404);
             }
 
-            $assignedRoute = AssignRoute::find($dealer->assigned_route_id);
+            $assignedRouteIds = DealerRouteAssignment::where('dealer_id', $dealerId)
+                                    ->pluck('assign_route_id');
 
-            if (!$assignedRoute) {
+            if ($assignedRouteIds->isEmpty()) {
                 return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => 'Assigned route not found'
-                ], 404);
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'No assigned routes found for this dealer',
+                    'data' => []
+                ]);
             }
 
-            if ($assignedRoute->employee_type_id == 1) {
-                $aso = Employee::find($assignedRoute->parent_id);
-            } elseif ($assignedRoute->employee_type_id == 2) {
-                $aso = Employee::find($assignedRoute->employee_id);
-            } else {
-                $aso = null;
-            }
+            $employeeIds = AssignRoute::whereIn('id', $assignedRouteIds)
+                            ->where('employee_type_id', 2)
+                            ->pluck('employee_id');
 
-            if (!$aso) {
+            if ($employeeIds->isEmpty()) {
                 return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => 'ASO not found'
-                ], 404);
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'No ASO found for this dealer',
+                    'data' => []
+                ]);
             }
+
+            $employees = Employee::whereIn('id', $employeeIds)
+                            ->get(['id', 'name', 'email', 'phone', 'employee_code']);
 
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'ASO fetched successfully',
-                'data' => [
-                    'aso_id' => $aso->id,
-                    'aso_name' => $aso->name,
-                    'email' => $aso->email,
-                    'phone' => $aso->phone,
-                    'employee_code' => $aso->employee_code,
-                ]
+                'data' => $employees
             ], 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1202,6 +1199,7 @@ public function notificationList()
             ], 500);
         }
     }
+
     public function getTypeofInfluencer()
     {
         try {
