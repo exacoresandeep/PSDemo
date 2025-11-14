@@ -108,6 +108,7 @@ class AdminController extends Controller
 
         if (Auth::check()) {
             Auth::logout();
+            $request->session()->flush();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
         }

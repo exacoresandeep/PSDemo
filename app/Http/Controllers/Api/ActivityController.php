@@ -90,7 +90,7 @@ class ActivityController extends Controller
 
             $validatedData = $request->validate([
                 'remarks' => 'required|string', 
-                'attachments' => 'nullable|array',
+                'attachments' => 'required|array',
                 'attachments.*' => 'string',
                 'question_inputs' => 'required|array',
                 'question_inputs.*.activity_question_labels_id' => 'required|integer',

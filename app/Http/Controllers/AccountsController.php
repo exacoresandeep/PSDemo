@@ -730,7 +730,19 @@ class AccountsController extends Controller
     public function priceIndex()
     {
         $productTypes = ProductType::all(); 
-        $products = Product::all();
+        $selectedProductCode = session('selected_product_code');
+        if ($selectedProductCode) {
+            $products = Product::where('product_code', $selectedProductCode)->get();
+        } else {
+            $firstProduct = Product::first();
+            if ($firstProduct) {
+                $products = collect([$firstProduct]);
+                session(['selected_product_code' => $firstProduct->product_code]);
+            } else {
+                $products = collect();
+            }
+        }
+
         return view('accounts.price-management.index', compact('products','productTypes'));
     }
     public function priceStore(Request $request)
@@ -770,10 +782,13 @@ class AccountsController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date',
         ]);
+
     
         $prices = Price::with(['product', 'productType'])
             ->where('start_date', $request->start_date)
             ->where('end_date', $request->end_date)
+            // ->where('Status', "1")
+            
             ->get();
     
         $groupInfo = $prices->first();
@@ -794,7 +809,25 @@ class AccountsController extends Controller
     
     public function priceList()
     {
-        $groupedPrices = Price::select('start_date', 'end_date', DB::raw('MAX(status) as status'))
+        // ✅ Get selected product code from session
+        $selectedProductCode = session('selected_product_code');
+
+        // ✅ Get product code fallback (first product if no session)
+        if (!$selectedProductCode) {
+            $firstProduct = Product::first();
+            if ($firstProduct) {
+                $selectedProductCode = $firstProduct->product_code;
+                session(['selected_product_code' => $selectedProductCode]);
+            } else {
+                return datatables()->of(collect())->make(true); // No products found
+            }
+        }
+
+        $groupedPrices = Price::with('product')
+        ->whereHas('product', function ($q) use ($selectedProductCode) {
+            $q->where('product_code', $selectedProductCode);
+        })
+        ->select('start_date', 'end_date', DB::raw('MAX(status) as status'))
         ->groupBy('start_date', 'end_date')
         ->orderByDesc('status')
         ->get();

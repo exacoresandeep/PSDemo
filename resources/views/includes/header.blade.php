@@ -1,9 +1,10 @@
 <div class="menu-header">
     <div class="row justify-content-between">
-        <div class="col-md-6">
-            <div class="search-box">
-                <i class="fa fa-search"></i>
-                <input type="text" class="form-control" placeholder="Search...">
+        <div class="col-md-3">
+             <div class="d-flex align-items-center">
+                <label for="productSelect" class="mb-0 me-3 fw-bold">Product:</label>
+                <select id="productSelect" class="form-control" style="max-width: 250px;">
+                </select>
             </div>
         </div>
         <div class="col-md-3 align-content-center">
@@ -17,3 +18,48 @@
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    // Fetch products from DB
+    $.get('{{ route("get.products") }}', function(products) {
+        let options = '';
+        products.forEach(p => {
+            options += `<option value="${p.product_code}">${p.product_name}</option>`;
+        });
+        $('#productSelect').html(options);
+
+        @if(Session::has('selected_product_code'))
+            $('#productSelect').val('{{ Session::get("selected_product_code") }}');
+        @else
+            // Otherwise, select the first product by default
+            if (products.length > 0) {
+                $('#productSelect').val(products[0].product_code);
+                
+                // Optionally store in session via AJAX
+                $.post('{{ route("set.product") }}', {
+                    _token: '{{ csrf_token() }}',
+                    product_code: products[0].product_code
+                });
+            }
+        @endif
+    });
+
+    // When product changes, save in session
+    $('#productSelect').on('change', function() {
+        let productId = $(this).val();
+        // alert(productId);
+        if(productId) {
+            $.post('{{ route("set.product") }}', {
+                _token: '{{ csrf_token() }}',
+                product_id: productId
+            }, function(response) {
+                if(response.success) {
+                    location.reload(); 
+                }
+            });
+        }
+    });
+});
+</script>
