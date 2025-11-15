@@ -120,7 +120,7 @@ class OrderController extends Controller
                 'customer_type_id' => 'nullable|exists:customer_types,id',
                 'order_category' => 'nullable|string',
                 'lead_id' => 'nullable|exists:leads,id',
-                'dealer_id' => 'nullable|exists:dealers,id',
+                'dealer_id' => 'required|exists:dealers,id',
                 'payment_terms_id' => 'required|exists:payment_terms,id',
                 'credit_days' => 'nullable|string',
                 'advance_amount' => 'nullable|numeric',
