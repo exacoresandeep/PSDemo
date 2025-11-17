@@ -61,6 +61,12 @@
         loadProductTypes();
         $('#createEditPriceModal').modal('show');
     });
+    // $('#product_id').on('change', function() {
+    //     let product_id = $(this).val();
+    //     if (product_id) {
+    //         loadProductTypes(product_id);
+    //     }
+    // });
 
    
     $(document).on('click', '.editPrice', function () {
@@ -162,6 +168,16 @@
             }
         });
     });
+    // function loadProductTypes(product_id) {
+    //     $.ajax({
+    //         url: `/accounts/price-management/product-types/${product_id}`,
+    //         type: "GET",
+    //         success: function(types) {
+    //             let html = '';
+    //             types.forEach((type, index) => {
+    //                 html += `
+    //                     <div class="row mb-2">
+    //                         <input type="hidden" name="types[${index}][product_type_id]" value="${type.id}">
 
     $('#saveEditPrice').click(function () {
 

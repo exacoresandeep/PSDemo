@@ -1023,5 +1023,14 @@ class AccountsController extends Controller
             }
         }, 'orders.xlsx');
     }
+    public function getTypesByProduct(Request $request)
+    {
+        $productId = $request->product_id;
+
+        $types = ProductType::where('product_id', $productId)->get();
+
+        return response()->json($types);
+    }
+
 
 }
