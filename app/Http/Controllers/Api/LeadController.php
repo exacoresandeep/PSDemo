@@ -389,8 +389,8 @@ class LeadController extends Controller
                         'name' => $lead->district->name,
                     ] : null,
                     'route_name' => $lead->tripRoute->route_name ?? null,
-                    'location_name' => $lead->location,
-                    'created_at' => $lead->created_at->format('d/M/Y'),
+                    'location' => $lead->location,
+                    'created_at' => $lead->created_at->format('d/M/Y h:i A'),
                     'updated_at' => $lead->updated_at,
                 ];
             });
@@ -731,7 +731,7 @@ class LeadController extends Controller
                             'name' => $lead->customerType->name,
                         ] : null,
                         'city' => $lead->city,
-                        'location' => $lead->location,
+                        // 'location' => $lead->location,
                         'phone' => $lead->phone,
                         'address' => $lead->address,
                         'district' => $lead->district ? [
@@ -739,8 +739,8 @@ class LeadController extends Controller
                             'name' => $lead->district->name,
                         ] : null,
                         'route_name' => $lead->tripRoute ? $lead->tripRoute->route_name : null,
-                        'location_name' => $lead->tripRoute ? $lead->tripRoute->location_name : null,
-                        'created_at' => $lead->created_at->format('d/M/Y'),
+                        'location' => $lead->tripRoute ? $lead->tripRoute->location_name : null,
+                        'created_at' => $lead->created_at->format('d/M/Y h:i A'),
                     ];
                 });
 
@@ -1397,7 +1397,7 @@ class LeadController extends Controller
                     'lead_source' => $lead->lead_source,
                     'lead_score' => $lead->lead_score,
                     'created_by' => $lead->created_by,
-                    'created_at' => $lead->created_at->format('d/M/Y'),
+                    'created_at' => $lead->created_at->format('d/M/Y h:i A'),
                 ];
             });
     

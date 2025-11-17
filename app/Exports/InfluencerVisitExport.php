@@ -17,7 +17,7 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
 
     public function __construct($month, $year)
     {
-        $this->month = $month + 1; // Adjust if frontend uses 0-based month index
+        $this->month = $month + 1; 
         $this->year = $year;
     }
 
@@ -73,16 +73,14 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
         $productSummary = '';
 
         if ($order && $order->orderItems) {
-            // Loop through each order item
             $productSummary = $order->orderItems->map(function ($item) {
-                // Parse product_details (array of product info)
                 $details = collect($item->product_details)->map(function ($detail) {
                     $productType = \App\Models\ProductType::find($detail['product_type_id']);
                     return $productType->type_name . ' (Qty: ' . $detail['quantity'] . ', Rate: ' . $detail['rate'] . ')';
                 });
 
                 return $details->implode(' | ');
-            })->implode(' || '); // Separate multiple order items with double pipe
+            })->implode(' || '); 
         }
 
         return [
@@ -121,4 +119,3 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
         ];
     }
 }
-
