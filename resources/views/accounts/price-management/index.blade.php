@@ -58,8 +58,16 @@
         $('#price_id').val('');
         $('#priceForm input, #priceForm select').prop('disabled', false); // Enable all fields
         $('#savePriceBtn').text('Create');
+        // $("#product_id").val(1);
+        // loadProductTypes(1);
         $('#createEditPriceModal').modal('show');
     });
+    // $('#product_id').on('change', function() {
+    //     let product_id = $(this).val();
+    //     if (product_id) {
+    //         loadProductTypes(product_id);
+    //     }
+    // });
 
     // On Edit button click
     $(document).on('click', '.editPrice', function () {
@@ -118,7 +126,88 @@
             }
         });
     });
+    // function loadProductTypes(product_id) {
+    //     $.ajax({
+    //         url: `/accounts/price-management/product-types/${product_id}`,
+    //         type: "GET",
+    //         success: function(types) {
+    //             let html = '';
+    //             types.forEach((type, index) => {
+    //                 html += `
+    //                     <div class="row mb-2">
+    //                         <input type="hidden" name="types[${index}][product_type_id]" value="${type.id}">
 
+    //                         <div class="col-md-4">
+    //                             <label class="form-label">Product Type</label>
+    //                             <input type="text" class="form-control" value="${type.type_name}" readonly>
+    //                         </div>
+
+    //                         <div class="col-md-4">
+    //                             <label class="form-label">Dealer Price</label>
+    //                             <input type="number" name="types[${index}][dealer_price]" class="form-control" required>
+    //                         </div>
+
+    //                         <div class="col-md-4">
+    //                             <label class="form-label">Advance Dealer Price</label>
+    //                             <input type="number" name="types[${index}][advance_dealer_price]" class="form-control" required>
+    //                         </div>
+    //                     </div>
+    //                 `;
+    //             });
+
+    //             $('#productTypeContainer').html(html);
+    //         }
+    //     });
+    // }
+    $(document).ready(function () {
+
+    $('#product_id').change(function () {
+        let productId = $(this).val();
+
+        $('#product-type-container').html(''); // Clear old types
+
+        if (productId) {
+            $.ajax({
+                url: "{{ route('get.types.by.product') }}",
+                type: "POST",
+                data: {
+                    product_id: productId,
+                    _token: "{{ csrf_token() }}"
+                },
+                success: function (types) {
+
+                    let html = '';
+
+                    $.each(types, function (index, type) {
+                        html += `
+                            <div class="row mb-2">
+                                <input type="hidden" name="types[${index}][product_type_id]" value="${type.id}">
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Product Type</label>
+                                    <input type="text" class="form-control" value="${type.type_name}" readonly>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Dealer Price</label>
+                                    <input type="number" name="types[${index}][dealer_price]" class="form-control" step="0.01" required>
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">Advance Dealer Price</label>
+                                    <input type="number" name="types[${index}][advance_dealer_price]" class="form-control" step="0.01" required>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    $('#product-type-container').html(html);
+                }
+            });
+        }
+    });
+
+});
 
 
     // Submit Form (Create or Update)

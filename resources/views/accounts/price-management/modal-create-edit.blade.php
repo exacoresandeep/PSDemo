@@ -34,7 +34,8 @@
                     <hr>
 
                     <div class="row g-3 mt-3 align-items-end">
-                        @foreach ($productTypes as $type)
+                        <div id="product-type-container"></div>
+                        {{-- @foreach ($productTypes as $type)
                             <div class="row mb-2">
                                 <input type="hidden" name="types[{{ $loop->index }}][product_type_id]" value="{{ $type->id }}">
                     
@@ -53,7 +54,7 @@
                                     <input type="number" name="types[{{ $loop->index }}][advance_dealer_price]" class="form-control" step="0.01" required>
                                 </div>
                             </div>
-                        @endforeach
+                        @endforeach --}}
                     </div>
                     
                 </div>
