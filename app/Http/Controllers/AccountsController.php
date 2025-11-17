@@ -726,12 +726,26 @@ class AccountsController extends Controller
         }
     }
 
+    public function getProductTypes(Request $request)
+    {
+        $selectedProductCode = session('selected_product_code');$products=[];
+        if ($selectedProductCode) {
+            $products = Product::where('product_code', $selectedProductCode)->first();
+        }else{
+            $firstProduct = Product::first();
+            $products = collect([$firstProduct]);            
+        }
+        // dd($products );
+        $productTypes = ProductType::where('product_id', $products->id)->get();
+        return response()->json([
+            'product' => $products,
+            'productTypes' => $productTypes
+        ]);
+    }
 
     public function priceIndex()
     {
-        $productTypes = ProductType::all(); 
-        $products = Product::all();
-        return view('accounts.price-management.index', compact('products','productTypes'));
+        return view('accounts.price-management.index');
     }
     public function priceStore(Request $request)
     {
@@ -741,8 +755,8 @@ class AccountsController extends Controller
             'product_id' => 'required|exists:products,id',
             'types' => 'required|array|min:1',
             'types.*.product_type_id' => 'required|exists:product_types,id',
-            'types.*.dealer_price' => 'required|numeric',
-            'types.*.advance_dealer_price' => 'required|numeric',
+            'types.*.dealer_price' => 'nullable|numeric',
+            'types.*.advance_dealer_price' => 'nullable|numeric',
         ]);
 
         foreach ($validated['types'] as $type) {
@@ -770,10 +784,13 @@ class AccountsController extends Controller
             'start_date' => 'required|date',
             'end_date' => 'required|date',
         ]);
+
     
         $prices = Price::with(['product', 'productType'])
             ->where('start_date', $request->start_date)
             ->where('end_date', $request->end_date)
+            // ->where('Status', "1")
+            
             ->get();
     
         $groupInfo = $prices->first();
@@ -794,7 +811,23 @@ class AccountsController extends Controller
     
     public function priceList()
     {
-        $groupedPrices = Price::select('start_date', 'end_date', DB::raw('MAX(status) as status'))
+        $selectedProductCode = session('selected_product_code');
+
+        if (!$selectedProductCode) {
+            $firstProduct = Product::first();
+            if ($firstProduct) {
+                $selectedProductCode = $firstProduct->product_code;
+                session(['selected_product_code' => $selectedProductCode]);
+            } else {
+                return datatables()->of(collect())->make(true); 
+            }
+        }
+
+        $groupedPrices = Price::with('product')
+        ->whereHas('product', function ($q) use ($selectedProductCode) {
+            $q->where('product_code', $selectedProductCode);
+        })
+        ->select('start_date', 'end_date', DB::raw('MAX(status) as status'))
         ->groupBy('start_date', 'end_date')
         ->orderByDesc('status')
         ->get();
@@ -821,11 +854,93 @@ class AccountsController extends Controller
                     : '<span class="badge bg-danger">Inactive</span>';
             })
             ->addColumn('action', function ($row) {
-                return '<button class="btn btn-sm btn-info viewPrice" data-start="'.$row->start_date.'" data-end="'.$row->end_date.'"><i class="fa fa-eye"></i></button>';
+                // return '<button class="btn btn-sm btn-info viewPrice" data-start="'.$row->start_date.'" data-end="'.$row->end_date.'"><i class="fa fa-eye"></i></button> <button class="btn btn-sm btn-warning editPrice" data-start="'.$row->start_date.'" data-end="'.$row->end_date.'"><i class="fa fa-pencil"></i></button>';
+                // Check dealer and advance prices
+                $hasMissingPrice = Price::where('start_date', $row->start_date)
+                    ->where('end_date', $row->end_date)
+                    ->where(function ($q) {
+                        $q->whereNull('dealer_price')
+                        ->orWhereNull('advance_dealer_price');
+                    })
+                    ->exists();
+
+                // View button is always shown
+                $viewBtn = '<button class="btn btn-sm btn-info viewPrice"
+                            data-start="'.$row->start_date.'"
+                            data-end="'.$row->end_date.'">
+                                <i class="fa fa-eye"></i>
+                            </button> ';
+
+                // Edit button only when at least one NULL field exists
+                $editBtn = $hasMissingPrice
+                    ? '<button class="btn btn-sm btn-warning editPrice"
+                            data-start="'.$row->start_date.'"
+                            data-end="'.$row->end_date.'">
+                                <i class="fa fa-pencil"></i>
+                            </button>'
+                    : '';
+
+                return $viewBtn . $editBtn;
             })
             ->rawColumns(['status', 'action'])
             ->make(true);
     }
+
+    public function editPrice(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required',
+            'end_date'   => 'required'
+        ]);
+
+        $selectedProductCode = session('selected_product_code');
+        $products=[];
+        if ($selectedProductCode) {
+            $products = Product::where('product_code', $selectedProductCode)->first();
+        }else{
+            $firstProduct = Product::first();
+            $products = collect([$firstProduct]);            
+        }
+        // dd($products->id);
+        // Get the price master row
+        $price = Price::with(['product','productType'])->where('start_date', $request->start_date)
+            ->where('end_date', $request->end_date)
+            ->where('product_id', $products->id)
+            ->get();
+
+        if (!$price) {
+            return response()->json(['message' => 'Price not found'], 404);
+        }
+
+        return response()->json([
+            'data'   => $price
+        ]);
+    }
+
+    public function updatePrice(Request $request)
+    {
+        $request->validate([
+            'prices' => 'required|array',
+            'prices.*.id' => 'required',
+            'prices.*.dealer_price' => 'nullable|numeric',
+            'prices.*.advance_dealer_price' => 'nullable|numeric',
+        ]);
+
+        foreach ($request->prices as $row) {
+
+            Price::where('id', $row['id'])->update([
+                'dealer_price'         => $row['dealer_price'],
+                'advance_dealer_price' => $row['advance_dealer_price'],
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Price updated successfully',
+            'status'  => 'success'
+        ]);
+    }
+
+
 
     public function export(Request $request)
     {

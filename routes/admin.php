@@ -164,14 +164,14 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
         Route::prefix('price-management')->group(function () {
             Route::get('/', [AccountsController::class, 'PriceIndex'])->name('accounts.price.index');
             Route::post('/store', [AccountsController::class, 'priceStore'])->name('accounts.price.store');
+            Route::get('/edit', [AccountsController::class, 'editPrice'])->name('accounts.price.edit');
+            Route::post('/update', [AccountsController::class, 'updatePrice'])->name('accounts.price.update');
             Route::get('/list', [AccountsController::class, 'priceList'])->name('accounts.price.list');
             Route::get('/show', [AccountsController::class, 'priceShow'])->name('accounts.price.show');
-            // Route::get('/product-types/{product_id}', [AccountsController::class, 'getByProduct']);
-            Route::post('/get-types-by-product', [AccountsController::class, 'getTypesByProduct'])->name('get.types.by.product');
-
-
+            Route::get('/get-product-types', [AccountsController::class, 'getProductTypes'])->name('get.product.types');
         });
     });
+     Route::get('/load-product', [AdminController::class, 'loadProduct'])->name('loadProduct');
 
     Route::prefix('admin')->middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');

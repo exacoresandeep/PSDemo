@@ -58,8 +58,7 @@
         $('#price_id').val('');
         $('#priceForm input, #priceForm select').prop('disabled', false); // Enable all fields
         $('#savePriceBtn').text('Create');
-        // $("#product_id").val(1);
-        // loadProductTypes(1);
+        loadProductTypes();
         $('#createEditPriceModal').modal('show');
     });
     // $('#product_id').on('change', function() {
@@ -69,27 +68,70 @@
     //     }
     // });
 
-    // On Edit button click
+   
     $(document).on('click', '.editPrice', function () {
-        let id = $(this).data('id');
-        $('#priceModalLabel').text('Edit Price');
-        $.get(`{{ url('accounts/price-management/edit') }}/${id}`, function (data) {
-            $('#price_id').val(data.id);
-            $('#start_date').val(data.start_date);
-            $('#end_date').val(data.end_date);
-            $('#product_type_id').val(data.product_type_id);
-            $('#dealer_price').val(data.dealer_price);
-            $('#advance_dealer_price').val(data.advance_dealer_price);
-            $('#status').val(data.status);
+        const startDate = $(this).data('start');
+        const endDate   = $(this).data('end');
+        $.ajax({
+            url: "{{ route('accounts.price.edit') }}",
+            type: "GET",
+            data: {
+                start_date: startDate,
+                end_date: endDate
+            },
+            success: function(res) {
 
-            // Disable all fields except status
-            $('#priceForm input, #priceForm select').prop('disabled', true);
-            $('#status').prop('disabled', false);
+                let priceData = Array.isArray(res.data) ? res.data : [];
 
-            $('#savePriceBtn').text('Update');
-            $('#createEditPriceModal').modal('show');
+                if (priceData.length === 0) {
+                    Swal.fire('Error', 'Price not found', 'error');
+                    return;
+                }
+
+                // Set main fields
+                $('#start_date').val(priceData[0].start_date);
+                $('#end_date').val(priceData[0].end_date);
+
+                // Build product type rows
+                let html = '';
+                console.log(priceData);
+                priceData.forEach((row, i) => {
+                    html += `
+                        <div class="row mb-2">
+
+                            <input type="hidden" name="prices[${i}][id]" value="${row.id}">
+
+                            <div class="col-md-4">
+                                <label>Product</label>
+                                <input type="text" class="form-control" value="${row.product_type.type_name}" readonly>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label>Dealer Price</label>
+                                <input type="number" name="prices[${i}][dealer_price]" class="form-control" step="0.01" value="${row.dealer_price}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label>Advance Dealer Price</label>
+                                <input type="number" name="prices[${i}][advance_dealer_price]" class="form-control" step="0.01" value="${row.advance_dealer_price}">
+                            </div>
+
+                        </div>
+                    `;
+                });
+
+                $('.product-div').html(html);
+                $('#savePriceBtn').text('Update');
+                $('#createEditPriceModal').modal('show');
+            },
+
+            error: function() {
+                Swal.fire('Error', 'Unable to load edit data', 'error');
+            }
         });
+
     });
+
     $(document).on('click', '.viewPrice', function () {
         const startDate = $(this).data('start');
         const endDate = $(this).data('end');
@@ -137,87 +179,83 @@
     //                     <div class="row mb-2">
     //                         <input type="hidden" name="types[${index}][product_type_id]" value="${type.id}">
 
-    //                         <div class="col-md-4">
-    //                             <label class="form-label">Product Type</label>
-    //                             <input type="text" class="form-control" value="${type.type_name}" readonly>
-    //                         </div>
+    $('#saveEditPrice').click(function () {
 
-    //                         <div class="col-md-4">
-    //                             <label class="form-label">Dealer Price</label>
-    //                             <input type="number" name="types[${index}][dealer_price]" class="form-control" required>
-    //                         </div>
-
-    //                         <div class="col-md-4">
-    //                             <label class="form-label">Advance Dealer Price</label>
-    //                             <input type="number" name="types[${index}][advance_dealer_price]" class="form-control" required>
-    //                         </div>
-    //                     </div>
-    //                 `;
-    //             });
-
-    //             $('#productTypeContainer').html(html);
-    //         }
-    //     });
-    // }
-    $(document).ready(function () {
-
-    $('#product_id').change(function () {
-        let productId = $(this).val();
-
-        $('#product-type-container').html(''); // Clear old types
-
-        if (productId) {
-            $.ajax({
-                url: "{{ route('get.types.by.product') }}",
-                type: "POST",
-                data: {
-                    product_id: productId,
-                    _token: "{{ csrf_token() }}"
-                },
-                success: function (types) {
-
-                    let html = '';
-
-                    $.each(types, function (index, type) {
-                        html += `
-                            <div class="row mb-2">
-                                <input type="hidden" name="types[${index}][product_type_id]" value="${type.id}">
-
-                                <div class="col-md-4">
-                                    <label class="form-label">Product Type</label>
-                                    <input type="text" class="form-control" value="${type.type_name}" readonly>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">Dealer Price</label>
-                                    <input type="number" name="types[${index}][dealer_price]" class="form-control" step="0.01" required>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <label class="form-label">Advance Dealer Price</label>
-                                    <input type="number" name="types[${index}][advance_dealer_price]" class="form-control" step="0.01" required>
-                                </div>
-                            </div>
-                        `;
-                    });
-
-                    $('#product-type-container').html(html);
-                }
-            });
+    $.ajax({
+        url: '{{ route('accounts.price.update') }}',
+        type: 'POST',
+        data: $('#editPriceForm').serialize(),
+        success: function () {
+            Swal.fire('Success', 'Price updated successfully', 'success');
+            $('#editPriceModal').modal('hide');
+            location.reload(); // refresh table
+        },
+        error: function () {
+            Swal.fire('Error', 'Failed to update price', 'error');
         }
     });
 
 });
 
 
+    $(document).on('click', '.editPrice', function () {
+        const startDate = $(this).data('start');
+        const endDate = $(this).data('end');
+
+        $.ajax({
+            url: '{{ route('accounts.price.edit') }}',
+            type: 'GET',
+            data: {
+                start_date: startDate,
+                end_date: endDate
+            },
+            success: function (res) {
+
+                // Fill modal heading
+                $('#editPriceStartDate').text(moment(res.start_date).format('DD-MM-YYYY'));
+                $('#editPriceEndDate').text(moment(res.end_date).format('DD-MM-YYYY'));
+                $('#editPriceProduct').text(res.product_name);
+
+                // Generate editable table rows
+                let rows = '';
+                res.types.forEach((type, index) => {
+                    rows += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${type.product_type}</td>
+
+                            <td>
+                                <input type="hidden" name="type_id[]" value="${type.id}">
+                                <input type="text" class="form-control" name="dealer_price[]" value="${type.dealer_price}">
+                            </td>
+
+                            <td>
+                                <input type="text" class="form-control" name="advance_dealer_price[]" value="${type.advance_dealer_price}">
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                $('#editPriceTable tbody').html(rows);
+
+                $('#editPriceModal').modal('show');
+            },
+            error: function () {
+                Swal.fire('Error', 'Failed to load price details', 'error');
+            }
+        });
+    });
+
     // Submit Form (Create or Update)
     $('#priceForm').on('submit', function (e) {
         e.preventDefault();
         let formData = new FormData(this);
-        let priceId = $('#price_id').val();
-        let isUpdate = !!priceId;
-        let url = isUpdate ? `/accounts/price-management/update/${priceId}` : `{{ route('accounts.price.store') }}`;
-        let method = 'POST';
+        let isUpdate = ($('#savePriceBtn').text().trim() === 'Update');
+
+        let url = isUpdate
+            ? `{{ route('accounts.price.update') }}`
+            : `{{ route('accounts.price.store') }}`;
+            let method = 'POST';
 
         $.ajax({
             url: url,
@@ -276,6 +314,52 @@
             }
         });
     });
+
+    function loadProductTypes() {
+        $.ajax({
+            url: "{{ route('get.product.types') }}",
+            type: "GET",
+            success: function (data) {
+
+                let product = data.product;
+                let types = data.productTypes;
+
+                // Set readonly product name
+                $("#selected_product_name").val(product.product_name);
+
+                // Set hidden product id
+                $("#selected_product_id").val(product.id);
+
+                // Build product type rows
+                let html = "";
+                types.forEach((type, index) => {
+                    html += `
+                        <div class="row mb-2">
+                            <input type="hidden" name="types[${index}][product_type_id]" value="${type.id}">
+                            
+                            <div class="col-md-4">
+                                <label class="form-label">Product Type</label>
+                                <input type="text" class="form-control" value="${type.type_name}" readonly>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Dealer Price</label>
+                                <input type="number" name="types[${index}][dealer_price]" class="form-control"  step="0.01">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Advance Dealer Price</label>
+                                <input type="number" name="types[${index}][advance_dealer_price]" class="form-control"  step="0.01">
+                            </div>
+                        </div>
+                    `;
+                });
+
+                $(".product-div").html(html);
+            }
+        });
+    }
+
 </script>
 @endsection
 

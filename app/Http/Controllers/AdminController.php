@@ -10,6 +10,7 @@ use App\Models\District;
 use App\Models\Order;
 use App\Models\Regions;
 use App\Models\ProductDetails;
+use App\Models\Product;
 use Yajra\DataTables\Facades\DataTables;
 use Redirect;
 use Illuminate\Support\Facades\Cookie;
@@ -102,12 +103,42 @@ class AdminController extends Controller
         }
     }
 
+    public function loadProduct()
+    {
+        $sessionProductCode = session('selected_product_code');
+        if ($sessionProductCode) {
+
+            $products = Product::where('product_code', $sessionProductCode)
+                ->select('id', 'product_name', 'product_code')
+                ->get();
+
+            // If product not found → fallback to first row
+            if ($products->count() === 0) {
+                $products = Product::select('id', 'product_name', 'product_code')
+                    ->orderBy('id')
+                    ->limit(1)
+                    ->get();
+            }
+
+        } else {
+            // No session → return first product only
+            $products = Product::select('id', 'product_name', 'product_code')
+                ->orderBy('id')
+                ->limit(1)
+                ->get();
+        }
+
+        return response()->json([
+            'products' => $products
+        ]);
+    }
     public function logout(Request $request)
     {
         Cookie::queue(Cookie::forget('selectedLink'));
 
         if (Auth::check()) {
             Auth::logout();
+            $request->session()->flush();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
         }

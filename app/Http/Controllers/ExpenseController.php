@@ -75,7 +75,7 @@ class ExpenseController extends Controller
 
         $request->validate([
             'travel_method' => 'required|string|max:100',
-            'km_traveled'   => 'nullable|integer|min:0',
+            // 'km_traveled'   => 'nullable|integer|min:0',
             'other_expense' => 'nullable|numeric',
             'remarks'       => 'nullable|string|max:1000',
             'attachment'    => 'nullable|array',

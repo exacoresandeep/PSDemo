@@ -172,8 +172,10 @@ use App\Http\Controllers\ExpenseController;
                 Route::post('/punch-out', [AttendanceController::class, 'punchOut']);
                 // Route::get('/auto-punch-out', [AttendanceController::class, 'autoPunchOut']);
                 Route::get('/today', [AttendanceController::class, 'getTodayAttendance']);
-                Route::post('/getsummary', [AttendanceController::class, 'getsummary']);
+                Route::post('/summary', [AttendanceController::class, 'getsummary']);
                 Route::post('/entryLeave', [AttendanceController::class, 'entryLeave']);
+                Route::post('/LeaveType', [AttendanceController::class, 'LeaveType']);
+
             });
             Route::prefix('stock')->group(function () {
                 Route::get('/stock-insights', [StockController::class, 'stockList']);
