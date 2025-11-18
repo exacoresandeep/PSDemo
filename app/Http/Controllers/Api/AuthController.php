@@ -1594,41 +1594,80 @@ public function notificationList()
             ], 500);
         }
     }
-    public function getPriceByProduct($product_type_id, $product_id)
+    // public function getPriceByProduct($product_type_id, $product_id)
+    // {
+    //     try {
+    //         $price = Price::where('product_type_id', $product_type_id)
+    //             ->where('product_id', $product_id)
+    //             ->where('status', '1')
+    //             ->orderByDesc('id') 
+    //             ->first();
+
+    //         if (!$price) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 404,
+    //                 'message' => 'No active price found for this product and product type.'
+    //             ], 404);
+    //         }
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'statusCode' => 200,
+    //             'message' => 'Product price fetched successfully',
+    //             'data' => [
+    //                 'dp_price' => (float) $price->dealer_price,
+    //                 'adp_price' => (float) $price->advance_dealer_price,
+    //             ]
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 500,
+    //             'message' => 'Something went wrong while fetching product price.',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
+    public function getPriceByProduct(Request $request)
     {
+        $product_type_id = $request->product_type_id;
+        $product_id = $request->product_id;
+
         try {
+
             $price = Price::where('product_type_id', $product_type_id)
                 ->where('product_id', $product_id)
                 ->where('status', '1')
-                ->orderByDesc('id') 
+                ->orderByDesc('id')
                 ->first();
 
-            if (!$price) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => 'No active price found for this product and product type.'
-                ], 404);
-            }
+            $productDetails = ProductDetails::where('product_id', $product_id)
+                ->where('type_id', $product_type_id)
+                ->first();
 
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'message' => 'Product price fetched successfully',
+                'message' => 'Product details fetched successfully',
                 'data' => [
-                    'dp_price' => (float) $price->dealer_price,
-                    'adp_price' => (float) $price->advance_dealer_price,
+                    'dp_price'          => $price ? (float)$price->dealer_price : null,
+                    'adp_price'         => $price ? (float)$price->advance_dealer_price : null,
+                    'tonnage_per_piece' => $productDetails ? (float)$productDetails->weight : null,
                 ]
             ]);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'statusCode' => 500,
-                'message' => 'Something went wrong while fetching product price.',
+                'message' => 'Something went wrong.',
                 'error' => $e->getMessage()
             ], 500);
         }
     }
+
+
 
 
 
