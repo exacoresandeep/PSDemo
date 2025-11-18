@@ -122,6 +122,7 @@ class AdminController extends Controller
 
         } else {
             // No session → return first product only
+           
             $products = Product::select('id', 'product_name', 'product_code')
                 ->orderBy('id')
                 ->limit(1)
