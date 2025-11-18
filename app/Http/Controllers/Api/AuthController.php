@@ -1553,7 +1553,7 @@ public function notificationList()
             $productDetails = ProductDetails::where('product_id', $product_id)
                 ->where('type_id', $product_type_id)
                 ->first();
-
+            $tonnage = $productDetails ? ($productDetails->weight / 1000) : null;
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
@@ -1561,7 +1561,7 @@ public function notificationList()
                 'data' => [
                     'dp_price'          => $price ? (float)$price->dealer_price : null,
                     'adp_price'         => $price ? (float)$price->advance_dealer_price : null,
-                    'tonnage_per_piece' => $productDetails ? (float)$productDetails->weight : null,
+                    'tonnage_per_piece' => $tonnage,
                 ]
             ]);
 
