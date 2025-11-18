@@ -1575,10 +1575,6 @@ public function notificationList()
         }
     }
 
-
-
-
-
     public function getProductRate(Request $request)
     {
         try {
@@ -2189,7 +2185,4 @@ public function notificationList()
         ], 200);
     }
    
-
-
-
 }
