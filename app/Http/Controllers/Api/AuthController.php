@@ -1502,22 +1502,23 @@ public function notificationList()
             ], 500);
         }
     }
-    public function getPriceByProductType($product_type_id)
+    public function getPriceByProduct($product_type_id, $product_id)
     {
         try {
             $price = Price::where('product_type_id', $product_type_id)
+                ->where('product_id', $product_id)
                 ->where('status', '1')
-                ->orderByDesc('id') // In case there are multiple, get latest
+                ->orderByDesc('id') 
                 ->first();
-    
+
             if (!$price) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 404,
-                    'message' => 'No active price found for this product type.'
+                    'message' => 'No active price found for this product and product type.'
                 ], 404);
             }
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
@@ -1536,6 +1537,7 @@ public function notificationList()
             ], 500);
         }
     }
+
 
 
     public function getProductRate(Request $request)
