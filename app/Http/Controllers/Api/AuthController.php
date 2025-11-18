@@ -1561,7 +1561,9 @@ public function notificationList()
                 'data' => [
                     'dp_price'          => $price ? (float)$price->dealer_price : null,
                     'adp_price'         => $price ? (float)$price->advance_dealer_price : null,
-                    'tonnage_per_piece' => $tonnage !== null ? number_format($tonnage, 4, '.', '') : null,
+                    'tonnage_per_piece' => $tonnage !== null 
+                                ? (float) number_format($tonnage, 4, '.', '') 
+                                : null,
                 ]
             ]);
 
