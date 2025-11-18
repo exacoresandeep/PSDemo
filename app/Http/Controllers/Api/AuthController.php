@@ -110,6 +110,100 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+
+    public function loginCommon(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'employee_code' => 'required|string',  
+                'password' => 'required|string',
+            ]);
+            $employee = Employee::join('employee_types', 'employees.employee_type_id', '=', 'employee_types.id')
+                ->where('employee_code', $validated['employee_code'])
+                ->select('employees.*', 'employee_types.id as type_id', 'employee_types.type_name')
+                ->first();
+            if ($employee && Hash::check($validated['password'], $employee->password)) {
+
+                $token = $employee->createToken('Employee API Token')->plainTextToken;
+
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'Login successful',
+                    'role' => 'Employee',
+                    'data' => [
+                        'employee' => [
+                            'id' => $employee->id,
+                            'employee_code' => $employee->employee_code,
+                            'name' => $employee->name,
+                            'designation' => $employee->designation,
+                            'email' => $employee->email,
+                            'password_reset_flag' => $employee->password_reset_flag ? true : false,
+                            'phone' => $employee->phone,
+                            'address' => $employee->address,
+                            'photo' => $employee->photo,
+                            'emergency_contact' => $employee->emergency_contact,
+                        ],
+                        'employee_type' => [
+                            'id' => $employee->type_id,
+                            'type_name' => $employee->type_name,
+                        ],
+                        'token' => $token,
+                        'status' => 'active',
+                    ],
+                ], 200);
+            }
+
+            
+            $dealer = Dealer::where('dealer_code', $validated['employee_code'])
+                ->where('status', '1')
+                ->first();
+
+            if ($dealer && Hash::check($validated['password'], $dealer->password)) {
+
+                $token = $dealer->createToken('Dealer API Token')->plainTextToken;
+
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'Login successful',
+                    'role' => 'Dealer',
+                    'data' => [
+                        'dealer' => [
+                            'id' => $dealer->id,
+                            'dealer_code' => $dealer->dealer_code,
+                            'name' => $dealer->dealer_name,
+                            'email' => $dealer->email,
+                            'password_reset_flag' => $dealer->password_reset_flag ? true : false,
+                            'phone' => $dealer->phone,
+                            'address' => $dealer->address,
+                        ],
+                        'token' => $token,
+                        'status' => 'active',
+                    ],
+                ], 200);
+            }
+
+            // ============================================
+            // 3. INVALID CREDENTIALS (Both Failed)
+            // ============================================
+            return response()->json([
+                'success' => false,
+                'statusCode' => 400,
+                'message' => 'Invalid credentials',
+            ], 400);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
 	// Hardcoded or dynami
     public function resetPassword(Request $request)
     { 
@@ -119,11 +213,9 @@ class AuthController extends Controller
         ]);
     try{
         $user = Auth::user();
-     //   print_r($user);
-    //dd($user);
-        // Check if current password matches
+        
         if(!Hash::check($request->current_password,$user->password)){
-      //  if ($user->password !== md5($request->current_password)) {
+        //if ($user->password !== md5($request->current_password)) {
             return response()->json([
     		'status' => false,
     		'statusCode'=>400,
