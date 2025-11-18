@@ -70,13 +70,13 @@ use App\Http\Controllers\ExpenseController;
                 Route::get('/credit-notes/{orderId}', [DealerOrderController::class, 'creditNoteDetails']);
                 Route::get('support', [DealerOrderController::class, 'getSupport']);
                 Route::get('credit-days', [DealerOrderController::class, 'getCreditDays']);
-    
-        	    Route::get('/product-price/{product_type_id}', [AuthController::class, 'getPriceByProductType']);
+                Route::post('/product-price', [AuthController::class, 'getPriceByProduct']);
+        	    // Route::get('/product-price/{product_type_id}', [AuthController::class, 'getPriceByProductType']);
         	    Route::get('ledger/download', [DealerController::class, 'downloadLedger']);
         	    Route::post('ledger/downloadNew', [DealerController::class, 'downloadLedgerNew']);
         	    
                 Route::post('logout', [DealerController::class, 'logout']);
-    
+
             });
         });
 
@@ -217,7 +217,8 @@ use App\Http\Controllers\ExpenseController;
             Route::get('dealers', [AuthController::class, 'getDealers']);
             Route::get('products', [AuthController::class, 'getProducts']);
             Route::post('product-types', [AuthController::class, 'getProductTypes']);
-            Route::get('/product-price/{product_type_id}', [AuthController::class, 'getPriceByProductType']);  // New
+            // Route::get('/product-price/{product_type_id}', [AuthController::class, 'getPriceByProductType']);
+            Route::post('/product-price', [AuthController::class, 'getPriceByProduct']);  // New
             Route::get('product-rate', [AuthController::class, 'getProductRate']);
             Route::get('leave-types', [AuthController::class, 'getLeaveTypes']);
             Route::get('payment-terms', [AuthController::class, 'getPaymentTerms']);
