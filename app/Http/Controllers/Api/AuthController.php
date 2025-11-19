@@ -131,8 +131,8 @@ class AuthController extends Controller
                     'success' => true,
                     'statusCode' => 200,
                     'message' => 'Login successful',
-                    'role' => 'Employee',
                     'data' => [
+                        'role' => 'Employee',
                         'employee' => [
                             'id' => $employee->id,
                             'employee_code' => $employee->employee_code,
@@ -168,8 +168,8 @@ class AuthController extends Controller
                     'success' => true,
                     'statusCode' => 200,
                     'message' => 'Login successful',
-                    'role' => 'Dealer',
                     'data' => [
+                        'role' => 'Dealer',
                         'dealer' => [
                             'id' => $dealer->id,
                             'dealer_code' => $dealer->dealer_code,
