@@ -81,7 +81,20 @@ class AdminController extends Controller
             case 3: return view('accounts.dashboard', compact('user')); 
             case 4: return view('logistics.dashboard', compact('user')); 
             case 5: 
+                $selectedProductCode = session('selected_product_code');$products=[];
+                if ($selectedProductCode) {
+                    $products = Product::where('product_code', $selectedProductCode)->first();
+                }else{
+                    $user = auth()->user();
+                    $productIds = $user->product_ids ?? [];
+
+                    $products = Product::whereIn('id', $productIds)
+                        ->select('id', 'product_name', 'product_code')
+                        ->first();       
+                }
+                
                 $stocks = ProductDetails::select('type_id')
+                ->where('product_id', $products->id)
                 ->selectRaw('SUM(total_available_quantity) as total_stock_quantity')
                 ->groupBy('type_id')
                 ->with('productType:id,type_name')

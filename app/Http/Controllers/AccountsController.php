@@ -170,7 +170,12 @@ class AccountsController extends Controller
         if ($selectedProductCode) {
             $products = Product::where('product_code', $selectedProductCode)->first();
         }else{
-           $products = Product::first();         
+            $user = auth()->user();
+            $productIds = $user->product_ids ?? [];
+
+            $products = Product::whereIn('id', $productIds)
+                ->select('id', 'product_name', 'product_code')
+                ->first();       
         }
         $productID=$products->id;
         $statusFilter = $request->get('status');       
@@ -748,9 +753,7 @@ class AccountsController extends Controller
 
             $products = Product::whereIn('id', $productIds)
                 ->select('id', 'product_name', 'product_code')
-                ->get();
-
-            $products = Product::first();         
+                ->first();       
         }
         // dd($products );
         $productTypes = ProductType::where('product_id', $products->id)->get();
@@ -922,8 +925,15 @@ class AccountsController extends Controller
         if ($selectedProductCode) {
             $products = Product::where('product_code', $selectedProductCode)->first();
         }else{
-            $firstProduct = Product::first();
-            $products = collect([$firstProduct]);            
+
+            $user = auth()->user();
+            $productIds = $user->product_ids ?? [];
+
+            $products = Product::whereIn('id', $productIds)
+                ->select('id', 'product_name', 'product_code')
+                ->first();
+
+            // $products = Product::first();          
         }
         // dd($products->id);
         // Get the price master row

@@ -8,6 +8,7 @@ use App\Models\Price;
 use App\Models\OutstandingPayment;
 use App\Models\OutstandingNew;
 use App\Models\Dealer;
+use App\Models\Product;
 use App\Models\ProductType;
 use Illuminate\Http\Request;
 use DB;
@@ -22,12 +23,28 @@ class OperationsController extends Controller
     }
     public function orderList(Request $request)
     {
+        $selectedProductCode = session('selected_product_code');$products=[];
+        if ($selectedProductCode) {
+            $products = Product::where('product_code', $selectedProductCode)->first();
+        }else{
+            $user = auth()->user();
+            $productIds = $user->product_ids ?? [];
+
+            $products = Product::whereIn('id', $productIds)
+                ->select('id', 'product_name', 'product_code')
+                ->first();       
+        }
+        // dd($products );
+
 	    $statusFilter = $request->get('status');  
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');
         $vehicleStatus = $request->get('vehicle_status');       
 	    $search = $request->input('search.value');
         $orders = Order::with(['dealer', 'dealers', 'createdBy.employeeType', 'orderItems', 'sendForApprovalBy'])
+            ->whereHas('orderItems', function ($q) use ($products) {
+                $q->where('product_id', $products->id);
+            })
             ->where(function ($query) {
         
                 $query->where(function ($subQuery) {
@@ -220,11 +237,28 @@ class OperationsController extends Controller
     }
     public function orderListNew(Request $request)
     {
+       
+        $selectedProductCode = session('selected_product_code');$products=[];
+        if ($selectedProductCode) {
+            $products = Product::where('product_code', $selectedProductCode)->first();
+        }else{
+            $user = auth()->user();
+            $productIds = $user->product_ids ?? [];
+
+            $products = Product::whereIn('id', $productIds)
+                ->select('id', 'product_name', 'product_code')
+                ->first();       
+        }
+        // dd($products );
+
 	    $statusFilter = $request->get('status');  
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');     
 	    $search = $request->input('search.value');
         $orders = Order::with(['dealer', 'dealers', 'createdBy.employeeType', 'orderItems'])
+             ->whereHas('orderItems', function ($q) use ($products) {
+                $q->where('product_id', $products->id);
+            })
             ->where(function ($query) {
                 
                 $query->where(function ($subQuery) {
