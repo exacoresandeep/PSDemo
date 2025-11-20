@@ -1629,7 +1629,7 @@ public function notificationList()
 
             $productCode = strtolower($product->product_code); 
 
-            if ($productCode === 'tata tiscon') {
+            if ($productCode === 'tiscon') {
 
                 $data = ProductType::select('product_id', 'id as product_type_id', 'type_name', 'rate')
                     ->where('product_id', $productId)
