@@ -1415,7 +1415,6 @@ public function notificationList()
     $docNum = '10205254';
            $stmt = $pdo->prepare('CALL "MOBILE_APPLICATION_TEST"."MobileApp_CreditNote_Detail"()');
     $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    dd($results);
     
         } catch (\PDOException $e) {
             dd('PDO Error: ' . $e->getMessage());
@@ -1607,7 +1606,7 @@ public function notificationList()
             }
 
             $productId = $request->input('product_id');
-            $search = $request->input('search');  
+            $search = $request->input('search');
 
             if (!$productId || $productId == 0) {
                 return response()->json([
@@ -1627,11 +1626,19 @@ public function notificationList()
                 ], 404);
             }
 
-            $productCode = strtolower($product->product_code); 
+            $productCode = strtolower($product->product_code);
 
-            if ($productCode === 'tiscon') {
+            /* ---------------------------------------------------------
+            CASE 1: TATA TISCON (Fetch from product_types)
+            --------------------------------------------------------- */
+            if ($productCode === 'tata tiscon') {
 
-                $data = ProductType::select('product_id', 'id as product_type_id', 'type_name', 'rate')
+                $data = ProductType::select(
+                        'product_id',
+                        'id as product_type_id',
+                        'type_name',
+                        'rate'
+                    )
                     ->where('product_id', $productId)
                     ->get();
 
@@ -1643,28 +1650,30 @@ public function notificationList()
                 ]);
             }
 
+            /* ---------------------------------------------------------
+            CASE 2: DURASHINE (Search inside products_details table)
+            --------------------------------------------------------- */
             if ($productCode === 'durashine') {
 
                 $query = ProductDetails::select(
-                        'id as detail_id',
-                        'product_name',
-                        'item_profile',
-                        'item_thickness',
-                        'weight',
-                        'availability_status'
+                        'products_details.product_id',
+                        'product_types.id as product_type_id',
+                        'products_details.product_name as type_name',
+                        'product_types.rate'
                     )
-                    ->where('product_id', $productId);
+                    ->join('product_types', 'product_types.id', '=', 'products_details.type_id')
+                    ->where('products_details.product_id', $productId);
 
                 if (!empty($search)) {
-                    $query->where('product_name', 'LIKE', '%' . $search . '%');
+                    $query->where('products_details.product_name', 'LIKE', '%' . $search . '%');
                 }
 
-                $data = $query->limit(20)->get(); 
+                $data = $query->limit(20)->get();
 
                 return response()->json([
                     'success' => true,
                     'statusCode' => 200,
-                    'message' => 'Durashine product details fetched successfully',
+                    'message' => 'Durashine product types fetched successfully',
                     'data' => $data
                 ]);
             }
