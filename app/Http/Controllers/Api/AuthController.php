@@ -1528,7 +1528,7 @@ public function notificationList()
             }
 
             $data = \App\Models\Product::whereIn('id', $productIds)
-                ->select('id as product_id', 'product_name')
+                ->select('id as product_id', 'product_name', 'product_code')
                 ->get();
 
             return response()->json([
