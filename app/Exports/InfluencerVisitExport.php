@@ -47,6 +47,9 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
             'Upcoming Project',
             'Steel Used',
             'Total Deal Volume',
+            'Total Ordered Quantity',
+            'Total Order Amount',
+            'Balance Quantity',
             'Status',
 
             'Follow Up Date',
@@ -70,18 +73,36 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
     public function map($visit): array
     {
         $order = $visit->order;
+
         $productSummary = '';
+        $totalOrderedQty = 0;
+        $totalOrderAmount = 0;
 
         if ($order && $order->orderItems) {
-            $productSummary = $order->orderItems->map(function ($item) {
-                $details = collect($item->product_details)->map(function ($detail) {
-                    $productType = \App\Models\ProductType::find($detail['product_type_id']);
-                    return $productType->type_name . ' (Qty: ' . $detail['quantity'] . ', Rate: ' . $detail['rate'] . ')';
+
+            $productSummary = $order->orderItems->map(function ($item) use (&$totalOrderedQty, &$totalOrderAmount) {
+
+                $details = collect($item->product_details)->map(function ($detail) use (&$totalOrderedQty, &$totalOrderAmount) {
+
+                    $typeName = \App\Models\ProductType::find($detail['product_type_id'])->type_name ?? 'N/A';
+                    $qty = $detail['quantity'] ?? 0;
+                    $amt = $detail['totalAmount'] ?? 0;
+                    $rate = $detail['rate'] ?? 0;
+
+                    // Add totals
+                    $totalOrderedQty += $qty;
+                    $totalOrderAmount += $amt;
+
+                    return "{$typeName} (Qty: {$qty}, Amount: {$amt}, Rate: {$rate})";
                 });
 
                 return $details->implode(' | ');
-            })->implode(' || '); 
+
+            })->implode(' || ');
         }
+
+        // Balance Quantity = Total Deal Volume - Ordered Quantity
+        $balanceQty = $visit->total_deal_volume - $totalOrderedQty;
 
         return [
             $this->row++,
@@ -98,7 +119,11 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
             $visit->current_project,
             $visit->upcoming_project,
             is_array($visit->steel_used) ? implode(', ', $visit->steel_used) : '',
-            $visit->total_deal_volume,
+            $visit->total_deal_volume,              // TOTAL DEAL VOLUME (FROM DB)
+            $totalOrderedQty,                       // TOTAL ORDERED QTY
+            $totalOrderAmount,                      // TOTAL ORDER AMOUNT
+            $balanceQty,                            // BALANCE QTY
+
             $visit->status,
 
             $visit->status === 'Follow Up' ? optional($visit->follow_up_date)->format('Y-m-d') : '',

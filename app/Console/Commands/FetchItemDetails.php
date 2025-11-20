@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use PDO;
 use PDOException;
 use Illuminate\Support\Facades\Log;
+use PhpParser\Node\Expr\Print_;
 
 class FetchItemDetails extends Command
 {
@@ -28,7 +29,7 @@ class FetchItemDetails extends Command
                 return 1;
             }
 
-            $sql = 'CALL "PRABHU_NEW"."MobileApp_ItemDetail"()';
+            $sql = 'select * from "PRABHU_NEW"."MOBILEAPP_ITEMDETAIL"';
             $result = odbc_exec($conn, $sql);
 
             if (!$result) {
@@ -40,32 +41,46 @@ class FetchItemDetails extends Command
             while ($row = odbc_fetch_array($result)) {
                 $items[] = array_map('trim', $row);
             }
-
             if (empty($items)) {
                 $this->warn('No item details found in SAP response.');
                 return 0;
             }
 
-            $warehouses = Warehouse::pluck('id', 'warehouse_name')->toArray();
+            // $warehouses = Warehouse::pluck('id', 'warehouse_name')->toArray();
 
             foreach ($items as $item) {
                 DB::beginTransaction();
                 try {
+                    $brand = trim($item['Type'] ?? '');
+                    $brandCode = strtolower($brand); 
+
+                    $product = \App\Models\Product::where('product_code', $brandCode)->first();
+
+                    if (!$product) {
+                        $this->error("❌ No product found for brand: {$brandCode}");
+                        DB::rollBack();
+                        continue; 
+                    }
+
+                    $product_id = $product->id;
+
                     $productTypeName = trim($item['Product Code'] ?? '');
+
                     $productType = ProductType::firstOrCreate(
                         ['type_name' => $productTypeName],
-                        ['product_id' => 1]
+                        ['product_id' => $product_id] 
                     );
 
-                    $productDetails = ProductDetails::updateOrCreate(
-                        ['product_name' => $item['Product']],
+                    ProductDetails::updateOrCreate(
+                        ['product_name' => trim($item['Product'])],
                         [
-                            'product_id' => 1,
+                            'product_id' => $product_id,
                             'item_profile' => $item['Item Profile'] ?? null,
                             'item_thickness' => $item['Item Thickness'] ?? null,
                             'type_id' => $productType->id,
                             'primary_group' => $item['Primary Group'] ?? null,
-                            'total_available_quantity' => $item['Total Available Quantity'] ?? 0,
+                            'weight' => $item['Weight'] ?? null,
+                            'total_available_quantity' => 0,
                             'availability_status' => ($item['Availability Status'] ?? '') === 'Available' ? 'Available' : 'Unavailable',
                             'stock_updated_at' => Carbon::now(),
                             'rate' => 0,
@@ -73,40 +88,16 @@ class FetchItemDetails extends Command
                         ]
                     );
 
-                    if ($productDetails) {
-                        foreach ($warehouses as $warehouseName => $warehouseId) {
-                            if (isset($item[$warehouseName])) {
-                                $rawQty = $item[$warehouseName];
-                                $cleanQty = preg_replace('/[^\d.-]/', '', trim($rawQty));
-                                $stockQuantity = round((float)$cleanQty, 5);
-
-                                ProductStock::updateOrInsert(
-                                    [
-                                        'product_details_id' => $productDetails->id,
-                                        'warehouse_id' => $warehouseId,
-                                    ],
-                                    [
-                                        'quantity' => $stockQuantity,
-                                        'updated_at' => now(),
-                                    ]
-                                );
-                            }
-                        }
-                    } else {
-                        $this->error("❌ Error: ProductDetails not found for product '{$item['Product']}'");
-                    }
-
                     DB::commit();
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     DB::rollBack();
                     $this->error('Database Error: ' . $e->getMessage());
                 }
             }
-
             odbc_close($conn);
             $this->info('✅ Item details successfully updated from SAP.');
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             if (isset($conn)) {
                 odbc_close($conn);
             }
