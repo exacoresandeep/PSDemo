@@ -16,6 +16,7 @@ use App\Models\CreditNote;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Exports\LeadsExport;
+use App\Models\Product;
 use App\Exports\OutstandingPaymentsExport;
 use App\Exports\CreditNoteExport;
 use App\Exports\DealerVisitExport;
@@ -41,8 +42,22 @@ class DashboardController extends Controller
     }
     public function accountsDashboard()
     {
-        $baseQuery = \App\Models\Order::query()
+        $selectedProductCode = session('selected_product_code');$products=[];
+        if ($selectedProductCode) {
+            $products = Product::where('product_code', $selectedProductCode)->first();
+        }else{
+            $user = auth()->user();
+            $productIds = $user->product_ids ?? [];
+
+            $products = Product::whereIn('id', $productIds)
+                ->select('id', 'product_name', 'product_code')
+                ->first();       
+        }
+        $baseQuery = \App\Models\Order::query()->with(['orderItems'])
             ->where('status', '!=', 'Rejected')
+            ->whereHas('orderItems', function ($q) use ($products) {
+                $q->where('product_id', $products->id);
+            })
             ->where(function ($query) {
                 $query->where(function ($q) {
                     $q->where('dealer_flag_order', '1')
@@ -72,8 +87,12 @@ class DashboardController extends Controller
             });
 
         $pendingOrders = \App\Models\Order::query()
+            ->with(['orderItems'])
             ->where('status', '!=', 'Rejected')
             ->where('order_approved', '0')
+            ->whereHas('orderItems', function ($q) use ($products) {
+                $q->where('product_id', $products->id);
+            })
             ->count();  
         $approvedOrders = (clone $baseQuery)->where('order_approved', '1')->count();
             $rejectedOrders = (clone $baseQuery)->where('order_approved', '2')->count();

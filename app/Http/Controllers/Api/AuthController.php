@@ -1628,9 +1628,6 @@ public function notificationList()
 
             $productCode = strtolower($product->product_code);
 
-            /* ---------------------------------------------------------
-            CASE 1: TATA TISCON (Fetch from product_types)
-            --------------------------------------------------------- */
             if ($productCode === 'tata tiscon') {
 
                 $data = ProductType::select(
