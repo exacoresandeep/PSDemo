@@ -131,8 +131,8 @@ class AuthController extends Controller
                     'success' => true,
                     'statusCode' => 200,
                     'message' => 'Login successful',
-                    'role' => 'Employee',
                     'data' => [
+                        'role' => 'Employee',
                         'employee' => [
                             'id' => $employee->id,
                             'employee_code' => $employee->employee_code,
@@ -168,8 +168,8 @@ class AuthController extends Controller
                     'success' => true,
                     'statusCode' => 200,
                     'message' => 'Login successful',
-                    'role' => 'Dealer',
                     'data' => [
+                        'role' => 'Dealer',
                         'dealer' => [
                             'id' => $dealer->id,
                             'dealer_code' => $dealer->dealer_code,
@@ -1528,7 +1528,7 @@ public function notificationList()
             }
 
             $data = \App\Models\Product::whereIn('id', $productIds)
-                ->select('id as product_id', 'product_name')
+                ->select('id as product_id', 'product_name', 'product_code')
                 ->get();
 
             return response()->json([
