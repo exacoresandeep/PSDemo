@@ -1301,8 +1301,11 @@ class LeadController extends Controller
 
                     // Sum pieces and tonnage for Durashine
                     $totalPieces = $productDetails->sum('pieces');
-                    $totalTonnage = $productDetails->sum('tonnage');
+                    // $totalTonnage = $productDetails->sum('tonnage');
 
+                    $totalTonnage = $productDetails->sum(function ($detail) {
+                        return ($detail['pieces'] ?? 0) * ($detail['tonnage'] ?? 0);
+                    });
                     return [
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->product_name ?? null,
