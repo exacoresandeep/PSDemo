@@ -165,9 +165,20 @@ class AccountsController extends Controller
     // }
     public function orderList(Request $request)
     {
+        // dd(1);
+        $selectedProductCode = session('selected_product_code');$products=[];
+        if ($selectedProductCode) {
+            $products = Product::where('product_code', $selectedProductCode)->first();
+        }else{
+           $products = Product::first();         
+        }
+        $productID=$products->id;
         $statusFilter = $request->get('status');       
 
-        $orders = Order::with(['dealer', 'dealers', 'createdBy.employeeType', 'sendForApprovalBy'])
+        $orders = Order::with(['orderItems','dealer', 'dealers', 'createdBy.employeeType', 'sendForApprovalBy'])
+            ->whereHas('orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
+            })
             ->where(function ($query) {
                 $query->where(function ($subQuery) {
                     $subQuery->where('dealer_flag_order', '1')
@@ -732,8 +743,14 @@ class AccountsController extends Controller
         if ($selectedProductCode) {
             $products = Product::where('product_code', $selectedProductCode)->first();
         }else{
-            $firstProduct = Product::first();
-            $products = collect([$firstProduct]);            
+            $user = auth()->user();
+            $productIds = $user->product_ids ?? [];
+
+            $products = Product::whereIn('id', $productIds)
+                ->select('id', 'product_name', 'product_code')
+                ->get();
+
+            $products = Product::first();         
         }
         // dd($products );
         $productTypes = ProductType::where('product_id', $products->id)->get();
@@ -814,24 +831,31 @@ class AccountsController extends Controller
         $selectedProductCode = session('selected_product_code');
 
         if (!$selectedProductCode) {
-            $firstProduct = Product::first();
-            if ($firstProduct) {
-                $selectedProductCode = $firstProduct->product_code;
-                session(['selected_product_code' => $selectedProductCode]);
-            } else {
-                return datatables()->of(collect())->make(true); 
+            $user = auth()->user();
+            $productIds = $user->product_ids ?? [];
+
+            $firstProduct = Product::whereIn('id', $productIds)
+                ->select('id', 'product_name', 'product_code')
+                ->first();
+                // $firstProduct = Product::first();
+                if ($firstProduct) {
+                    $selectedProductCode = $firstProduct->product_code;
+                    session(['selected_product_code' => $selectedProductCode]);
+                } else {
+                    return datatables()->of(collect())->make(true); 
+                }
             }
-        }
-
-        $groupedPrices = Price::with('product')
-        ->whereHas('product', function ($q) use ($selectedProductCode) {
-            $q->where('product_code', $selectedProductCode);
-        })
-        ->select('start_date', 'end_date', DB::raw('MAX(status) as status'))
-        ->groupBy('start_date', 'end_date')
-        ->orderByDesc('status')
-        ->get();
-
+            // dd( $firstProduct);
+            $groupedPrices = Price::with('productType.product')
+            ->whereHas('productType.product', function ($q) use ($selectedProductCode) {
+                $q->where('product_code', $selectedProductCode);
+            })
+            ->select('start_date', 'end_date', DB::raw('MAX(status) as status'))
+            ->groupBy('start_date', 'end_date')
+            ->orderByDesc('status')
+            ->get();
+            
+            // dd( $groupedPrices);
         return datatables()->of($groupedPrices)
             ->addIndexColumn()
             ->editColumn('start_date', fn($row) => \Carbon\Carbon::parse($row->start_date)->format('d-m-Y'))

@@ -80,10 +80,11 @@ use App\Http\Controllers\ExpenseController;
             });
         });
 
+        Route::post('loginCommon', [AuthController::class, 'loginCommon']);
         Route::post('login', [AuthController::class, 'login']);
-        // Route::post('login', [GreytHRController::class, 'login']);
         Route::middleware('auth:sanctum')->group(function () {
          
+            Route::post('/stock-details', [StockController::class, 'stockDetails']);
             Route::get('/travel-method-new', [ExpenseController::class, 'travelMethodNew']);
      	    Route::get('/travel-method', [ExpenseController::class, 'travelMethod']);
             Route::post('/day-expense', [ExpenseController::class, 'storeDayExpense']);
