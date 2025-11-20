@@ -1453,90 +1453,147 @@ public function notificationList()
             ], 500);
         }
     }
-    public function getProductTypes(Request $request)
-    {
-        try {
-            $user = Auth::user();
-            $productId = $request->input('product_id');
-        
-            if ($user !== null) {
-                if ($productId == 0) {
-                    return response()->json([
-                        'success' => false,
-                        'statusCode' => 400,
-                        'message' => 'Invalid product_id provided.',
-                        'data' => []
-                    ], 400);
-                }
-                $query = ProductType::select('product_id', 'id as product_type_id', 'type_name', 'rate');
-
-                if ($productId) {
-                    $query->where('product_id', $productId);
-                }
-                
-                $data = $query->get();
-
-                if ($data->isEmpty()) {
-                    return response()->json([
-                        'success' => false,
-                        'statusCode' => 404,
-                        'message' => 'No product types found for the given product_id.',
-                    ], 404);
-                }
-
-            } else {
-                $data = [];
-            }
-
-            return response()->json([
-                'success' => true,
-                'statusCode' => 200,
-                'message' => 'Product types fetched successfully',
-                'data' => $data,
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'statusCode' => 500,
-                'message' => $e->getMessage(),
-            ], 500);
-        }
-    }
-    // public function getPriceByProduct($product_type_id, $product_id)
+    // public function getProductTypes(Request $request)
     // {
     //     try {
-    //         $price = Price::where('product_type_id', $product_type_id)
-    //             ->where('product_id', $product_id)
-    //             ->where('status', '1')
-    //             ->orderByDesc('id') 
-    //             ->first();
+    //         $user = Auth::user();
+    //         $productId = $request->input('product_id');
+        
+    //         if ($user !== null) {
+    //             if ($productId == 0) {
+    //                 return response()->json([
+    //                     'success' => false,
+    //                     'statusCode' => 400,
+    //                     'message' => 'Invalid product_id provided.',
+    //                     'data' => []
+    //                 ], 400);
+    //             }
+    //             $query = ProductType::select('product_id', 'id as product_type_id', 'type_name', 'rate');
 
-    //         if (!$price) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => 'No active price found for this product and product type.'
-    //             ], 404);
+    //             if ($productId) {
+    //                 $query->where('product_id', $productId);
+    //             }
+                
+    //             $data = $query->get();
+
+    //             if ($data->isEmpty()) {
+    //                 return response()->json([
+    //                     'success' => false,
+    //                     'statusCode' => 404,
+    //                     'message' => 'No product types found for the given product_id.',
+    //                 ], 404);
+    //             }
+
+    //         } else {
+    //             $data = [];
     //         }
 
     //         return response()->json([
     //             'success' => true,
     //             'statusCode' => 200,
-    //             'message' => 'Product price fetched successfully',
-    //             'data' => [
-    //                 'dp_price' => (float) $price->dealer_price,
-    //                 'adp_price' => (float) $price->advance_dealer_price,
-    //             ]
-    //         ]);
+    //             'message' => 'Product types fetched successfully',
+    //             'data' => $data,
+    //         ], 200);
     //     } catch (\Exception $e) {
     //         return response()->json([
     //             'success' => false,
     //             'statusCode' => 500,
-    //             'message' => 'Something went wrong while fetching product price.',
-    //             'error' => $e->getMessage()
+    //             'message' => $e->getMessage(),
     //         ], 500);
     //     }
     // }
+    public function getProductTypes(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => 'Unauthorized access.'
+                ], 401);
+            }
+
+            $productId = $request->input('product_id');
+            $search = $request->input('search');  
+
+            if (!$productId || $productId == 0) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 400,
+                    'message' => 'Invalid product_id provided.'
+                ], 400);
+            }
+
+            $product = Product::find($productId);
+
+            if (!$product) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => 'Product not found.'
+                ], 404);
+            }
+
+            $productCode = strtolower($product->product_code); 
+
+            if ($productCode === 'tata tiscon') {
+
+                $data = ProductType::select('product_id', 'id as product_type_id', 'type_name', 'rate')
+                    ->where('product_id', $productId)
+                    ->get();
+
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'Product types fetched successfully',
+                    'data' => $data
+                ]);
+            }
+
+            if ($productCode === 'durashine') {
+
+                $query = ProductDetails::select(
+                        'id as detail_id',
+                        'product_name',
+                        'item_profile',
+                        'item_thickness',
+                        'weight',
+                        'availability_status'
+                    )
+                    ->where('product_id', $productId);
+
+                if (!empty($search)) {
+                    $query->where('product_name', 'LIKE', '%' . $search . '%');
+                }
+
+                $data = $query->limit(20)->get(); 
+
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'Durashine product details fetched successfully',
+                    'data' => $data
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'statusCode' => 400,
+                'message' => 'Unsupported product type.'
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+   
     public function getPriceByProduct(Request $request)
     {
         $product_type_id = $request->product_type_id;

@@ -20,7 +20,6 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
         $this->year = $year;
     }
 
-
     public function collection()
     {
         return Lead::with([
@@ -46,29 +45,36 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
         //$dealerName  = $order ? optional($order->dealer)->name : '';
 	    $dealerName  = $order ? optional($order->dealer)->dealer_name : '';
       	$paymentTerm = $order ? optional($order->paymentTerm)->name : '';
+
         // Order Item
+
         $orderItem = $order && $order->orderItems->isNotEmpty()
             ? $order->orderItems->first()
 	    : null;
         $productName  = $orderItem ? optional($orderItem->product)->product_name : '';
         $previousBrandQty = optional($lead)->previous_brand_quantity ?? '';
+
      	//   $productType  = $orderItem->product_details['type'] ?? '';  // if stored in JSON
-       $productType = $orderItem && $orderItem->product 
+
+        $productType = $orderItem && $orderItem->product 
         ? optional($orderItem->product->productTypes->first())->type_name 
         : '';
        	$quantity     = $orderItem->total_quantity ?? '';
+
         // $price        = $orderItem->product_details['price'] ?? '';
         //$price = $orderItem && $orderItem->product 
         //  ? optional($orderItem->product->productTypes->first())->rate 
         // : '';
+
 	    $price = $order ? $order->total_amount : '';
-         $latestFollowUp = $lead->followUps->sortByDesc('follow_up_date')->first();
+        $latestFollowUp = $lead->followUps->sortByDesc('follow_up_date')->first();
 
         $newFollowUpDate = optional($latestFollowUp)->follow_up_date
             ? optional($latestFollowUp->follow_up_date)->format('Y-m-d')
             : 'NA';
-    
+
         $newFollowUpReason = optional($latestFollowUp)->reason ?? '';
+
         return [
             $this->row++,
             optional($lead->created_at)->format('Y-m-d'),
@@ -81,7 +87,6 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             $lead->phone,
             optional($lead->district)->name,
             optional($lead->assignRoute)->locations,
-            //routes
             $lead->type_of_visit,
             $lead->construction_type,
             $lead->stage_of_construction,
@@ -98,10 +103,10 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             $newFollowUpReason,
             $dealerName,
             $paymentTerm,
-            $productName,   // ✅ Product Name
-            $productType,   // Product Type (from product_details JSON)
+            $productName,  
+            $productType,  
             $quantity,
-            $price,          // Lost-only fields
+            $price,    
             $lead->status === 'Lost' ? $lead->lost_volume : '',
             $lead->status === 'Lost' ? $lead->lost_to_competitor : '',
             $lead->status === 'Lost' ? $lead->reason_for_lost : '',
