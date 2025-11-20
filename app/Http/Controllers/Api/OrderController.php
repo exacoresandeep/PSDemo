@@ -1503,7 +1503,6 @@ class OrderController extends Controller
     {
         try {
             $employee = Auth::user();
-    
             if (!$employee) {
                 return response()->json([
                     'success' => false,
@@ -1514,8 +1513,10 @@ class OrderController extends Controller
     
             $month = $request->input('month', date('m'));
             $year = $request->input('year', date('Y'));
+            $product_id = $request->input('product_id', null);
     
             $totalSalesForPeriod = 0;
+            $salesReport = collect([]);
             if ($employee->employee_type_id == 3) {  // DSM
                 $salesExecutives = Employee::where('district_id', $employee->district_id)
                     ->whereIn('employee_type_id', [1, 2])
@@ -1528,12 +1529,21 @@ class OrderController extends Controller
                         'message' => "No Sales Executives and Area Sales Officers found in this district.",
                     ], 404);
                 }
-    
-                $salesReport = $salesExecutives->map(function ($se) use ($month, $year, &$totalSalesForPeriod) {
+
+                $salesReport = $salesExecutives->map(function ($se) use ($month, $year, $product_id, &$totalSalesForPeriod) {
                     $orders = Order::where('created_by', $se->id)
                         ->where('status', 'Delivered')
                         ->whereYear('created_at', $year)
                         ->whereMonth('created_at', $month)
+                        ->where(function ($q) {
+                            $q->whereNull('source')
+                            ->orWhere('source', '')
+                            ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
+                        })
+
+                        ->when($product_id, function ($q) use ($product_id) {
+                            $q->where('product_id', $product_id);
+                        })
                         ->get();
     
                     $totalSales = $orders->sum('invoice_total');
@@ -1581,11 +1591,20 @@ class OrderController extends Controller
                     ], 404);
                 }
     
-                $salesReport = $employees->map(function ($emp) use ($month, $year, &$totalSalesForPeriod) {
+                $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod) {
                     $orders = Order::where('created_by', $emp->id)
                         ->where('status', 'Delivered')
                         ->whereYear('created_at', $year)
                         ->whereMonth('created_at', $month)
+                        ->where(function ($q) {
+                            $q->whereNull('source')
+                            ->orWhere('source', '')
+                            ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
+                        })
+
+                        ->when($product_id, function ($q) use ($product_id) {
+                            $q->where('product_id', $product_id);
+                        })
                         ->get();
     
                     $totalSales = $orders->sum('invoice_total');
@@ -1626,11 +1645,20 @@ class OrderController extends Controller
                     ], 404);
                 }
     
-                $salesReport = $employees->map(function ($emp) use ($month, $year, &$totalSalesForPeriod) {
+                $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod) {
                     $orders = Order::where('created_by', $emp->id)
                         ->where('status', 'Delivered')
                         ->whereYear('created_at', $year)
                         ->whereMonth('created_at', $month)
+                        ->where(function ($q) {
+                            $q->whereNull('source')
+                            ->orWhere('source', '')
+                            ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
+                        })
+
+                        ->when($product_id, function ($q) use ($product_id) {
+                            $q->where('product_id', $product_id);
+                        })
                         ->get();
     
                     $totalSales = $orders->sum('invoice_total');
@@ -1694,7 +1722,6 @@ class OrderController extends Controller
                     'message' => "User not authenticated.",
                 ], 401);
             }
-    
             if ($employee->employee_type_id == 3) { 
                 $allowedEmployeeTypes = [1, 2]; 
                 $salesEmployee = Employee::where('id', $employee_id)
@@ -1743,11 +1770,20 @@ class OrderController extends Controller
     
             $month = $request->input('month', date('m'));
             $year = $request->input('year', date('Y'));
+            $product_id = $request->input('product_id', null);
     
             $orders = Order::where('created_by', $salesEmployee->id)
                 ->where('status', 'Delivered')
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $month)
+                ->where(function ($q) {
+                    $q->whereNull('source')
+                    ->orWhere('source', '')
+                    ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
+                })
+                 ->when($product_id, function ($q) use ($product_id) {
+                    $q->where('product_id', $product_id);
+                })
                 ->with('dealer:id,dealer_name') 
                 ->get();
     
@@ -1802,7 +1838,7 @@ class OrderController extends Controller
     
             $month = $request->input('month', date('m'));
             $year = $request->input('year', date('Y'));
-    
+            $product_id = $request->input('product_id', null);
       
             if ($loggedInEmployee->employee_type_id == 3) {
 
@@ -1851,11 +1887,19 @@ class OrderController extends Controller
     
             $totalOrdersForPeriod = 0;
     
-            $reportData = $employees->map(function ($emp) use ($month, $year, &$totalOrdersForPeriod) {
+            $reportData = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalOrdersForPeriod) {
                 $orderCount = Order::where('created_by', $emp->id)
                     ->where('status', '!=', 'Pending')
                     ->whereYear('created_at', $year)
                     ->whereMonth('created_at', $month)
+                    ->where(function ($q) {
+                        $q->whereNull('source')
+                        ->orWhere('source', '')
+                        ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
+                    })
+                    ->when($product_id, function ($q) use ($product_id) {
+                        $q->where('product_id', $product_id);
+                    })
                     ->count();
     
                 $totalOrdersForPeriod += $orderCount;
@@ -1938,17 +1982,32 @@ class OrderController extends Controller
 
             $month = $request->input('month', date('m'));
             $year = $request->input('year', date('Y'));
+            $product_id = $request->input('product_id', null);
 
             $totalOrders = Order::where('created_by', $employee->id)
                 ->where('status', '!=', 'Pending')
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $month)
+                ->where(function ($q) {
+                    $q->whereNull('source')
+                    ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
+                })
+                ->when($product_id, function ($q) use ($product_id) {
+                    $q->where('product_id', $product_id);
+                })
                 ->count();
 
             $orders = Order::where('created_by', $employee->id)
                 ->where('status', '!=', 'Pending')
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $month)
+                ->where(function ($q) {
+                    $q->whereNull('source')
+                    ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
+                })
+                ->when($product_id, function ($q) use ($product_id) {
+                    $q->where('product_id', $product_id);
+                })
                 ->with('dealer:id,dealer_name') 
                 ->orderBy('created_at', 'desc')
                 ->get();
