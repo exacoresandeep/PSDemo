@@ -3198,8 +3198,8 @@ class OrderController extends Controller
             'address' => $order->dealer?->address ?? $order->lead?->address,
             'payment_type' => $order->paymentTerm?->name,
             'credit_days' => $order->credit_days,
-            'billing_date' => $order->billing_date,
-            'delivery_date' => $order->delivery_date,
+            'billing_date' => $order->billing_date->format("d/M/Y"),
+            'delivery_date' => $order->delivery_date->format("d/M/Y"),
 
             'product_details' => $order->orderItems->map(function ($item) {
                 $productDetails = collect($item->product_details)->map(function ($detail) {
@@ -3218,7 +3218,9 @@ class OrderController extends Controller
 
                 // Compute total pieces and total tonnage
                 $totalPieces = $productDetails->sum('pieces');
-                $totalTon = $productDetails->sum('tonnage');
+                 $totalTonnage = $productDetails->sum(function ($detail) {
+                        return ($detail['pieces'] ?? 0) * ($detail['tonnage'] ?? 0);
+                    });
                 $totalQty = $productDetails->sum('quantity');
 
                 return [
@@ -3226,23 +3228,23 @@ class OrderController extends Controller
                     'product_name' => $item->product->product_name ?? null,
                     'total_quantity' => (float)$totalQty,
                     'total_pieces' => (float)$totalPieces,
-                    'total_ton' => (float)$totalTon,
+                    'total_ton' => $totalTonnage > 0 ? $totalTonnage : null,
                     'product_details' => $productDetails,
                 ];
             }),
 
             // Calculate overall totals across all order items
-            'total_quantity' => $order->orderItems->map(function ($item) {
-                return collect($item->product_details)->sum('quantity');
-            })->sum(),
+            // 'total_quantity' => $order->orderItems->map(function ($item) {
+            //     return collect($item->product_details)->sum('quantity');
+            // })->sum(),
 
-            'total_pieces' => $order->orderItems->map(function ($item) {
-                return collect($item->product_details)->sum('pieces');
-            })->sum(),
+            // 'total_pieces' => $order->orderItems->map(function ($item) {
+            //     return collect($item->product_details)->sum('pieces');
+            // })->sum(),
 
-            'total_ton' => $order->orderItems->map(function ($item) {
-                return collect($item->product_details)->sum('tonnage');
-            })->sum(),
+            // 'total_ton' => $order->orderItems->map(function ($item) {
+            //     return collect($item->product_details)->sum('tonnage');
+            // })->sum(),
 
             'total_amount' => $order->total_amount,
             'vehicle_category' => $order->vehicleCategory?->vehicle_category_name,
