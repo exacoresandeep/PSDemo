@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Exception;
+use App\Helpers\ProductHelper;
 use App\Models\EmployeeType;
 use App\Models\Product;
 use Yajra\DataTables\Facades\DataTables;
@@ -345,7 +346,10 @@ class EmployeeController extends Controller
 
     public function getEmployeesByType($employeeTypeId)
     {
-        $employees = Employee::where('employee_type_id', $employeeTypeId)->get();
+        $productId = ProductHelper::getSelectedProductId(); 
+        $employees = Employee::where('employee_type_id', $employeeTypeId)
+                         ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])
+                        ->get();
         $employees = $employees->map(function ($employee) {
             $customerVisitCount = Lead::where('created_by', $employee->id)->count();
             return [

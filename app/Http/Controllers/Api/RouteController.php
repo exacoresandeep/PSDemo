@@ -14,6 +14,7 @@ use App\Models\RescheduledRoute;
 use App\Models\Lead;
 use App\Models\DealerRouteAssignment;
 use Carbon\Carbon;
+use App\Helpers\ProductHelper;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -1330,8 +1331,10 @@ class RouteController extends Controller
 
     public function getEmployees(Request $request)
     {
+        $productId = ProductHelper::getSelectedProductId(); 
         $employees = Employee::where('district_id', $request->district_id)
             ->where('employee_type_id', $request->employee_type_id)
+             ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])
             ->select('id', 'name')
             ->get();
 
