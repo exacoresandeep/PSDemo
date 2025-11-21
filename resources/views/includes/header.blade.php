@@ -14,6 +14,13 @@
                     <img src="{{ asset('images/profile-pic.png') }}" class="img-fluid">
                     <p>{{ Auth::check() ? Auth::user()->name : 'Guest' }}</p>
                 </div>
+                <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <i class="fa fa-sign-out" aria-hidden="true" style="font-size: 35px; color:#A02625;margin-left:15px;"></i>
+                </a>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                    @csrf
+                </form>
+                
             </div>
         </div>
     </div>

@@ -603,3 +603,17 @@ main {
 .visit-date h1{
   margin-top:15px;
 }
+.md-header{
+  font-size: 28px;
+  font-weight: 600;
+  margin-bottom: 30px;
+}
+.md-header span{
+  font-weight: 600;
+  color: #A02625;
+}
+.md-dash-summary{
+  border: #aaa solid 1px;
+  border-radius: 25px;
+  padding: 15px;
+}
