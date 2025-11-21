@@ -9,9 +9,11 @@ use App\Models\Order;
 use App\Models\Employee;
 use App\Models\District;
 use App\Models\Regions;
+use App\Models\Product;
 use App\Models\EmployeeType;
 use App\Models\RescheduledRoute;
 use Illuminate\Http\Request;
+use App\Helpers\ProductHelper;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -29,9 +31,11 @@ class TargetController extends Controller
     }
     public function targetList(Request $request)
     {
+        $productId = ProductHelper::getSelectedProductId(); 
         $query = Target::with(['employee.employeeType'])->where('status', '1')
          ->whereNotNull('employee_id')
         ->whereHas('employee')    
+        ->where('product_id', $productId)    
         ->withTrashed();
 
         if ($request->has('employee_type') && !empty($request->employee_type)) {
@@ -147,6 +151,7 @@ class TargetController extends Controller
         $target = Target::create([
             'employee_type_id' => $request->employee_type,
             'employee_id' => $request->employee_id,
+            'product_id' => ProductHelper::getSelectedProductId(),
             'year' => $request->year,
             'month' => $request->month,
             'unique_lead' => $request->unique_lead,

@@ -21,8 +21,9 @@ class Target extends Model
         'activity_visit',
         'aashiyana',
         'order_quantity',
-	'created_by',
-	'notification_status'
+        'created_by',
+        'notification_status',
+        'product_id'
     ];
 
     protected $dates = ['deleted_at']; 
