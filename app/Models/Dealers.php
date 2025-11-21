@@ -5,10 +5,10 @@ use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Dealer extends Model
+class Dealers extends Model
 {
     use HasApiTokens, HasFactory;
-
+    protected $table = 'dealer';
     protected $fillable = [
         'dealer_code',
         'dealer_name',
@@ -27,8 +27,8 @@ class Dealer extends Model
         'location',
         'assigned_route_id',
         'password_reset_flag',
+        'address_id',
         'product_id',
-        'address_id'
         
     ];
      protected $casts = [

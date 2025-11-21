@@ -14,7 +14,7 @@ class Kernel extends ConsoleKernel
 	   \App\Console\Commands\FetchDealerData::class,
 	   \App\Console\Commands\FetchItemDetails::class,
 	   \App\Console\Commands\FetchOutstandingNew::class,
-	   \App\Console\Commands\LogHourlyPing::class,
+	//    \App\Console\Commands\LogHourlyPing::class,
 	    \App\Console\Commands\FetchInvoiceLayouts::class,
 	];
 
@@ -33,7 +33,7 @@ class Kernel extends ConsoleKernel
 	   	$schedule->command('app:fetch-outstanding-payments')->hourly();
 		$schedule->command('app:fetch-credit-notes')->hourly();
 		$schedule->command('app:fetch-item-details')->hourly();
-		$schedule->command('log:hourly-ping')->everyFiveMinutes();
+		// $schedule->command('log:hourly-ping')->everyFiveMinutes();
 		$schedule->command('app:fetch-invoice-layouts')->hourly();
 	}
 
