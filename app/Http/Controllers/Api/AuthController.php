@@ -1628,24 +1628,7 @@ public function notificationList()
 
             $productCode = strtolower($product->product_code);
 
-            if ($productCode === 'tata tiscon') {
-
-                $data = ProductType::select(
-                        'product_id',
-                        'id as product_type_id',
-                        'type_name',
-                        'rate'
-                    )
-                    ->where('product_id', $productId)
-                    ->get();
-
-                return response()->json([
-                    'success' => true,
-                    'statusCode' => 200,
-                    'message' => 'Product types fetched successfully',
-                    'data' => $data
-                ]);
-            }
+            
 
             /* ---------------------------------------------------------
             CASE 2: DURASHINE (Search inside products_details table)
@@ -1671,6 +1654,24 @@ public function notificationList()
                     'success' => true,
                     'statusCode' => 200,
                     'message' => 'Durashine product types fetched successfully',
+                    'data' => $data
+                ]);
+            }
+            else  {
+
+                $data = ProductType::select(
+                        'product_id',
+                        'id as product_type_id',
+                        'type_name',
+                        'rate'
+                    )
+                    ->where('product_id', $productId)
+                    ->get();
+
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'Product types fetched successfully',
                     'data' => $data
                 ]);
             }
