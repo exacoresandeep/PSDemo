@@ -632,6 +632,7 @@ class LeadController extends Controller
     public function updateLead(Request $request, $leadId)
     {
         try {
+
             // -----------------------------
             // VALIDATION
             // -----------------------------
@@ -689,46 +690,43 @@ class LeadController extends Controller
                 $lead->update(['lead_chain_id' => (string) Str::uuid()]);
             }
 
-            // GET FIRST LEAD IN CHAIN
             $firstLead = Lead::where('lead_chain_id', $lead->lead_chain_id)
                 ->orderBy('created_at', 'asc')
                 ->first();
 
-            // Determine total deal volume
             $totalDealVolume = $firstLead ? $firstLead->total_volume : $lead->total_volume;
 
 
             DB::beginTransaction();
 
-
             // ----------------------------------------------------
-            // ⭐ AUTO-CONVERT Opened → Follow Up (system rule)
+            // AUTO-CONVERT Opened → Follow Up (SYSTEM RULE)
+            // AND STOP EXECUTION IMMEDIATELY
             // ----------------------------------------------------
             if (in_array($request->status, ['Won', 'Lost']) && $lead->status === 'Opened') {
 
-                // Update the FIRST lead to Follow Up (only if not the same)
+                // Update FIRST lead
                 if ($firstLead && $firstLead->id !== $lead->id && $firstLead->status === 'Opened') {
                     $firstLead->update(['status' => 'Follow Up']);
                 }
 
-                // Also convert CURRENT lead to Follow Up
+                // Update CURRENT lead
                 $lead->update(['status' => 'Follow Up']);
+
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'Lead converted to Follow Up automatically as per rules.',
+                    'data' => $lead
+                ]);
             }
 
-
             // -----------------------------
-            // SET NOTIFICATION STATUS
+            // NOTIFICATION STATUS
             // -----------------------------
-            switch ($request->status) {
-                case 'Follow Up':
-                    $notification_status = 'approved';
-                    break;
-                case 'Won':
-                case 'Lost':
-                default:
-                    $notification_status = 'pending';
-                    break;
-            }
+            $notification_status = $request->status === 'Follow Up' ? 'approved' : 'pending';
 
             // -----------------------------
             // HANDLE FOLLOW UP
@@ -745,9 +743,8 @@ class LeadController extends Controller
                 $lead->update(['follow_up_date' => $request->follow_up_date]);
             }
 
-
             // -----------------------------
-            // UPDATE LEAD COMMON DATA
+            // UPDATE COMMON LEAD INFO
             // -----------------------------
             $leadData = [
                 'type_of_visit' => $request->type_of_visit,
@@ -769,7 +766,6 @@ class LeadController extends Controller
             if (!empty($request->dealer_id)) {
                 $leadData['dealer_id'] = $request->dealer_id;
             }
-
 
             // -----------------------------
             // LOST LOGIC
@@ -842,7 +838,7 @@ class LeadController extends Controller
 
 
             // -----------------------------
-            // CREATE NEW LEAD WHEN DEAL FINISHED
+            // NEW LEAD CREATION ONLY AFTER TOTAL DEAL VOLUME COMPLETED
             // -----------------------------
             $totalWonVolume = Lead::where('lead_chain_id', $lead->lead_chain_id)
                 ->where('status', 'Won')
@@ -904,6 +900,7 @@ class LeadController extends Controller
             ], 500);
         }
     }
+
 
 
     public function leadsList(Request $request)
