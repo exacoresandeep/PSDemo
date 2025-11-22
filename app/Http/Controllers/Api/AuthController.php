@@ -1514,7 +1514,7 @@ public function notificationList()
                     'data' => [],
                 ], 401);
             }
-dd($user);
+// dd($user);
             $productIds = json_decode($user->products, true);
 
             if (empty($productIds) || !is_array($productIds)) {
