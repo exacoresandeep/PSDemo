@@ -83,46 +83,7 @@ class Order extends Model
         'payment_date' => 'date:Y-m-d',
         
     ];
-    // public function getBillingDateAttribute($value)
-    // {
-    //     return $this->formatDateValue($value);
-    // }
-
-    // public function getDeliveryDateAttribute($value)
-    // {
-    //     return $this->formatDateValue($value);
-    // }
-
-    // public function getPaymentDateAttribute($value)
-    // {
-    //     return $this->formatDateValue($value);
-    // }
-
-    // protected function formatDateValue($value)
-    // {
-    //     if (empty($value)) {
-    //         return null;
-    //     }
-    
-    //     if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-    //         return Carbon::createFromFormat('Y-m-d', $value)->format('d/m/Y');
-    //     }
-    
-       
-    //     if (preg_match('/^\d{2}[\/-]\d{2}[\/-]\d{4}$/', $value)) {
-    //         return str_replace('-', '/', $value);
-    //     }
-    
-    //     try {
-    //         return Carbon::parse($value)->format('d/m/Y');
-    //     } catch (\Exception $e) {
-    //         return $value;
-    //     }
-    // }
-
-
-    
-
+ 
     public function orderType()
     {
         return $this->belongsTo(OrderType::class, 'order_type');
@@ -181,8 +142,5 @@ class Order extends Model
     {
         return $this->hasMany(DealerAddress::class, 'dealer_id', 'dealer_id');
     }
-   
-    
-
     
 }

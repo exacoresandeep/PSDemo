@@ -12,17 +12,14 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id', 'product_id','quantity_type', 'total_quantity', 'balance_quantity', 'product_details'
     ];
-
     protected $casts = [
         'product_details' => 'array',
         'total_quantity' => 'float',
     ];
-
     public function order()
     {
         return $this->belongsTo(Order::class, 'order_id', 'id');
     }
-
     public function product()
     {
         return $this->belongsTo(Product::class);
@@ -31,5 +28,5 @@ class OrderItem extends Model
     {
         return $this->hasMany(ProductDetails::class, 'order_item_id');
     }
-
+    
 }
