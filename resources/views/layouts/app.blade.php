@@ -32,13 +32,16 @@
     <main>
         <div class="main-container">
             <div class="d-flex">
+                <div class="col-2">
                 @include('includes.sidebar-menu')
-
-                <div class="content flex-fill">
-                    <div class="content-area">
-                        @include('includes.header')
-                        <div class="dashboard-area">
-                            @yield('content')
+                </div>
+                <div class="col-10">
+                    <div class="content flex-fill">
+                        <div class="content-area">
+                            @include('includes.header')
+                            <div class="dashboard-area">
+                                @yield('content')
+                            </div>
                         </div>
                     </div>
                 </div>
