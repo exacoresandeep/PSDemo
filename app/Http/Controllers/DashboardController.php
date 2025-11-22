@@ -95,7 +95,7 @@ class DashboardController extends Controller
             })
             ->count();  
         $approvedOrders = (clone $baseQuery)->where('order_approved', '1')->count();
-            $rejectedOrders = (clone $baseQuery)->where('order_approved', '2')->count();
+        $rejectedOrders = (clone $baseQuery)->where('order_approved', '2')->count();
 
             return view('accounts.dashboard', compact(
                 'pendingOrders',

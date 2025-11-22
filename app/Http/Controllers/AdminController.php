@@ -76,7 +76,6 @@ class AdminController extends Controller
             case 2: 
                 $employeeTypes = EmployeeType::select('id', 'type_name')->get();
                 $regions = Regions::select('id', 'name')->get();
-                // dd($regions);
                 return view('sales.dashboard',compact('employeeTypes', 'regions'));
             case 3: return view('accounts.dashboard', compact('user')); 
             case 4: return view('logistics.dashboard', compact('user')); 
