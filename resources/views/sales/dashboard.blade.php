@@ -22,7 +22,7 @@
         ];
     @endphp
     <div class="row mb-3">
-        <div class="col-md-2"><strong>Select Month & Year :</strong></div>
+        <div class="col-md-3"><strong>Select Month & Year :</strong></div>
         <div class="col-md-2">
             <select class="form-control" id="commonMonth">
                 @foreach ($months as $key => $month)
@@ -32,7 +32,7 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-1">
+        <div class="col-md-2">
             <select class="form-control" id="commonYear">
                 @for ($year = $startYear; $year <= $endYear; $year++)
                     <option value="{{ $year }}" {{ $year == $currentYear ? 'selected' : '' }}>
@@ -59,7 +59,7 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6">
-                        <h1 id="totalLead"> 0</h1>
+                        <h2 id="totalLead"> 0</h2>
                     </div>
                 </div>
             </div>
@@ -79,7 +79,7 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6">
-                        <h1><i class="fa fa-inr" aria-hidden="true"></i> <span id="totalOP">0</span></h1>
+                        <h2><i class="fa fa-inr" aria-hidden="true"></i> <span id="totalOP">0</span></h2>
                     </div>
                     <div class="col-md-6 text-right">
                         <h5>Order Count</h5>
@@ -103,7 +103,7 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6">
-                        <h1><i class="fa fa-inr" aria-hidden="true"></i> <span id="totalCredit">0</span></h1>
+                        <h2><i class="fa fa-inr" aria-hidden="true"></i> <span id="totalCredit">0</span></h2>
                     </div>
                     <div class="col-md-6 text-right">
                         <h5>Credit Note Count</h5>
@@ -235,8 +235,8 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 visit-date">
-                        <p id="dealerVisitMonthYear">{{ $months[$currentMonth] }}, {{ $currentYear }}</p>
-                        <h1 id="totalDealerVisit"> 0</h1>
+                        {{-- <p id="dealerVisitMonthYear">{{ $months[$currentMonth] }}, {{ $currentYear }}</p> --}}
+                        <h2 id="totalDealerVisit"> 0</h2>
                     </div>
                 </div>
             </div>
@@ -254,8 +254,8 @@
                 </div>
                 <div class="row">
                     <div class="col-md-6 visit-date">
-                        <p id="influencerVisitMonthYear">{{ $months[$currentMonth] }}, {{ $currentYear }}</p>
-                        <h1 id="totalInfluencerVisit"> 0</h1>
+                        {{-- <p id="influencerVisitMonthYear">{{ $months[$currentMonth] }}, {{ $currentYear }}</p> --}}
+                        <h2 id="totalInfluencerVisit"> 0</h2>
                     </div>
                 </div>
             </div>

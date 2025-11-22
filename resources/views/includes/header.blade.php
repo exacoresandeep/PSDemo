@@ -1,6 +1,6 @@
 <div class="menu-header">
     <div class="row justify-content-between">
-        <div class="col-md-3">
+        <div class="col-md-3 pl-5">
              <div class="d-flex align-items-center">
                 <label for="productSelect" class="mb-0 me-3 fw-bold">Product:</label>
                 <select id="productSelect" class="form-control" style="max-width: 250px;">
