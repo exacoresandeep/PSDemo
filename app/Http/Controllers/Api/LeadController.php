@@ -442,7 +442,7 @@ class LeadController extends Controller
                 'further_volume' => 'required_if:status,Lost|nullable|numeric',
     
                 'order_details.customer_type_id' => 'required_if:status,Won|nullable|exists:customer_types,id',
-                'order_details.dealer_id' => 'required|exists:dealers,id',
+                'order_details.dealer_id' => 'required_if:status,Won|exists:dealers,id',
                 'order_details.dealer_flag_order' => 'nullable|numeric',
                 'order_details.payment_terms_id' => 'required_if:status,Won|nullable|exists:payment_terms,id',
                 'order_details.total_amount' => 'required_if:status,Won|nullable|numeric',

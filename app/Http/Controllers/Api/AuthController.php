@@ -1514,14 +1514,14 @@ public function notificationList()
                     'data' => [],
                 ], 401);
             }
-
+dd($user);
             $productIds = json_decode($user->products, true);
 
             if (empty($productIds) || !is_array($productIds)) {
                 return response()->json([
                     'success' => true,
                     'statusCode' => 200,
-                    'message' => 'No products assigned to this employee',
+                    'message' => 'No products assigned',
                     'data' => [],
                 ], 200);
             }

@@ -3218,9 +3218,9 @@ class OrderController extends Controller
 
                 // Compute total pieces and total tonnage
                 $totalPieces = $productDetails->sum('pieces');
-                 $totalTonnage = $productDetails->sum(function ($detail) {
-                        return ($detail['pieces'] ?? 0) * ($detail['tonnage'] ?? 0);
-                    });
+                $totalTonnage = $productDetails->sum(function ($detail) {
+                    return ($detail['pieces'] ?? 0) * ($detail['tonnage'] ?? 0);
+                });
                 $totalQty = $productDetails->sum('quantity');
 
                 return [
@@ -3254,8 +3254,6 @@ class OrderController extends Controller
             'additional_info' => $order->additional_information,
         ];
     }
-
-
     
     public function SalesReportExport(Request $request)
     {

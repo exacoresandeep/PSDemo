@@ -58,7 +58,7 @@ class DealerOrderController extends Controller
                             'total_quantity' => $order->total_quantity,
                             'status' => $order->status,
                             'created_at' => $order->created_at->format('d/m/Y'),
-			    'dealer' => [
+			                'dealer' => [
                                'name' => $order->dealers->dealer_name,
                               'dealer_code' => $order->dealers->dealer_code, 
                             ],
@@ -82,6 +82,111 @@ class DealerOrderController extends Controller
         }
     }
     
+    // public function store(Request $request)
+    // {
+    //     try {
+    //         $dealer = Auth::user();
+
+    //         if (!$dealer) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 401,
+    //                 'message' => "User not Authenticated",
+    //             ], 401);
+    //         }
+
+    //         $validatedData = $request->validate([
+    //             'order_type' => 'nullable|exists:order_types,id',
+    //             'payment_terms_id' => 'required|exists:payment_terms,id',
+    //             'credit_days' => 'nullable|string',
+	// 	        'billing_date' => 'required|string',
+	// 	        'delivery_date' => 'nullable|string',
+	//             'scheme' => 'nullable',
+    //             'total_amount' => 'nullable|numeric',
+    //             'additional_information' => 'nullable|string',
+    //             'status' => 'nullable|in:Pending,Dispatched,Delivered',
+    //             'vehicle_category_id' => 'required|integer',
+             
+    //             'vehicle_number' => [
+    //                 Rule::requiredIf($request->vehicle_category_id == 1),'nullable', 'string'
+    //             ],
+    //             'driver_name' => [
+    //                 Rule::requiredIf($request->vehicle_category_id == 1),'nullable', 'string'
+    //             ],
+    //             'driver_phone' => [
+    //                 Rule::requiredIf($request->vehicle_category_id == 1),'nullable', 'string'
+    //             ],
+    //             // 'vehicle_type' => 'nullable|string',
+    //             'order_items' => 'required|array',
+    //             'order_items.*.product_id' => 'required|exists:products,id',
+    //             'order_items.*.product_details' => 'nullable|array',
+    //             'attachment' => 'nullable|array',
+    //             'attachment.*' => 'nullable|string',
+    //         ]);
+
+    //         $validatedData['billing_date'] = Carbon::createFromFormat('d-m-Y', $validatedData['billing_date'])->format('Y-m-d');
+        
+    //         $validatedData['created_by'] = null;
+    //         $validatedData['created_by_dealer'] = $dealer->id;
+    //         $validatedData['dealer_flag_order'] = '1';
+    //         $validatedData['order_Approved'] = '0';
+
+    //         $order = Order::create($validatedData);
+           
+    //         if (!empty($validatedData['order_items'])) {
+    //             foreach ($validatedData['order_items'] as $orderItem) {
+    //                 $totalQuantity = 0;
+    //                 if (!empty($orderItem['product_details'])) {
+    //                     foreach ($orderItem['product_details'] as $productDetail) {
+    //                         $totalQuantity += $productDetail['quantity'];
+    //                     }
+    //                 }
+            
+    //                 $orderItem['total_quantity'] = $totalQuantity;
+            
+    //                 $order->orderItems()->create($orderItem);
+    //             }
+    //         }
+            
+
+    //         $responseData = [
+    //                 'order_type' => $order->order_type,
+    //                 'payment_terms_id' => $order->payment_terms_id,
+    //                 'credit_days' => $order->credit_days,
+    //                 'billing_date' => Carbon::parse($order->billing_date)->format('d/m/Y'),
+    //                 'total_amount' => round($order->total_amount, 2),
+    //                 'additional_information' => $order->additional_information,
+    //                 'status' => $order->status,
+    //                 'created_by_dealer' => $order->created_by_dealer,
+    //                 'dealer_flag_order' => $order->dealer_flag_order,
+    //                 'vehicle_category_id' => $order->vehicle_category_id,
+    //                 // 'vehicle_type' => $order->vehicle_type,
+    //                 'vehicle_number' => $order->vehicle_number,
+    //                 'driver_name' => $order->driver_name,
+    //                 'driver_phone' => $order->driver_phone,
+    //                 'updated_at' => Carbon::parse($order->updated_at)->format('d/m/Y'),
+    //                 'created_at' => Carbon::parse($order->created_at)->format('d/m/Y'),
+    //                 'id' => $order->id,
+
+    //         ];
+            
+    //         return response()->json([
+    //             'success' => true,
+    //             'statusCode' => 200,
+    //             'message' => 'Order created successfully!',
+    //             'data' => $responseData
+    //         ], 200);
+            
+
+    //     } catch (Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 500,
+    //             'message' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
     public function store(Request $request)
     {
         try {
@@ -99,99 +204,226 @@ class DealerOrderController extends Controller
                 'order_type' => 'nullable|exists:order_types,id',
                 'payment_terms_id' => 'required|exists:payment_terms,id',
                 'credit_days' => 'nullable|string',
-		        'billing_date' => 'required|string',
-		        'delivery_date' => 'nullable|string',
-	            'scheme' => 'nullable',
+                'billing_date' => 'required|string',
+                'delivery_date' => 'nullable|string',
+                'scheme' => 'nullable',
                 'total_amount' => 'nullable|numeric',
                 'additional_information' => 'nullable|string',
                 'status' => 'nullable|in:Pending,Dispatched,Delivered',
                 'vehicle_category_id' => 'required|integer',
-             
+
                 'vehicle_number' => [
-                    Rule::requiredIf($request->vehicle_category_id == 1),'nullable', 'string'
+                    Rule::requiredIf($request->vehicle_category_id == 1), 'nullable', 'string'
                 ],
                 'driver_name' => [
-                    Rule::requiredIf($request->vehicle_category_id == 1),'nullable', 'string'
+                    Rule::requiredIf($request->vehicle_category_id == 1), 'nullable', 'string'
                 ],
                 'driver_phone' => [
-                    Rule::requiredIf($request->vehicle_category_id == 1),'nullable', 'string'
+                    Rule::requiredIf($request->vehicle_category_id == 1), 'nullable', 'string'
                 ],
-                // 'vehicle_type' => 'nullable|string',
+
                 'order_items' => 'required|array',
                 'order_items.*.product_id' => 'required|exists:products,id',
                 'order_items.*.product_details' => 'nullable|array',
+
                 'attachment' => 'nullable|array',
                 'attachment.*' => 'nullable|string',
             ]);
 
-            $validatedData['billing_date'] = Carbon::createFromFormat('d-m-Y', $validatedData['billing_date'])->format('Y-m-d');
-        
+            // $validatedData['billing_date'] = Carbon::createFromFormat('d-m-Y', $validatedData['billing_date'])->format('Y-m-d');
+            $validatedData['billing_date'] = Carbon::createFromFormat('d/m/Y', $validatedData['billing_date'])->format('Y-m-d');
+
+            if (!empty($validatedData['delivery_date'])) {
+                $validatedData['delivery_date'] = Carbon::createFromFormat('d/m/Y', $validatedData['delivery_date'])->format('Y-m-d');
+            }
             $validatedData['created_by'] = null;
             $validatedData['created_by_dealer'] = $dealer->id;
             $validatedData['dealer_flag_order'] = '1';
-            $validatedData['order_Approved'] = '0';
+            $validatedData['order_approved'] = '0';
+
+            $validatedData['product_id'] = $validatedData['order_items'][0]['product_id'] ?? null;
 
             $order = Order::create($validatedData);
-           
+
             if (!empty($validatedData['order_items'])) {
                 foreach ($validatedData['order_items'] as $orderItem) {
+
                     $totalQuantity = 0;
+
                     if (!empty($orderItem['product_details'])) {
+                        $productDetailsArray = [];
+
                         foreach ($orderItem['product_details'] as $productDetail) {
-                            $totalQuantity += $productDetail['quantity'];
+
+                            if (isset($productDetail['pieces'])) {
+                                $totalQuantity += (float)$productDetail['pieces'];
+                            }
+                            if (isset($productDetail['tonnage'])) {
+                                $totalQuantity += (float)$productDetail['tonnage'];
+                            }
+
+                            $typeName = \App\Models\ProductType::where('id', $productDetail['product_type_id'])
+                                ->value('type_name');
+
+                            $productDetail['type_name'] = $typeName ?? null;
+
+                            $productDetailsArray[] = $productDetail;
                         }
+
+                        $orderItem['product_details'] = $productDetailsArray;
+                    } else {
+                        $totalQuantity = (float)($orderItem['quantity'] ?? 0);
+                        $orderItem['product_details'] = null;
                     }
-            
-                    $orderItem['total_quantity'] = $totalQuantity;
-            
+
+                    $orderItem['total_quantity'] = round($totalQuantity, 6);
+
                     $order->orderItems()->create($orderItem);
                 }
             }
-            
 
             $responseData = [
-                    'order_type' => $order->order_type,
-                    'payment_terms_id' => $order->payment_terms_id,
-                    'credit_days' => $order->credit_days,
-                    'billing_date' => Carbon::parse($order->billing_date)->format('d/m/Y'),
-                    'total_amount' => round($order->total_amount, 2),
-                    'additional_information' => $order->additional_information,
-                    'status' => $order->status,
-                    'created_by_dealer' => $order->created_by_dealer,
-                    'dealer_flag_order' => $order->dealer_flag_order,
-                    'vehicle_category_id' => $order->vehicle_category_id,
-                    // 'vehicle_type' => $order->vehicle_type,
-                    'vehicle_number' => $order->vehicle_number,
-                    'driver_name' => $order->driver_name,
-                    'driver_phone' => $order->driver_phone,
-                    'updated_at' => Carbon::parse($order->updated_at)->format('d/m/Y'),
-                    'created_at' => Carbon::parse($order->created_at)->format('d/m/Y'),
-                    'id' => $order->id,
-
+                'order_type' => $order->order_type,
+                'payment_terms_id' => $order->payment_terms_id,
+                'credit_days' => $order->credit_days,
+                'billing_date' => Carbon::parse($order->billing_date)->format('d/m/Y'),
+                'total_amount' => round($order->total_amount, 2),
+                'additional_information' => $order->additional_information,
+                'status' => $order->status,
+                'created_by_dealer' => $order->created_by_dealer,
+                'dealer_flag_order' => $order->dealer_flag_order,
+                'vehicle_category_id' => $order->vehicle_category_id,
+                'vehicle_number' => $order->vehicle_number,
+                'driver_name' => $order->driver_name,
+                'driver_phone' => $order->driver_phone,
+                'updated_at' => Carbon::parse($order->updated_at)->format('d/m/Y'),
+                'created_at' => Carbon::parse($order->created_at)->format('d/m/Y'),
+                'id' => $order->id,
+                'product_id' => $order->product_id,
             ];
-            
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Order created successfully!',
                 'data' => $responseData
             ], 200);
-            
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'statusCode' => 500,
+                'statusCode'=> 500,
                 'message' => $e->getMessage(),
             ], 500);
         }
     }
 
+    // public function show($orderId)
+    // {
+    //     try {
+    //         $user = Auth::user();
+    
+    //         if ($user === null) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 400,
+    //                 'message' => 'You must be logged in to view this order.'
+    //             ], 400);
+    //         }
+    
+    //         $order = Order::with([
+    //             'orderType:id,name',
+    //             'dealers:id,dealer_name,dealer_code',
+    //             'orderItems.product:id,product_name',
+    //             'orderItems',
+    //             'paymentTerm:id,name',
+    //             'vehicleCategory:id,vehicle_category_name'
+    //         ])->findOrFail($orderId);
+    
+    //         $responseData = [
+    //             'id' => $order->id,
+    //             'order_type' => $order->orderType->name ?? null,
+    //             'dealer' => [
+    //                 'id' => $order->dealers->id ?? null,
+    //                 'name' => $order->dealers->dealer_name ?? null,
+    //                 'code' => $order->dealers->dealer_code ?? null,
+    //             ],
+    //             'payment_terms' => [
+    //                 'id' => $order->paymentTerm->id ?? null,
+    //                 'name' => $order->paymentTerm->name ?? null,
+    //             ],
+    //             'credit_days' => $order->credit_days,
+    //             'billing_date' => $order->billing_date,
+    //             'delivery_date' => $order->delivery_date,
+    //             'total_amount' => round($order->total_amount, 2),
+    //             'additional_information' => $order->additional_information,
+    //             'status' => $order->status,
+    //             'created_by_dealer' => $order->created_by_dealer,
+    //             'dealer_flag_order' => $order->dealer_flag_order,
+    //             'vehicle' => [
+    //                 'category_id' => $order->vehicle_category_id,
+    //                 'category_name' => $order->vehicleCategory->vehicle_category_name ?? null,
+    //                 'vehicle_number' => $order->vehicle_number,
+    //                 'driver_name' => $order->driver_name,
+    //                 'driver_phone' => $order->driver_phone,
+    //             ],
+    //             'track_order' =>[
+    //                 'accepted_time'   => $order->accepted_time,
+    //                 'rejected_time'   => $order->rejected_time,
+    //                 'dispatched_time' => $order->dispatched_time,
+    //                 'intransit_time'  => $order->intransit_time,
+    //                 'delivered_time'  => $order->delivered_time,
+    //             ],
+    //             'attachments' => $order->attachment ?? [],
+                
+    
+    //             'order_items' => $order->orderItems->map(function ($item) {
+
+    //                 return [
+    //                     'product_id' => $item->product_id,
+    //                     'product_name' => $item->product->product_name ?? 'N/A',
+    //                     'total_quantity' => $item->total_quantity,
+    //                     'balance_quantity' => $item->balance_quantity,
+    //                     'product_details' => collect($item->product_details)->map(function ($detail) {
+    //                         return [
+    //                             'product_type_id' => $detail['product_type_id'],
+    //                             'quantity' => $detail['quantity'],
+    //                             'rate' => $detail['rate'],
+    //                             'product_type' => ProductType::where('id', $detail['product_type_id'])->value('type_name') ?? 'N/A',
+    //                         ];
+    //                     }),
+    //                 ];
+    //             }),
+    
+    //             'created_at' => $order->created_at ? Carbon::parse($order->created_at)->format('d/m/Y') : null,
+               
+                
+	//     ];
+    //     if($order->dealer_flag_order!="1"){
+    //         //......................notification..............
+    //     $authController = new AuthController();
+    //     $authController->changeNotificationStatus('orders', $orderId,'opened');
+    //     }
+    //     return response()->json([
+    //             'success' => true,
+    //             'statusCode' => 200,
+    //             'message' => 'Order details fetched successfully',
+    //             'data' => $responseData,
+    //         ], 200);
+    
+    //     } catch (Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 500,
+    //             'message' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
     public function show($orderId)
     {
         try {
             $user = Auth::user();
-    
+
             if ($user === null) {
                 return response()->json([
                     'success' => false,
@@ -199,36 +431,76 @@ class DealerOrderController extends Controller
                     'message' => 'You must be logged in to view this order.'
                 ], 400);
             }
-    
+
             $order = Order::with([
                 'orderType:id,name',
                 'dealers:id,dealer_name,dealer_code',
                 'orderItems.product:id,product_name',
-                'orderItems',
                 'paymentTerm:id,name',
-                'vehicleCategory:id,vehicle_category_name'
+                'vehicleCategory:id,vehicle_category_name',
             ])->findOrFail($orderId);
-    
+
+            // --- Process Order Items ---
+            if ($order->orderItems && count($order->orderItems)) {
+                foreach ($order->orderItems as $item) {
+
+                    // Convert numeric fields
+                    $item->total_quantity = (float)$item->total_quantity;
+
+                    // Remove quantity_type if exists
+                    unset($item->quantity_type);
+
+                    // Calculate total pieces & tonnage
+                    $totalPieces = 0;
+                    $totalTon = 0;
+
+                    if (isset($item->product_details) && is_array($item->product_details)) {
+                        foreach ($item->product_details as &$pd) {
+
+                            // Total calculation
+                            $totalPieces += isset($pd['pieces']) ? (float)$pd['pieces'] : 0;
+                            $totalTon += isset($pd['tonnage']) ? (float)$pd['tonnage'] : 0;
+
+                            // Add product type name
+                            $pd['product_type'] = ProductType::where('id', $pd['product_type_id'])
+                                ->value('type_name') ?? null;
+                        }
+                    }
+
+                    $item->total_pieces = $totalPieces;
+                    $item->total_ton = $totalTon;
+
+                    // Add product name
+                    $item->product_name = $item->product->product_name ?? null;
+                }
+            }
+
+            // ---------------- RESPONSE ----------------
             $responseData = [
                 'id' => $order->id,
                 'order_type' => $order->orderType->name ?? null,
+
                 'dealer' => [
                     'id' => $order->dealers->id ?? null,
                     'name' => $order->dealers->dealer_name ?? null,
                     'code' => $order->dealers->dealer_code ?? null,
                 ],
+
                 'payment_terms' => [
                     'id' => $order->paymentTerm->id ?? null,
                     'name' => $order->paymentTerm->name ?? null,
                 ],
+
                 'credit_days' => $order->credit_days,
                 'billing_date' => $order->billing_date,
                 'delivery_date' => $order->delivery_date,
-                'total_amount' => round($order->total_amount, 2),
+                'total_amount' => round((float)$order->total_amount, 6),
                 'additional_information' => $order->additional_information,
                 'status' => $order->status,
+
                 'created_by_dealer' => $order->created_by_dealer,
                 'dealer_flag_order' => $order->dealer_flag_order,
+
                 'vehicle' => [
                     'category_id' => $order->vehicle_category_id,
                     'category_name' => $order->vehicleCategory->vehicle_category_name ?? null,
@@ -236,50 +508,45 @@ class DealerOrderController extends Controller
                     'driver_name' => $order->driver_name,
                     'driver_phone' => $order->driver_phone,
                 ],
-                'track_order' =>[
+
+                'track_order' => [
                     'accepted_time'   => $order->accepted_time,
                     'rejected_time'   => $order->rejected_time,
                     'dispatched_time' => $order->dispatched_time,
                     'intransit_time'  => $order->intransit_time,
                     'delivered_time'  => $order->delivered_time,
                 ],
-                'attachments' => $order->attachment ?? [],
-                
-    
-                'order_items' => $order->orderItems->map(function ($item) {
 
+                'attachments' => $order->attachment ?? [],
+
+                'order_items' => $order->orderItems->map(function ($item) {
                     return [
                         'product_id' => $item->product_id,
-                        'product_name' => $item->product->product_name ?? 'N/A',
+                        'product_name' => $item->product_name,
                         'total_quantity' => $item->total_quantity,
+                        'total_pieces' => $item->total_pieces,
+                        'total_ton' => $item->total_ton,
                         'balance_quantity' => $item->balance_quantity,
-                        'product_details' => collect($item->product_details)->map(function ($detail) {
-                            return [
-                                'product_type_id' => $detail['product_type_id'],
-                                'quantity' => $detail['quantity'],
-                                'rate' => $detail['rate'],
-                                'product_type' => ProductType::where('id', $detail['product_type_id'])->value('type_name') ?? 'N/A',
-                            ];
-                        }),
+                        'product_details' => $item->product_details,
                     ];
                 }),
-    
+
                 'created_at' => $order->created_at ? Carbon::parse($order->created_at)->format('d/m/Y') : null,
-               
-                
-	    ];
-        if($order->dealer_flag_order!="1"){
-            //......................notification..............
-        $authController = new AuthController();
-        $authController->changeNotificationStatus('orders', $orderId,'opened');
-        }
-        return response()->json([
+            ];
+
+            // Notification for Employee Reading Dealer Order
+            if ($order->dealer_flag_order != "1") {
+                $authController = new AuthController();
+                $authController->changeNotificationStatus('orders', $orderId,'opened');
+            }
+
+            return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Order details fetched successfully',
                 'data' => $responseData,
             ], 200);
-    
+
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -288,6 +555,7 @@ class DealerOrderController extends Controller
             ], 500);
         }
     }
+
     public function trackOrder(Request $request)
     {
         $validator = Validator::make($request->all(), [
