@@ -1896,7 +1896,7 @@ public function notificationList()
     {
         $validator = Validator::make($request->all(), [
             'file' => 'required|array',
-            'file.*' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048', 
+            'file.*' => 'required|file|mimes:jpg,jpeg,png,pdf', 
         ]);
     
         if ($validator->fails()) {
