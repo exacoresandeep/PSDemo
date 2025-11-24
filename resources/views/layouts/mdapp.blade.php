@@ -42,8 +42,8 @@
             </div>
             <div class="d-flex main-content">
                 <div class="content flex-fill">
-                    <div class="content-area">
-                        <div class="dashboard-area">
+                    <div class="content-area md">
+                        <div class="dashboard-area md">
                             @yield('content')
                         </div>
                     </div>

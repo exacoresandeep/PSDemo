@@ -34,9 +34,9 @@ main {
 }
 
 .side-menu {
-  width: 250px;
-  height: 100dvh;
-  position: fixed;
+    width: 250px;
+    height: 100dvh;
+    position: fixed;
 
 }
 .icon-right{
@@ -99,7 +99,7 @@ main {
 }
 
 .menu-cover ul li a:hover {
-  background: #666;
+  background: #b43433;
   color: #fff;
 }
 
@@ -349,7 +349,6 @@ main {
 .active-menu > ul {
   display: block !important;
 }
-
 /* Ansiya */
 .button-align{
   position: relative;
@@ -370,26 +369,19 @@ main {
   background-color: #DC3545 !important;
   border-color: #DC3545 !important;
 }
-.menu-cover ul li a:hover {
-  background: #b43433;
-  color: #fff;
-}
+ 
 .dashboard.active {
-  background-color: #b43433 !important;
-  color: white !important;
+    background-color: #b43433 !important;
+    color: white !important;
 }
 .submenu a.active{
-  background-color: #333 !important;
-  color: white !important;
+    background-color: #333 !important;
+    color: white !important;
 }
 .menu-title.active{
-  background-color: #b43433 !important;
-  color: white !important;
+    background-color: #b43433 !important;
+    color: white !important;
 }
-
-
-
-
 
 
 
@@ -398,7 +390,7 @@ main {
   padding: 20px;
   border-radius: 12px;
   background: #eee;
-  min-height: 165px;
+  min-height: 200px;
   box-shadow: 0 0 5px 2px #ddd;
   overflow: hidden;
 }
@@ -440,35 +432,35 @@ main {
 }
 
 .card-bg-1 {
-  background: url(../images/card-bg-1.svg) no-repeat right bottom;
+  background: url(../public/images/card-bg-1.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
 }
 
 .card-bg-2 {
-  background: url(../images/card-bg-2.svg) no-repeat right bottom;
+  background: url(../public/images/card-bg-2.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
 }
 
 .card-bg-3 {
-  background: url(../images/card-bg-3.svg) no-repeat right bottom;
+  background: url(../public/images/card-bg-3.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
 }
 
 .card-bg-4 {
-  background: url(../images/card-bg-4.svg) no-repeat right bottom;
+  background: url(../public/images/card-bg-4.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
 }
 
 .card-bg-5 {
-  background: url(../images/card-bg-5.svg) no-repeat right bottom;
+  background: url(../public/images/card-bg-5.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
@@ -476,7 +468,7 @@ main {
 
 .dashboard-card h4 {
   font-size: 20px;
-  min-height: 60px;
+  min-height: 80px;
 }
 
 .dashboard-card h2 {
@@ -572,7 +564,6 @@ main {
 .dashboard-card.sales-performance .form-control{
   width:140px;
 }
-
 .export-btn:hover{
     background-color: transparent !important;
     color: #333333 !important;
@@ -580,7 +571,7 @@ main {
 .export-btn {
     border: 1px solid #aaa !important;
     color: #333333 !important;
-    margin-top: -5px;
+    margin-top: -5px;;
 }
 .card-bg-6{
   background: url(../public/images/card-bg-6.svg) no-repeat right bottom;
@@ -606,17 +597,12 @@ main {
 .visit-date h1{
   margin-top:15px;
 }
-.md-header{
-  font-size: 28px;
-  font-weight: 600;
-  margin-bottom: 30px;
+
+.dashboard-area.md {
+  padding-left: 0;
+  padding-top: 30px;
 }
-.md-header span{
-  font-weight: 600;
-  color: #A02625;
-}
-.md-dash-summary{
-  border: #aaa solid 1px;
-  border-radius: 25px;
-  padding: 15px;
+
+.content-area.md {
+  padding-left: 0;
 }
