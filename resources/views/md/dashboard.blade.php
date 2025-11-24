@@ -169,46 +169,7 @@
         </div>
     </div>
 
-    {{-- main content left and right --}}
-    <div class="row">
-        <div class="col-md-4">
-            <div class="target-cover">
-                <h4>Targets and Achievements</h4>
-
-                
-                <div class="dashboard-card card-bg-2 mt-2">
-                    <h4>Unique Leads</h4>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="uniqueTarget">350</h2></div>
-                        <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="uniqueAchieved">208</h2></div>
-                    </div>
-                </div>
-
-                <div class="dashboard-card card-bg-2 mt-2">
-                    <h4>Influencer Visit</h4>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="influencerTarget">400</h2></div>
-                        <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="influencerAchieved">388</h2></div>
-                    </div>
-                </div>
-
-                <div class="dashboard-card card-bg-2 mt-2">
-                    <h4>Aashiyana</h4>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="aashiyanaTarget">26</h2></div>
-                        <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="aashiyanaAchieved">24</h2></div>
-                    </div>
-                </div>
-
-                <div class="dashboard-card card-bg-2 mt-2">
-                    <h4>Products</h4>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="productsTarget">100.00 <span style="font-size:12px;">TON</span></h2></div>
-                        <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="productsAchieved">98.87 <span style="font-size:12px;">TON</span></h2></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="row mb-4">
         <div class="col-md-8">
             <div class="dashboard-card-cover">
                 <div class="row mb-3">
@@ -243,53 +204,22 @@
                         </div>
                     </div>
                 </div>
-
-                {{-- Stock insights --}}
-                <div class="stock-cover mt-3 bg-white">
-                    <h4>Stock Insights</h4>
-                    <p style="color:#555;margin-bottom:8px;">This shows the current stock status for TATA Tiscon products.</p>
-
-                    <div style="display:flex; gap:12px; margin-bottom:12px;">
-                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Total <strong>12</strong> Products</div>
-                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">In Stock <strong>10</strong></div>
-                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Out Of Stock <strong>02</strong></div>
-                    </div>
-
-                    <div class="stock-table">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr><th>Product</th><th>Product Type</th><th>Stock Quantity in TON</th></tr>
-                            </thead>
-                            <tbody>
-                                @foreach ($stocks as $stock)
-                                    <tr>
-                                        <td>TATA Tiscon</td>
-                                        <td>{{ $stock['type_name'] }}</td>
-                                        <td>{{ number_format($stock['total_stock_quantity'], 2, '.', '') }}</td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {{-- two small cards under stock --}}
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <div class="dashboard-card card-bg-5">
-                            <h4>Total Credit Note Amount</h4>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div><h1><i class="fa fa-inr"></i> <span id="totalCredit">2046000.06</span></h1></div>
-                                <div class="text-right">
-                                    <h5>Credit Note Count</h5>
-                                    <h2 id="orderCountCredit">35</h2>
-                                </div>
+                
+            </div>
+            <div class="row mb-4">
+                <div class="col-md-5">
+                    <div class="dashboard-card card-bg-5 h-auto mb-4">
+                        <h4>Total Credit Note Amount</h4>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div><h1><i class="fa fa-inr"></i> <span id="totalCredit">2046000.06</span></h1></div>
+                            <div class="text-right">
+                                <h5>Credit Note Count</h5>
+                                <h2 id="orderCountCredit">35</h2>
                             </div>
                         </div>
                     </div>
 
-                    <div class="col-md-6">
-                        <div class="bg-white hs-card">
+                    <div class="bg-white hs-card">
                             <h4>Highest and Lowest Selling Item</h4>
 
                             <div class="row" style="background:#D9FFE3;color:#34C759;font-weight:600;padding:10px;border-radius:6px;">
@@ -302,18 +232,37 @@
                                 <div class="col-md-6 text-right" id="lowestSellingItem">12mm</div>
                             </div>
                         </div>
+                </div>
+                <div class="col-md-7">
+                    <div class="bg-white hs-card">
+                        <h4>Customer Performance</h4>
+                        <h5 style="color:#34C759">Top Customer</h5>
+
+                        <div class="stock-table adj">
+                            <table class="table table-striped">
+                                <tr><td>Customer Name</td><td>Purchased Qty (TON)</td><td>Amount</td></tr>
+                                <tr>
+                                    <td id="topCustomerName">ABC Steels and Corporation</td>
+                                    <td id="topCustomerQty">78.87</td>
+                                    <td id="topCustomerAmount">28,98,456.00</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <h5 style="color:#F14431">Least Purchased Customer</h5>
+                        <div class="stock-table adj">
+                            <table class="table table-striped">
+                                <tr><td>Customer Name</td><td>Purchased Qty (TON)</td><td>Amount</td></tr>
+                                <tr>
+                                    <td id="leastCustomerName">Steel Hub</td>
+                                    <td id="leastCustomerQty">8.87</td>
+                                    <td id="leastCustomerAmount">1,98,456.00</td>
+                                </tr>
+                            </table>
+                        </div>
                     </div>
                 </div>
-
-            </div> {{-- dashboard-card-cover --}}
-        </div>
-
-        
-    </div>
-
-    {{-- Customer performance + sales performance --}}
-    <div class="row mt-3">
-        <div class="col-md-8">
+            </div>
             <div class="bg-white hs-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4>Sales Performance By Region</h4>
@@ -354,33 +303,115 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="bg-white hs-card">
-                <h4>Customer Performance</h4>
-                <h5 style="color:#34C759">Top Customer</h5>
-
-                <div class="stock-table adj">
-                    <table class="table table-striped">
-                        <tr><td>Customer Name</td><td>Purchased Qty (TON)</td><td>Amount</td></tr>
-                        <tr>
-                            <td id="topCustomerName">ABC Steels and Corporation</td>
-                            <td id="topCustomerQty">78.87</td>
-                            <td id="topCustomerAmount">28,98,456.00</td>
-                        </tr>
-                    </table>
-                </div>
-
-                <h5 style="color:#F14431">Least Purchased Customer</h5>
-                <div class="stock-table adj">
-                    <table class="table table-striped">
-                        <tr><td>Customer Name</td><td>Purchased Qty (TON)</td><td>Amount</td></tr>
-                        <tr>
-                            <td id="leastCustomerName">Steel Hub</td>
-                            <td id="leastCustomerQty">8.87</td>
-                            <td id="leastCustomerAmount">1,98,456.00</td>
-                        </tr>
-                    </table>
+            <div class="attnd-overview">
+                <h4>Attendance Overview</h4>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <h5>Team on Duty</h5>
+                        <h2>34</h2>
+                    </div>
+                    <div class="text-right">
+                        <h5>Team on Leave</h5>
+                        <h2>15</h2>
+                    </div>
                 </div>
             </div>
+            {{-- Stock insights --}}
+                <div class="stock-cover mt-3 bg-white">
+                    <h4>Stock Insights</h4>
+                    <p style="color:#555;margin-bottom:8px;">This shows the current stock status for TATA Tiscon products.</p>
+
+                    <div style="display:flex; gap:12px; margin-bottom:12px;">
+                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Total <strong>12</strong> Products</div>
+                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">In Stock <strong>10</strong></div>
+                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Out Of Stock <strong>02</strong></div>
+                    </div>
+
+                    <div class="stock-table">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr><th>Product</th><th>Product Type</th><th>Stock Quantity in TON</th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($stocks as $stock)
+                                    <tr>
+                                        <td>TATA Tiscon</td>
+                                        <td>{{ $stock['type_name'] }}</td>
+                                        <td>{{ number_format($stock['total_stock_quantity'], 2, '.', '') }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+        </div>
+    </div>
+
+    {{-- main content left and right --}}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="target-cover">
+                <h4>Targets and Achievements</h4>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="dashboard-card card-bg-2 mt-2">
+                            <h4>Unique Leads</h4>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="uniqueTarget">350</h2></div>
+                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="uniqueAchieved">208</h2></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card card-bg-2 mt-2">
+                            <h4>Influencer Visit</h4>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="influencerTarget">400</h2></div>
+                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="influencerAchieved">388</h2></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="dashboard-card card-bg-2 mt-2">
+                            <h4>Aashiyana</h4>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="aashiyanaTarget">26</h2></div>
+                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="aashiyanaAchieved">24</h2></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                         <div class="dashboard-card card-bg-2 mt-2">
+                            <h4>Products</h4>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="productsTarget">100.00 <span style="font-size:12px;">TON</span></h2></div>
+                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="productsAchieved">98.87 <span style="font-size:12px;">TON</span></h2></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                
+
+                
+
+                
+
+               
+            </div>
+        </div>
+        
+
+        
+    </div>
+
+    {{-- Customer performance + sales performance --}}
+    <div class="row mt-3">
+        <div class="col-md-8">
+            
+        </div>
+        <div class="col-md-4">
+            
         </div>
 
         

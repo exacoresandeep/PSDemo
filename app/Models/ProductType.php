@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Model;
 class ProductType extends Model
 {
     use HasFactory;
+     protected $casts = [
+        'rate' => 'double',
+    ];
 
     protected $fillable = ['product_id','type_name','rate'];
 
