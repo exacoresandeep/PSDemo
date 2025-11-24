@@ -34,8 +34,10 @@ main {
 }
 
 .side-menu {
-  width: 335px;
-  height: 100%;
+    width: 250px;
+    height: 100dvh;
+    position: fixed;
+
 }
 .icon-right{
   float:right;
