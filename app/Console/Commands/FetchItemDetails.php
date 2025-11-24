@@ -28,7 +28,6 @@ class FetchItemDetails extends Command
                 $this->error('ODBC Connection Failed: ' . odbc_errormsg());
                 return 1;
             }
-
             $sql = 'select * from "PRABHU_NEW"."MOBILEAPP_ITEMDETAIL"';
             $result = odbc_exec($conn, $sql);
 
@@ -105,4 +104,3 @@ class FetchItemDetails extends Command
         }
     }
 }
-

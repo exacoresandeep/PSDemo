@@ -114,8 +114,8 @@ class FetchDealerData extends Command
                     'district' => $districtName ?? null,
                     'assigned_route_id' => $assignedRouteId,
                     'location' => $first['location'] ?? null,
-		    'password' => $hashedPassword,
-		    'address_id' => $first['AddressID'] ?? null,
+                    'password' => $hashedPassword,
+                    'address_id' => $first['AddressID'] ?? null,
                 ]
             );
 	
