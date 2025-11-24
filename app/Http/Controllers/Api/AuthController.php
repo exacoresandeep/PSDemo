@@ -1633,7 +1633,7 @@ public function notificationList()
             /* ---------------------------------------------------------
             CASE 2: DURASHINE (Search inside products_details table)
             --------------------------------------------------------- */
-            if ($productCode === 'durashine') {
+            if ($productCode === 'durashine' ) {
 
                 $query = ProductDetails::select(
                         'products_details.product_id',
