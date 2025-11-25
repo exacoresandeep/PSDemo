@@ -17,7 +17,7 @@
     }
 </style>
 @endsection
-
+ 
 @section('content')
 <div class="md-dashboard container-fluid">
 
@@ -71,7 +71,7 @@
                 <h4>Total Lead Open</h4>
             </div>
             <div>
-                <h2>56</h2>
+                <h2 id="totalLead">0</h2>
             </div>
             </div>                  
         </div>
@@ -420,17 +420,98 @@
 </div>
 
 @endsection
-
 @section('scripts')
 <script>
-    // small demo behaviors: set today's date by default
-    (function(){
-        const d = new Date();
-        const y = d.getFullYear();
-        const m = String(d.getMonth()+1).padStart(2,'0');
-        const dt = String(d.getDate()).padStart(2,'0');
-        document.getElementById('fromDate').value = `${y}-${m}-${dt}`;
-        document.getElementById('toDate').value = `${y}-${m}-${dt}`;
-    })();
+
+
+$(document).ready(function () {
+    
+    // Load today's data on page load
+    loadToday();
+
+    // Button: Today
+    $("#btn-today").click(function () {
+        loadToday();
+    });
+
+    // Button: This Week
+    $("#btn-week").click(function () {
+        loadThisWeek();
+    });
+
+    // Custom Date Change
+    $("#fromDate, #toDate").change(function () {
+        let from = $("#fromDate").val();
+        let to   = $("#toDate").val();
+        
+        if(from !== "" && to !== ""){
+            loadDashboardData(from, to);
+        }
+    });
+
+});
+
+
+
+function loadToday() {
+    let today = new Date().toISOString().split("T")[0];
+
+    $("#fromDate").val(today);
+    $("#toDate").val(today);
+
+    loadDashboardData(today, today);
+}
+
+// This Week
+function loadThisWeek() {
+    let now = new Date();
+    let first = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Monday
+    let last  = new Date(first);
+    last.setDate(first.getDate() + 6); // Sunday
+
+    let from = first.toISOString().split("T")[0];
+    let to   = last.toISOString().split("T")[0];
+
+    $("#fromDate").val(from);
+    $("#toDate").val(to);
+
+    loadDashboardData(from, to);
+}
+
+
+
+/* ============================
+    MAIN AJAX FUNCTION
+============================== */
+
+function loadDashboardData(fromDate, toDate) {
+
+    console.log("Loading MD dashboard:", fromDate, "to", toDate);
+
+    $.ajax({
+        url: "/md/getMDData", // CHANGE THIS
+        method: "GET",
+        data: {
+            from: fromDate,
+            to: toDate
+        },
+        success: function(response) {
+
+            // Example fields (adjust based on your backend response)
+            $("#totalEmployees").text(response.totalEmployees);
+            $("#totalVisits").text(response.totalVisits);
+            $("#totalOrders").text(response.totalOrders);
+            $("#totalCollections").text(response.totalCollections);
+            $("#totalOutstanding").text(response.totalOutstanding);
+
+            // Add any other counts the MD dashboard has
+        },
+        error: function(xhr) {
+            console.error("Dashboard Load Error", xhr.responseText);
+        }
+    });
+}
+
+
 </script>
 @endsection
