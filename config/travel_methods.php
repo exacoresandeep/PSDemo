@@ -5,4 +5,3 @@ return [
     "Car"     => 5.6,
     "Own Car" => 9.0,
 ];
-~   
