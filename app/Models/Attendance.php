@@ -30,6 +30,8 @@ class Attendance extends Model
     protected $casts = [
         'latitude' => 'string',
         'longitude' => 'string',
+        'starting_km' => 'double',
+        'ending_km'   => 'double',
     ];
 
     public function employee()
