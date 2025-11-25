@@ -599,4 +599,18 @@ class DashboardController extends Controller
         return Excel::download(new TisconOrdersExport($year, $month), 'tiscon_orders_export.xlsx');
     }
   
+
+    public function getMDData(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+// dd($request);
+        return response()->json([
+            'totalEmployees'   => 1,
+            'totalVisits'      => 2,
+            'totalOrders'      => 3,
+            'totalCollections' => 4,
+            'totalOutstanding' => 5,
+        ]);
+    }
 }
