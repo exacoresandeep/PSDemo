@@ -58,7 +58,7 @@
                 <h4>Total Orders</h4>
             </div>
             <div>
-                <h2>56</h2>
+                <h2 id="totalOrder">56</h2>
             </div>
             </div>                  
         </div>
@@ -84,7 +84,7 @@
                 <h4> Influencer Visit</h4>
             </div>
             <div>
-                <h2>56</h2>
+                <h2 id="totalInfluencerVisit">56</h2>
             </div>
             </div>                  
         </div>
@@ -97,7 +97,7 @@
                 <h4>Dealer Visit</h4>
             </div>
             <div>
-                <h2>56</h2>
+                <h2 id="totalDealerVisit">56</h2>
             </div>
             </div>                  
         </div>
@@ -110,7 +110,7 @@
                 <h4>Completed Activity</h4>
             </div>
             <div>
-                <h2>56</h2>
+                <h2 id="totalCompletedActivity">56</h2>
             </div>
             </div>                  
         </div>
@@ -129,10 +129,10 @@
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div><h1><i class="fa fa-inr" aria-hidden="true"></i> <span id="totalRevenue">357076000.56</span></h1></div>
+                    <div><h1><i class="fa fa-inr" aria-hidden="true"></i> <span id="totalSales">357076000.56</span></h1></div>
                     <div class="text-right">
                         <h5 >Order Count</h5>
-                        <h2 id="orderCount">35</h2>
+                        <h2 id="totalOrderCount">35</h2>
                     </div>
                 </div>
             </div>
@@ -149,7 +149,7 @@
                     <div><h1><span>Ton</span> <span id="totalQuantity">100.23</span></h1></div>
                     <div class="text-right">
                         <h5>Order Count</h5>
-                        <h2 id="orderCountQuantity">35</h2>
+                        <h2 id="totalOrderCount">35</h2>
                     </div>
                 </div>
             </div>
@@ -163,7 +163,7 @@
                 </div>
 
                 <div class="d-flex align-items-center mt-3">
-                    <div><h1 id="totalLead">104</h1></div>
+                    <div><h1 id="totalLeadGenerated">104</h1></div>
                 </div>
             </div>
         </div>
@@ -195,7 +195,7 @@
                         <div class="dashboard-card card-bg-1">
                             <h4>Total Collection Against Outstanding Payments</h4>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h1><i class="fa fa-inr"></i> <span id="opCollection">726550.55</span></h1></div>
+                                <div><h1><i class="fa fa-inr"></i> <span id="totalOPCollection">726550.55</span></h1></div>
                                 <div class="text-right">
                                     <h5>Order Count</h5>
                                     <h2 id="orderCountCollection">35</h2>
