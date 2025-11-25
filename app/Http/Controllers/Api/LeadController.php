@@ -325,6 +325,7 @@ class LeadController extends Controller
                                 'id' => $item->id,
                                 'product_id' => $item->product_id,
                                 'product_name' => $item->product ? $item->product->product_name : null,
+                                'product_code' => $item->product ? $item->product->product_code : null,
                         
                                 'total_quantity' => $item->total_quantity,
                                 'balance_quantity' => (float) $item->balance_quantity,
@@ -630,9 +631,9 @@ class LeadController extends Controller
                             }
 
                             // Add tonnage
-                            if (isset($pd['tonnage'])) {
-                                $totalQuantity += (float)$pd['tonnage'];
-                            }
+                            // if (isset($pd['tonnage'])) {
+                            //     $totalQuantity += (float)$pd['tonnage'];
+                            // }
 
                             // Get Type Name
                             $typeName = \App\Models\ProductType::where('id', $pd['product_type_id'])
@@ -1488,6 +1489,7 @@ class LeadController extends Controller
                     return [
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->product_name ?? null,
+                        'product_code' => $item->product->product_code ?? null,
                         'total_quantity' => (float) ($item->total_quantity ?? 0),
                         'total_pieces' => $totalPieces > 0 ? $totalPieces : null,
                         'total_ton' => $totalTonnage > 0 ? $totalTonnage : null,
