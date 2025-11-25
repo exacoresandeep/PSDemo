@@ -6,8 +6,9 @@ use App\Models\DayExpense;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
-class ExpenseExport implements FromCollection, WithHeadings, WithMapping
+class ExpenseExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
 {
     protected $from_date, $to_date, $employee_type, $employee_id, $travel_method;
 
@@ -46,7 +47,8 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping
     {
         return [
             'Sl.No',
-            'Employee Name/ID',
+            'Employee Name',
+            'Employee Code',
             'Date & Time',
             'Travel Method',
             'Kilometer Travelled',
@@ -75,7 +77,8 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping
 
         return [
             $count,
-            $expense->employee->name . ' / ' . $expense->employee->emp_id,
+            $expense->employee->name ?? '-',
+            $expense->employee->employee_code ?? '-',
             $expense->created_at ? $expense->created_at->format('d-m-Y h:i A') : '-',
             $expense->travel_method,
             $km,
