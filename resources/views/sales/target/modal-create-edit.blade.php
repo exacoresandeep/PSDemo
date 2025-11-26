@@ -55,7 +55,7 @@
                             <input type="number" class="form-control" name="unique_lead" id="unique_lead">
                         </div>
                         <div class="col-md-6">
-                            <label>Customer Visit</label>
+                            <label>Influencer Visit</label>
                             <input type="number" class="form-control" name="customer_visit" id="customer_visit">
                         </div>
                     </div>
