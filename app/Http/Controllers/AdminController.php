@@ -92,19 +92,36 @@ class AdminController extends Controller
                         ->first();       
                 }
                         
-                        $stocks = ProductDetails::select('type_id')
-                        ->where('product_id', $products->id)
-                        ->selectRaw('SUM(total_available_quantity) as total_stock_quantity')
-                        ->groupBy('type_id')
-                        ->with('productType:id,type_name')
-                        ->get()
-                        ->map(function ($item) {
-                            return [
-                                'type_id' => $item->type_id,
-                                'type_name' => $item->productType->type_name ?? 'Unknown',
-                                'total_stock_quantity' => (float) $item->total_stock_quantity,
-                            ];
-                        });
+                        // $stocks = ProductDetails::select('type_id')
+                        // ->where('product_id', $products->id)
+                        // ->selectRaw('SUM(total_available_quantity) as total_stock_quantity')
+                        // ->groupBy('type_id')
+                        // ->with('productType:id,type_name')
+                        // ->get()
+                        // ->map(function ($item) {
+                        //     return [
+                        //         'type_id' => $item->type_id,
+                        //         'type_name' => $item->productType->type_name ?? 'Unknown',
+                        //         'total_stock_quantity' => (float) $item->total_stock_quantity,
+                        //     ];
+                        // });
+                        $stocks = [];
+
+                        if ($products) {
+                            $stocks = ProductDetails::select('type_id')
+                                ->where('product_id', $products->id)
+                                ->selectRaw('SUM(total_available_quantity) as total_stock_quantity')
+                                ->groupBy('type_id')
+                                ->with('productType:id,type_name')
+                                ->get()
+                                ->map(function ($item) {
+                                    return [
+                                        'type_id' => $item->type_id,
+                                        'type_name' => $item->productType->type_name ?? 'Unknown',
+                                        'total_stock_quantity' => (float) $item->total_stock_quantity,
+                                    ];
+                                });
+                        }
                         $employeeTypes = EmployeeType::select('id', 'type_name')->get();
                         $regions = Regions::select('id', 'name')->get();
 
@@ -265,8 +282,8 @@ class AdminController extends Controller
                         'designation' => $designation,
                         'employee_type_id' => $employeeType->id,
                         'reporting_manager' => $reportingManagerId,
-			'reporting_manager_name' => $reportingManagerName, 
-			'address' => $address,
+                        'reporting_manager_name' => $reportingManagerName, 
+                        'address' => $address,
                         'emergency_contact' => $emergencyContact,
                         'password' => $hashedPassword, // Store encrypted password
                         'status' => '1',
