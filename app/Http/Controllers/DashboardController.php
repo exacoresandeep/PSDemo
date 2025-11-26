@@ -264,7 +264,7 @@ class DashboardController extends Controller
                         ->whereHas('orderItems', function ($q) use ($productID) {
                             $q->where('product_id', $productID);
                         })
-                        ->where('status', 'Delivered')
+                        ->where('status', 'Approved')
                         ->pluck('id');
 
         $achievedOrderQuantity = DB::table('orders')
@@ -598,19 +598,318 @@ class DashboardController extends Controller
 
         return Excel::download(new TisconOrdersExport($year, $month), 'tiscon_orders_export.xlsx');
     }
-  
+    
+
+    //...fetch data for MD
+
+    public function fetchDealerVisitData(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+
+        $totalDealerVisit = \App\Models\DealerVisit::with(["createdBy"])
+            ->whereDate('created_at', '>=', $from)
+            ->whereDate('created_at', '<=', $to)
+            ->whereHas('createdBy', function($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            })
+            ->count();
+
+        return response()->json([
+            'totalDealerVisit' => $totalDealerVisit
+        ]);
+    }
+
+    public function fetchInfluencerVisitData(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+
+        $totalInfluencerVisit = \App\Models\InfluencerVisit::with(["createdBy"])
+            ->whereDate('created_at', '>=', $from)
+            ->whereDate('created_at', '<=', $to)
+            ->whereHas('createdBy', function($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            })
+            ->count();
+
+        return response()->json([
+            'totalInfluencerVisit' => $totalInfluencerVisit
+        ]);
+    }
+
+    public function fetchOverallTargetAndAchievement(Request $request)
+    {
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+
+        // ---------- CASE 1: FROM / TO DATE RANGE ----------
+        if ($request->has('from') && $request->has('to')) {
+
+            $from = $request->from;
+            $to   = $request->to;
+
+            // Targets (based on month of FROM date)
+            $monthName = \Carbon\Carbon::parse($from)->format('F');
+            $year      = \Carbon\Carbon::parse($from)->year;
+
+            $targets = Target::where('month', $monthName)
+                            ->where('year', $year)
+                            ->where('product_id', $productID)
+                            ->get();
+
+            $totalTargets = [
+                'unique_leads'    => $targets->sum('unique_lead'),
+                'customer_visit'  => $targets->sum('customer_visit'),
+                'aashiyana'       => $targets->sum('aashiyana'),
+                'order_quantity'  => (float) $targets->sum('order_quantity'),
+            ];
+
+            // Achievements using from → to filter
+            $uniqueLeads = Lead::with("createdBy")
+                ->whereBetween('created_at', [$from, $to])
+                ->whereHas('createdBy', function ($q) use ($productID) {
+                    $q->whereJsonContains('products', (string)$productID);
+                })
+                ->count();
+
+            $customerVisit = RescheduledRoute::with("employee")
+                ->whereBetween('assign_date', [$from, $to])
+                ->whereHas('employee', function ($q) use ($productID) {
+                    $q->whereJsonContains('products', (string)$productID);
+                })
+                ->get()
+                ->sum(function ($route) {
+                    $customers = collect(json_decode($route->customers ?? '[]', true));
+                    return $customers->where('scheduled', true)->where('status', 'Completed')->count();
+                });
+
+            $aashiyanaCount = Order::with("orderItems")
+                ->whereBetween('created_at', [$from, $to])
+                ->whereHas('orderItems', function ($q) use ($productID) {
+                    $q->where('product_id', $productID);
+                })
+                ->where('payment_terms_id', 3)
+                ->count();
+
+            $orders = Order::with("orderItems")
+                ->whereBetween('created_at', [$from, $to])
+                ->whereHas('orderItems', function ($q) use ($productID) {
+                    $q->where('product_id', $productID);
+                })
+                ->where('status', 'Delivered')
+                ->pluck('id');
+
+            $orderQty = DB::table('orders')
+                        ->whereIn('id', $orders)
+                        ->sum('invoice_quantity');
+
+            return [
+                'target' => $totalTargets,
+                'achieved' => [
+                    'unique_leads'    => $uniqueLeads,
+                    'customer_visit'  => $customerVisit,
+                    'aashiyana'       => $aashiyanaCount,
+                    'order_quantity'  => round($orderQty, 6),
+                ]
+            ];
+        }
+
+    }
+
+    public function fetchLeadsData(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+
+        $totalLeads = \App\Models\Lead::with("createdBy")
+            ->whereBetween('created_at', [$from, $to])
+            ->whereHas('createdBy', function($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            })
+            ->count();
+
+        return response()->json([
+            'totalLeads' => $totalLeads
+        ]);
+    }
+
+    public function fetchTotalOrder(){
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+        $baseQuery = \App\Models\Order::query()->with(['orderItems'])
+            ->where('status', '!=', 'Rejected')
+            ->whereHas('orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
+            })
+            ->where(function ($query) {
+                $query->where(function ($q) {
+                    $q->where('dealer_flag_order', '1')
+                        ->where(function ($subQuery) {
+                            $subQuery->where('send_for_approval', '1')
+                                ->orWhereNull('send_for_approval');
+                        })
+                        ->where(function ($subQuery) {
+                            $subQuery->where('order_approved', '!=', '0')
+                                ->orWhereIn('order_approved_by', function ($subQuery) {
+                                    $subQuery->select('id')
+                                        ->from('users')
+                                        ->where('role_id', 2);
+                                });
+                        });
+                })->orWhere(function ($q) {
+                    $q->where('dealer_flag_order', '0')
+                        ->where(function ($subQuery) {
+                            $subQuery->where('order_approved', '!=', '0')
+                                ->orWhereIn('order_approved_by', function ($subQuery) {
+                                    $subQuery->select('id')
+                                        ->from('users')
+                                        ->where('role_id', 2);
+                                });
+                        });
+                });
+            });
+
+        $pendingOrders = \App\Models\Order::query()
+            ->with(['orderItems'])
+            ->where('status', '!=', 'Rejected')
+            ->where('order_approved', '0')
+            ->whereHas('orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
+            })
+            ->count();  
+        $approvedOrders = (clone $baseQuery)->where('order_approved', '1')->count();
+         return response()->json([
+            'approvedOrders' => $approvedOrders
+        ]);
+    }
+
+
+    public function fetchSalesPerformance(Request $request)
+    {
+        $request->validate([
+            'from' => 'required|date',
+            'to'   => 'required|date',
+        ]);
+
+        $from = $request->from;
+        $to   = $request->to;
+
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+
+        $data = Order::with([
+                'createdBy.region',
+                'createdBy.employeeType'
+            ])
+            ->whereDate('created_at', '>=', $from)
+            ->whereDate('created_at', '<=', $to)
+            ->whereHas('orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
+            })
+            ->selectRaw('created_by, SUM(invoice_quantity) as qty, SUM(invoice_total) as amt')
+            ->groupBy('created_by')
+            ->get()
+            ->map(function ($row) {
+
+                return [
+                    'region'        => $row->createdBy->region->name ?? '-',
+                    'employeeType'  => $row->createdBy->employeeType->type_name ?? '-',
+                    'employeeName'  => $row->createdBy->name ?? '-',
+                    'sellingQty'    => (float) ($row->qty ?? 0),
+                    'amount'        => (float) ($row->amt ?? 0),
+                ];
+            });
+
+        return response()->json([
+            'salesPerformance' => $data
+        ]);
+    }
+
+
 
     public function getMDData(Request $request)
     {
         $from = $request->from;
         $to   = $request->to;
-// dd($request);
+
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+        $productName =Product::where("id",$productID)->select("product_name")->first();
+         // Use from/to request for both
+        $dealerData     = $this->fetchDealerVisitData($request)->getData()->totalDealerVisit;
+        $influencerData       = $this->fetchInfluencerVisitData($request)->getData()->totalInfluencerVisit;
+
+        $overall = $this->fetchOverallTargetAndAchievement($request);
+        $LeadsData = $this->fetchLeadsData($request)->getData()->totalLeads;
+        $approvedOrders = $this->fetchTotalOrder($request)->getData()->approvedOrders;
+        $targets   = $overall['target'];
+        $achieved  = $overall['achieved'];
+
+        $salesPerformance = $this->fetchSalesPerformance($request)->getData()->salesPerformance;
+
+
         return response()->json([
-            'totalEmployees'   => 1,
-            'totalVisits'      => 2,
-            'totalOrders'      => 3,
-            'totalCollections' => 4,
-            'totalOutstanding' => 5,
+
+            'productName'            => $productName->product_name,
+            'totalOrder'            => $approvedOrders,
+            'totalLeadOpen'         => $LeadsData,
+
+            // ✔ FIXED → return integer values only
+            'totalInfluencerVisit'  => $influencerData,
+            'totalDealerVisit'      => $dealerData,
+
+            // Dummy value (change if needed)
+            'totalCompletedActivity'=> 12,
+
+            'totalSalesRevenue'     => 2500000,     
+            'totalSalesOrderCount'  => 120,
+            'totalSalesQuantityTon' => 180,
+            'totalLeadGenerated'    => 32,
+
+            'totalOutstandingPayment' => 750000,
+            'outstandingOrderCount'   => 22,
+
+            'totalOutstandingCollection' => 350000,
+            'collectionOrderCount'       => 12,
+
+            'totalCreditNoteAmount' => 120000,
+            'creditNoteCount'       => 6,
+
+            'highestSellingItem' => "Smart Roof Sheet 0.45mm",
+            'lowestSellingItem'  => "Color Coated Trim Sheet",
+
+            'topCustomerName'   => "ABC Traders",
+            'topCustomerQty'    => 40,
+            'topCustomerAmount' => 950000,
+
+            'leastCustomerName'   => "XYZ Hardware",
+            'leastCustomerQty'    => 2,
+            'leastCustomerAmount' => 15000,
+
+            'salesPerformance' => $salesPerformance,
+
+            'teamOnDuty'     => 18,
+            'teamOnLeave'    => 3,
+
+            'totalStock'      => 350,
+            'totalInStock'    => 280,
+            'totalOutOfStock' => 70,
+
+            'uniqueTarget'   => $targets['unique_leads'],
+            'uniqueAchieved' => $achieved['unique_leads'],
+
+            'influencerTarget'   => $targets['customer_visit'],
+            'influencerAchieved' => $achieved['customer_visit'],
+
+            'aashiyanaTarget'   => $targets['aashiyana'],
+            'aashiyanaAchieved' => $achieved['aashiyana'],
+
+            'productsTarget'   => $targets['order_quantity'],
+            'productsAchieved' => $achieved['order_quantity'],
         ]);
     }
+
+
+
 }
