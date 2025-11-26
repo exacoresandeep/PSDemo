@@ -1,6 +1,6 @@
 <div class="menu-header">
     <div class="row justify-content-between">
-        <div class="col-md-3">
+        <div class="col-md-3 pl-5">
              <div class="d-flex align-items-center">
                 <label for="productSelect" class="mb-0 me-3 fw-bold">Product:</label>
                 <select id="productSelect" class="form-control" style="max-width: 250px;">
@@ -14,6 +14,13 @@
                     <img src="{{ asset('images/profile-pic.png') }}" class="img-fluid">
                     <p>{{ Auth::check() ? Auth::user()->name : 'Guest' }}</p>
                 </div>
+                <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                    <i class="fa fa-sign-out" aria-hidden="true" style="font-size: 35px; color:#A02625;margin-left:15px;"></i>
+                </a>
+                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                    @csrf
+                </form>
+                
             </div>
         </div>
     </div>

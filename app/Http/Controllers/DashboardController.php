@@ -96,7 +96,7 @@ class DashboardController extends Controller
             })
             ->count();  
         $approvedOrders = (clone $baseQuery)->where('order_approved', '1')->count();
-            $rejectedOrders = (clone $baseQuery)->where('order_approved', '2')->count();
+        $rejectedOrders = (clone $baseQuery)->where('order_approved', '2')->count();
 
             return view('accounts.dashboard', compact(
                 'pendingOrders',
@@ -164,9 +164,12 @@ class DashboardController extends Controller
     {
         $month = $request->month; 
         $year = $request->year;
-
-        $totalLeads = \App\Models\Lead::whereYear('created_at', $year)
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+        $totalLeads = \App\Models\Lead::with(["createdBy"])->whereYear('created_at', $year)
             ->whereMonth('created_at', $month + 1) 
+            ->whereHas('createdBy', function($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            })
             ->count();
 
         return response()->json([
@@ -177,11 +180,14 @@ class DashboardController extends Controller
     {
         $month = $request->month;
         $year = $request->year;
-
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
         // Outstanding Payments
-        $outstanding = OutstandingPayment::whereYear('invoice_date', $year)
-            ->whereMonth('invoice_date', $month + 1) // +1 for 1-based month
+        $outstanding = OutstandingPayment::with(["order.orderItems"])->whereYear('invoice_date', $year)
+            ->whereMonth('invoice_date', $month + 1) 
             ->where('status', 'open')
+            ->whereHas('order.orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
+            })
             ->get();
 
         $totalOutstandingAmount = $outstanding->sum('outstanding_amount');
@@ -212,9 +218,12 @@ class DashboardController extends Controller
             $nextMonthNumber = 1;
             $year += 1; 
         }
+
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
         $nextMonthName = \DateTime::createFromFormat('!m', $nextMonthNumber)->format('F');
         $targets = Target::where('month', $nextMonthName)
                         ->where('year', $year)
+                        ->where('product_id', $productID)
                         ->get();
 
         $totalTargets = [
@@ -225,8 +234,11 @@ class DashboardController extends Controller
         ];
 
         // Sum achievements
-        $uniqueLeads = Lead::whereYear('created_at', $year)
+        $uniqueLeads = Lead::with(["createdBy"])->whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber+1)
+                            ->whereHas('createdBy', function($q) use ($productID) {
+                                $q->whereJsonContains('products', (string)$productID);
+                            })
                             ->count();
 
         // $customerVisitCount = RescheduledRoute::whereYear('assign_date', $year)
@@ -242,12 +254,15 @@ class DashboardController extends Controller
                 ->count('phone');
 
 
-        $aashiyanaCount = Order::whereYear('created_at', $year)
+        $aashiyanaCount = Order::with(["orderItems"])->whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber+1)
+                            ->whereHas('orderItems', function ($q) use ($productID) {
+                                $q->where('product_id', $productID);
+                            })
                             ->where('payment_terms_id', 3)
                             ->count();
 
-        $orders = Order::whereYear('created_at', $year)
+        $orders = Order::with(["orderItems"])->whereYear('created_at', $year)
                         ->whereMonth('created_at', $monthNumber+1)
                         ->where('order_approved', '1')
                         ->pluck('id');
@@ -270,10 +285,13 @@ class DashboardController extends Controller
     {
         $month = $request->month;
         $year = $request->year;
-       
-        $creditNotes = CreditNote::whereMonth('date', $month+1)
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+        $creditNotes = CreditNote::with(["order.orderItems"])->whereMonth('date', $month+1)
             ->whereYear('date', $year)
             ->where('status', 'open')
+            ->whereHas('order.orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
+            })
             ->get();
 
         $totalAmount = $creditNotes->sum('total_row_amount');
@@ -422,13 +440,14 @@ class DashboardController extends Controller
         $request->validate([
             'region_id' => 'required|integer',
             'employee_type_id' => 'required|integer',
-            'month' => 'required|integer|min:1|max:12',
+            'month' => 'required|integer|min:0|max:12',
             'year' => 'required|integer|min:2000',
         ]);
-
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
         $districtIds = District::where('regions_id', $request->region_id)->pluck('id');
         $employees = Employee::where('employee_type_id', $request->employee_type_id)
             ->whereIn('district_id', $districtIds)
+            ->whereJsonContains('products', (string)$productID)
             ->with(['employeeType', 'district.region']) 
             ->get();
 
@@ -509,9 +528,12 @@ class DashboardController extends Controller
     {
         $month = $request->month; 
         $year = $request->year;
-
-        $totalDealerVisit = \App\Models\DealerVisit::whereYear('created_at', $year)
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+        $totalDealerVisit = \App\Models\DealerVisit::with(["createdBy"])->whereYear('created_at', $year)
             ->whereMonth('created_at', $month + 1) 
+            ->whereHas('createdBy', function($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            })
             ->count();
 
         return response()->json([
@@ -522,9 +544,12 @@ class DashboardController extends Controller
     {
         $month = $request->month; 
         $year = $request->year;
-
-        $totalInfluencerVisit = \App\Models\InfluencerVisit::whereYear('created_at', $year)
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+        $totalInfluencerVisit = \App\Models\InfluencerVisit::with(["createdBy"])->whereYear('created_at', $year)
             ->whereMonth('created_at', $month + 1) 
+            ->whereHas('createdBy', function($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            })
             ->count();
 
         return response()->json([
@@ -580,4 +605,18 @@ class DashboardController extends Controller
         return Excel::download(new TisconOrdersExport($year, $month), 'tiscon_orders_export.xlsx');
     }
   
+
+    public function getMDData(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+// dd($request);
+        return response()->json([
+            'totalEmployees'   => 1,
+            'totalVisits'      => 2,
+            'totalOrders'      => 3,
+            'totalCollections' => 4,
+            'totalOutstanding' => 5,
+        ]);
+    }
 }

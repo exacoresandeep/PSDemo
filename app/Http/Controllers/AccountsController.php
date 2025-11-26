@@ -697,28 +697,11 @@ class AccountsController extends Controller
     
     public function priceList()
     {
-        $selectedProductCode = session('selected_product_code');
+            $productID= \App\Helpers\ProductHelper::getSelectedProductID();
 
-        if (!$selectedProductCode) {
-            $user = auth()->user();
-            $productIds = $user->product_ids ?? [];
-
-            $firstProduct = Product::whereIn('id', $productIds)
-                ->select('id', 'product_name', 'product_code')
-                ->first();
-                // $firstProduct = Product::first();
-                if ($firstProduct) {
-                    $selectedProductCode = $firstProduct->product_code;
-                    session(['selected_product_code' => $selectedProductCode]);
-                } else {
-                    return datatables()->of(collect())->make(true); 
-                }
-            }
             // dd( $firstProduct);
             $groupedPrices = Price::with('productType.product')
-            ->whereHas('productType.product', function ($q) use ($selectedProductCode) {
-                $q->where('product_code', $selectedProductCode);
-            })
+            ->where('product_id', $productID)
             ->select('start_date', 'end_date', DB::raw('MAX(status) as status'))
             ->groupBy('start_date', 'end_date')
             ->orderByDesc('status')

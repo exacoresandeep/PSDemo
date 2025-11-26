@@ -76,7 +76,6 @@ class AdminController extends Controller
             case 2: 
                 $employeeTypes = EmployeeType::select('id', 'type_name')->get();
                 $regions = Regions::select('id', 'name')->get();
-                // dd($regions);
                 return view('sales.dashboard',compact('employeeTypes', 'regions'));
             case 3: return view('accounts.dashboard', compact('user')); 
             case 4: return view('logistics.dashboard', compact('user')); 
@@ -92,23 +91,44 @@ class AdminController extends Controller
                         ->select('id', 'product_name', 'product_code')
                         ->first();       
                 }
-                
-                $stocks = ProductDetails::select('type_id')
-                ->where('product_id', $products->id)
-                ->selectRaw('SUM(total_available_quantity) as total_stock_quantity')
-                ->groupBy('type_id')
-                ->with('productType:id,type_name')
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'type_id' => $item->type_id,
-                        'type_name' => $item->productType->type_name ?? 'Unknown',
-                        'total_stock_quantity' => (float) $item->total_stock_quantity,
-                    ];
-                });
-                $employeeTypes = EmployeeType::select('id', 'type_name')->get();
-                $regions = Regions::select('id', 'name')->get();
-                return view('md.dashboard',compact('stocks', 'employeeTypes', 'regions'));
+                        
+                        $stocks = ProductDetails::select('type_id')
+                        ->where('product_id', $products->id)
+                        ->selectRaw('SUM(total_available_quantity) as total_stock_quantity')
+                        ->groupBy('type_id')
+                        ->with('productType:id,type_name')
+                        ->get()
+                        ->map(function ($item) {
+                            return [
+                                'type_id' => $item->type_id,
+                                'type_name' => $item->productType->type_name ?? 'Unknown',
+                                'total_stock_quantity' => (float) $item->total_stock_quantity,
+                            ];
+                        });
+                        $employeeTypes = EmployeeType::select('id', 'type_name')->get();
+                        $regions = Regions::select('id', 'name')->get();
+
+                        $currentMonth = now()->month - 1;
+            $currentYear = now()->year;
+            $startYear = $currentYear - 3;
+            $endYear = $currentYear + 5;
+
+            $months = [
+                'January','February','March','April','May','June',
+                'July','August','September','October','November','December'
+            ];
+
+            return view('md.dashboard', [
+                'months'        => $months,
+                'currentMonth'  => $currentMonth,
+                'currentYear'   => $currentYear,
+                'startYear'     => $startYear,
+                'endYear'       => $endYear,
+                'stocks'        => $stocks ?? [],   // supply your data here
+                'employeeTypes'        => $employeeTypes ?? [],   // supply your data here
+                'regions'       => $regions ?? []   // supply your data here
+            ]);
+                // return view('md.dashboard',compact('stocks', 'employeeTypes', 'regions'));
             case 6: return view('operations.dashboard', compact('user')); 
             default:
                 Auth::logout();

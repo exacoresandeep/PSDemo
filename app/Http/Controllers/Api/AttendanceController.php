@@ -39,7 +39,7 @@ class AttendanceController extends Controller
             'latitude'            => 'required|string',
             'longitude'           => 'required|string',
             'starting_remarks'    => 'required|string|max:1000',
-            'starting_km'         => 'required|integer|min:0',
+            'starting_km'         => 'required',
             'starting_attachment' => 'required|array', // now an array
             'starting_attachment.*' => 'string' // each file name must be string
         ]);
@@ -181,7 +181,7 @@ class AttendanceController extends Controller
         $request->validate([
             'total_active_hours' => 'required|string',
             'ending_remarks'     => 'required|string|max:1000',
-            'ending_km'          => 'required|integer|min:0',
+            'ending_km'          => 'required',
             'ending_attachment'  => 'required|array',
             'ending_attachment.*'=> 'string'
         ]);

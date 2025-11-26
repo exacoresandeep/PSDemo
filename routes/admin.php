@@ -251,6 +251,7 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
 
     Route::prefix('md')->middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('md.dashboard');
+        Route::get('/getMDData', [DashboardController::class, 'getMDData'])->name('md.getMDData');
         Route::get('/sales-data', [DashboardController::class, 'getSalesData'])->name('md.getSalesData'); 
         Route::get('/sales-quantity', [DashboardController::class, 'getSalesQuantity'])->name('md.getSalesQuantity'); 
         Route::get('/leads-data', [DashboardController::class, 'getLeadsData'])->name('md.getLeadsData');

@@ -32,16 +32,19 @@
     <main>
         <div class="main-container">
             <div class="d-flex">
-                <div class="col-2">
-                @include('includes.sidebar-menu')
+                {{-- @include('includes.sidebar-menu') --}}
+                <div class="logo">
+                <a href="{{ route('admin.dashboard') }}"><img src="{{asset('images/logo.svg')}}"></a>
+                </div>  
+                <div class="content flex-fill pl-5">
+                    @include('includes.header')
                 </div>
-                <div class="col-10">
-                    <div class="content flex-fill">
-                        <div class="content-area">
-                            @include('includes.header')
-                            <div class="dashboard-area">
-                                @yield('content')
-                            </div>
+            </div>
+            <div class="d-flex main-content">
+                <div class="content flex-fill">
+                    <div class="content-area md">
+                        <div class="dashboard-area md">
+                            @yield('content')
                         </div>
                     </div>
                 </div>
