@@ -610,7 +610,6 @@ class DashboardController extends Controller
     {
         $from = $request->from;
         $to   = $request->to;
-// dd($request);
         return response()->json([
             'totalEmployees'   => 1,
             'totalVisits'      => 2,

@@ -49,7 +49,7 @@
     {{-- Today's summary --}}
     <div class="row md-dash-summary mb-4 pb-5">
         <div class="col-md-12 mb-3">
-            <h4>Today’s Sales Summary - 03/11/202</h4>
+            <h4>Today’s Sales Summary - 03/11/2025</h4>
         </div>
         <div class="col">
         <div class="dash-item-box">
@@ -480,16 +480,12 @@ function loadThisWeek() {
 
 
 
-/* ============================
-    MAIN AJAX FUNCTION
-============================== */
-
 function loadDashboardData(fromDate, toDate) {
 
     console.log("Loading MD dashboard:", fromDate, "to", toDate);
 
     $.ajax({
-        url: "/md/getMDData", // CHANGE THIS
+        url: "/md/getMDData",
         method: "GET",
         data: {
             from: fromDate,
@@ -497,7 +493,6 @@ function loadDashboardData(fromDate, toDate) {
         },
         success: function(response) {
 
-            // Example fields (adjust based on your backend response)
             $("#totalEmployees").text(response.totalEmployees);
             $("#totalVisits").text(response.totalVisits);
             $("#totalOrders").text(response.totalOrders);
