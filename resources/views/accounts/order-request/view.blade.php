@@ -35,9 +35,11 @@
                         <div class="col-md-6"><strong>Billing Date:</strong> <span id="view_billing_date"></span></div>
                     </div>
                     <div class="row mb-2">
-                        
                         <div class="col-md-6"><strong>Status:</strong> <span id="view_status"></span></div>
                         <div class="col-md-6"><strong>Scheme:</strong> <span id="view_scheme"></span></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-6"><strong>Instructions:</strong> <span id="view_instructions"></span></div>
                     </div>
                    
 

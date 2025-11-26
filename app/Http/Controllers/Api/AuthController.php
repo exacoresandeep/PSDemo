@@ -1645,7 +1645,7 @@ public function notificationList()
                     ->where('products_details.product_id', $productId);
 
                 if (!empty($search)) {
-                    $query->where('products_details.product_name', 'LIKE', '%' . $search . '%');
+                    $query->where('products_details.product_name', 'LIKE', $search . '%');
                 }
 
                 $data = $query->limit(20)->get();

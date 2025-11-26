@@ -262,7 +262,7 @@ class OrderController extends Controller
             $order = Order::with([
                 'orderType:id,name',
                 'dealer:id,dealer_name,dealer_code', 
-                'orderItems.product:id,product_name',
+                'orderItems.product:id,product_name,product_code',
                 'lead:id,customer_type,customer_name,phone,address',
                 'lead.customerType:id,name', 
                 'paymentTerm:id,name',
@@ -295,6 +295,7 @@ class OrderController extends Controller
             
             
                     $item->product_name = $item->product['product_name'] ?? null;
+                    $item->product_code = $item->product['product_code'] ?? null;
                 }
             }
     	    if($order->dealer_flag_order!="0"){
@@ -533,7 +534,7 @@ class OrderController extends Controller
             $order = Order::with([
                 'orderType:id,name',
                 'dealers:id,dealer_name,dealer_code',
-                'orderItems.product:id,product_name',
+                'orderItems.product:id,product_name,product_code',
                 'paymentTerm:id,name',
                 'vehicleCategory:id,vehicle_category_name'
             ])->findOrFail($orderId);
@@ -582,6 +583,7 @@ class OrderController extends Controller
                 return [
                     'product_id' => $item->product_id,
                     'product_name' => $item->product->product_name ?? null,
+                    'product_code' => $item->product->product_code ?? null,
                     'total_quantity' => (float) $item->total_quantity,
                     'product_details' => $productDetails,
                 ];
@@ -1178,7 +1180,7 @@ class OrderController extends Controller
             $outstandingPayment = OutstandingPayment::with([
                 'dealer:id,dealer_name,dealer_code',
                 'order.orderType:id,name',
-                'order.orderItems.product:id,product_name',
+                'order.orderItems.product:id,product_name,product_code',
                 'order.paymentTerm:id,name',
                 'order.vehicleCategory:id,vehicle_category_name',
                 'commitments'
@@ -1226,6 +1228,7 @@ class OrderController extends Controller
                 return [
                     'product_id' => $item->product_id,
                     'product_name' => $item->product->product_name ?? null,
+                    'product_code' => $item->product->product_code ?? null,
                     'total_quantity' => (float) $item->total_quantity,
                     'product_details' => $productDetails,
                 ];
@@ -1532,7 +1535,8 @@ class OrderController extends Controller
 
                 $salesReport = $salesExecutives->map(function ($se) use ($month, $year, $product_id, &$totalSalesForPeriod) {
                     $orders = Order::where('created_by', $se->id)
-                        ->where('status', 'Delivered')
+                        // ->where('status', 'Delivered')
+                        ->where('order_approved', '1')
                         ->whereYear('created_at', $year)
                         ->whereMonth('created_at', $month)
                         ->where(function ($q) {
@@ -1593,7 +1597,8 @@ class OrderController extends Controller
     
                 $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod) {
                     $orders = Order::where('created_by', $emp->id)
-                        ->where('status', 'Delivered')
+                        // ->where('status', 'Delivered')
+                        ->where('order_approved', '1')
                         ->whereYear('created_at', $year)
                         ->whereMonth('created_at', $month)
                         ->where(function ($q) {
@@ -1647,7 +1652,8 @@ class OrderController extends Controller
     
                 $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod) {
                     $orders = Order::where('created_by', $emp->id)
-                        ->where('status', 'Delivered')
+                        // ->where('status', 'Delivered')
+                        ->where('order_approved', '1')
                         ->whereYear('created_at', $year)
                         ->whereMonth('created_at', $month)
                         ->where(function ($q) {
@@ -1773,7 +1779,8 @@ class OrderController extends Controller
             $product_id = $request->input('product_id', null);
     
             $orders = Order::where('created_by', $salesEmployee->id)
-                ->where('status', 'Delivered')
+                // ->where('status', 'Delivered')
+                ->where('order_approved', '1')
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $month)
                 ->where(function ($q) {
@@ -2018,7 +2025,8 @@ class OrderController extends Controller
                     'dealer_name' => optional($order->dealer)->dealer_name,
                     'created_at' => \Carbon\Carbon::parse($order->created_at)->format('d/m/Y'), 
                     'status' => $order->status,
-                    'amount' => ($order->status === 'Delivered') ? (float) $order->invoice_total : (float) $order->total_amount,
+                    'amount' => ($order->order_approved === '1') ? (float) $order->total_amount : (float) $order->total_amount,
+                    // 'amount' => ($order->status === 'Delivered') ? (float) $order->invoice_total : (float) $order->total_amount,
                 ];
             });
 
@@ -2484,6 +2492,7 @@ class OrderController extends Controller
                 return [
                     'product_id'     => $item->product_id,
                     'product_name'   => optional($item->product)->product_name ?? 'N/A',
+                    'product_code'   => optional($item->product)->product_code ?? 'N/A',
                     'total_quantity' => (int) $item->total_quantity,
                     'product_details' => collect($item->product_details)->map(function ($detail) {
                         return [
@@ -2563,7 +2572,8 @@ class OrderController extends Controller
         $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4, 5])->pluck('id')->toArray();
         
         $orders = Order::whereIn('created_by', $employees)
-            ->where('status', 'Delivered')
+            // ->where('status', 'Delivered')
+            ->where('order_approved', '1')
             ->whereYear('created_at', $year)
             ->whereMonth('created_at', $month)
             ->get();
@@ -3128,7 +3138,7 @@ class OrderController extends Controller
             'dealer:id,dealer_name,dealer_code,address,district',
             'aso:id,employee_code,name',
             'creator:id,name',
-            'order.orderItems.product:id,product_name',
+            'order.orderItems.product:id,product_name,product_code',
             'order.orderType:id,name',
             'order.customerType:id,name',
             'order.paymentTerm:id,name',
@@ -3226,6 +3236,7 @@ class OrderController extends Controller
                 return [
                     'product_id' => $item->product_id,
                     'product_name' => $item->product->product_name ?? null,
+                    'product_code' => $item->product->product_code ?? null,
                     'total_quantity' => (float)$totalQty,
                     'total_pieces' => (float)$totalPieces,
                     'total_ton' => $totalTonnage > 0 ? $totalTonnage : null,
@@ -3293,7 +3304,8 @@ class OrderController extends Controller
             foreach ($employees as $emp) {
                 $orders = Order::with(['orderItems', 'paymentTerm', 'createdBy'])
                     ->where('created_by', $emp->id)
-                    ->where('status', 'Delivered')
+                    ->where('order_approved', '1')
+                    // ->where('status', 'Delivered')
                     ->whereYear('created_at', $year)
                     ->whereMonth('created_at', $month)
                     ->get();

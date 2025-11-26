@@ -435,45 +435,54 @@ class DealerOrderController extends Controller
             $order = Order::with([
                 'orderType:id,name',
                 'dealers:id,dealer_name,dealer_code',
-                'orderItems.product:id,product_name',
+                'orderItems.product:id,product_name,product_code',
                 'paymentTerm:id,name',
                 'vehicleCategory:id,vehicle_category_name',
             ])->findOrFail($orderId);
 
             // --- Process Order Items ---
+            // --- Process Order Items ---
             if ($order->orderItems && count($order->orderItems)) {
                 foreach ($order->orderItems as $item) {
 
                     // Convert numeric fields
-                    $item->total_quantity = (float)$item->total_quantity;
+                    $item->total_quantity = (float) $item->total_quantity;
 
                     // Remove quantity_type if exists
                     unset($item->quantity_type);
 
-                    // Calculate total pieces & tonnage
+                    // Calculate totals
                     $totalPieces = 0;
                     $totalTon = 0;
 
-                    if (isset($item->product_details) && is_array($item->product_details)) {
-                        foreach ($item->product_details as &$pd) {
+                    // Work on a copied array (Laravel casted attribute cannot be modified directly)
+                    $productDetails = $item->product_details ?? [];
+
+                    if (is_array($productDetails)) {
+                        foreach ($productDetails as $key => $pd) {
 
                             // Total calculation
                             $totalPieces += isset($pd['pieces']) ? (float)$pd['pieces'] : 0;
                             $totalTon += isset($pd['tonnage']) ? (float)$pd['tonnage'] : 0;
 
                             // Add product type name
-                            $pd['product_type'] = ProductType::where('id', $pd['product_type_id'])
+                            $productDetails[$key]['product_type'] = ProductType::where('id', $pd['product_type_id'])
                                 ->value('type_name') ?? null;
                         }
                     }
+
+                    // Assign modified array back to model
+                    $item->product_details = $productDetails;
 
                     $item->total_pieces = $totalPieces;
                     $item->total_ton = $totalTon;
 
                     // Add product name
                     $item->product_name = $item->product->product_name ?? null;
+                    $item->product_code = $item->product->product_code ?? null;
                 }
             }
+
 
             // ---------------- RESPONSE ----------------
             $responseData = [
@@ -492,8 +501,8 @@ class DealerOrderController extends Controller
                 ],
 
                 'credit_days' => $order->credit_days,
-                'billing_date' => $order->billing_date,
-                'delivery_date' => $order->delivery_date,
+                'billing_date' => $order->billing_date->format('d/M/Y'),
+                'delivery_date' => $order->delivery_date->format('d/M/Y'),
                 'total_amount' => round((float)$order->total_amount, 6),
                 'additional_information' => $order->additional_information,
                 'status' => $order->status,
@@ -523,6 +532,7 @@ class DealerOrderController extends Controller
                     return [
                         'product_id' => $item->product_id,
                         'product_name' => $item->product_name,
+                        'product_code' => $item->product_code,
                         'total_quantity' => $item->total_quantity,
                         'total_pieces' => $item->total_pieces,
                         'total_ton' => $item->total_ton,
@@ -939,7 +949,7 @@ class DealerOrderController extends Controller
             $order = Order::with([
                 'orderType:id,name',
                 'dealers:id,dealer_name,dealer_code',
-                'orderItems.product:id,product_name',
+                'orderItems.product:id,product_name,product_code',
                 'orderItems',
                 'paymentTerm:id,name',
                 'vehicleCategory:id,vehicle_category_name'
@@ -1003,6 +1013,7 @@ class DealerOrderController extends Controller
                     return [
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->product_name ?? 'N/A',
+                        'product_code' => $item->product->product_code ?? 'N/A',
                         'total_quantity' => $item->total_quantity,
                         'balance_quantity' => $item->balance_quantity,
                         'product_details' => collect($item->product_details)->map(function ($detail) {
@@ -1393,7 +1404,7 @@ class DealerOrderController extends Controller
                 'influencerVisit:id,influencer_name,phone,status',
                 'paymentTerm:id,name',
                 'orderItems.product.productTypes:id,product_id,type_name',
-                'orderItems.product:id,product_name',
+                'orderItems.product:id,product_name,product_code',
                 'dealers:id,dealer_name,dealer_code',
                 'vehicleCategory:id,vehicle_category_name',
             ])
@@ -1467,6 +1478,7 @@ class DealerOrderController extends Controller
                     return [
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->product_name ?? 'N/A',
+                        'product_code' => $item->product->product_code ?? 'N/A',
                         'total_quantity' => $item->total_quantity,
                         'balance_quantity' => (float) $item->balance_quantity,
                         'product_details' => collect($item->product_details)->map(function ($detail) {
@@ -2079,7 +2091,7 @@ class DealerOrderController extends Controller
             $order = Order::with([
                 'orderType:id,name',
                 'dealers:id,dealer_name,dealer_code',
-                'orderItems.product:id,product_name',
+                'orderItems.product:id,product_name,product_code',
                 'orderItems',
                 'paymentTerm:id,name',
                 'vehicleCategory:id,vehicle_category_name'
@@ -2137,6 +2149,7 @@ class DealerOrderController extends Controller
                     return [
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->product_name ?? 'N/A',
+                        'product_code' => $item->product->product_code ?? 'N/A',
                         'total_quantity' => $item->total_quantity,
                         'balance_quantity' => (float) $item->balance_quantity,
                         'product_details' => collect($item->product_details)->map(function ($detail) {

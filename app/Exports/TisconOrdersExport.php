@@ -33,14 +33,15 @@ class TisconOrdersExport implements FromCollection, WithMapping, WithHeadings, S
         // Get all delivered orders with valid created_by
         $orders = Order::whereYear('created_at', $this->year)
             ->whereMonth('created_at', $this->month)
-            ->where('status', 'Delivered')
+            ->where('order_approved', '1')
             ->whereNotNull('created_by')
             ->get();
 
         // Aggregate achieved quantity per employee
         foreach ($orders as $order) {
             $empId = $order->created_by;
-            $this->achievedByEmployee[$empId] = ($this->achievedByEmployee[$empId] ?? 0) + (float) ($order->invoice_quantity ?? 0);
+            $sumQuantity = $order->orderItems->sum('total_quantity');
+            $this->achievedByEmployee[$empId] = ($this->achievedByEmployee[$empId] ?? 0) + (float) $sumQuantity;
         }
 
         // Filter employees who have a non-zero target

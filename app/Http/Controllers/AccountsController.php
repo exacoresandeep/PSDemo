@@ -579,6 +579,7 @@ class AccountsController extends Controller
                 'billing_date' => optional($order->billing_date)->format('d/m/Y') ?? 'N/A',
                 'status_badge' => $order->status,
                 'scheme' => $order->scheme,
+                'instructions' => $order->additional_information,
                 'reason_for_rejection' => $order->reason_for_rejection,
                 'remarks' => $order->order_remarks,
                 'order_approved' => $order->order_approved,
