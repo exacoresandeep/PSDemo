@@ -265,10 +265,15 @@ class TargetController extends Controller
             //         $customers = collect(json_decode($route->customers ?? '[]', true));
             //         return $customers->where('scheduled', true)->where('status', 'Completed')->count();
             //     });
+            // $customerVisitCount = InfluencerVisit::where('created_by', $employeeId)
+            //     ->whereYear('created_at', $year)
+            //     ->whereMonth('created_at', $monthNumber)
+            //     ->count();
             $customerVisitCount = InfluencerVisit::where('created_by', $employeeId)
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNumber)
-                ->count();
+                ->distinct('phone')   
+                ->count('phone');
     
             $aashiyanaCount = Order::where('created_by', $employeeId)
                                 ->whereYear('created_at', $year)
@@ -422,10 +427,15 @@ class TargetController extends Controller
                 ->whereMonth('created_at', $monthNumber)
                 ->count();
     
+            // $customerVisitCount = InfluencerVisit::where('created_by', $empId)
+            //     ->whereYear('created_at', $year)
+            //     ->whereMonth('created_at', $monthNumber)
+            //     ->count();
             $customerVisitCount = InfluencerVisit::where('created_by', $empId)
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNumber)
-                ->count();
+                ->distinct('phone')   
+                ->count('phone');
     
             $totalAchieved['influencer_visits'] += $customerVisitCount;
     
