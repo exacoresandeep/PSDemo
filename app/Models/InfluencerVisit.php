@@ -34,6 +34,10 @@ class InfluencerVisit extends Model
 
     ];
  
+    public function createdBy()
+    {
+        return $this->belongsTo(Employee::class, 'created_by');
+    }
     public function followUps()
     {
         return $this->hasMany(InfluencerVisitFollowUp::class, 'influencer_visit_id');

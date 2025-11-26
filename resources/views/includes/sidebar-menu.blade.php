@@ -4,7 +4,7 @@
       <a href="{{ route('admin.dashboard') }}"><img src="{{asset('images/logo.svg')}}"></a>
     </div>          
     <div class="menu-cover d-flex flex-wrap">
-      <div class="d-flex align-self-start flex-wrap">
+      <div class="d-flex align-self-start flex-wrap w-100">
         <ul class="w-100">
             <li>
                 <a class="menu-title"  href="{{ route('admin.dashboard') }}">
@@ -53,7 +53,7 @@
       <a href="{{ route('sales.dashboard') }}"><img src="{{asset('images/logo.svg')}}"></a>
     </div>          
     <div class="menu-cover d-flex flex-wrap">
-      <div class="d-flex align-self-start flex-wrap">
+      <div class="d-flex align-self-start flex-wrap w-100">
         <ul class="w-100">
             <li>
                 <a class="menu-title"  href="{{ route('sales.dashboard') }}">

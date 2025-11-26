@@ -39,6 +39,10 @@ class DealerVisit extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+    public function createdBy()
+    {
+        return $this->belongsTo(Employee::class, 'created_by');
+    }
     public function order()
     {
         return $this->hasOne(Order::class, 'dealer_visit_id')->where('source', 'dealer_visit');
