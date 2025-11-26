@@ -249,8 +249,9 @@ class DashboardController extends Controller
         //                         return $customers->where('scheduled', true)->where('status', 'Completed')->count();
         //                     });
         $customerVisitCount = InfluencerVisit::whereYear('created_at', $year)
-            ->whereMonth('created_at', $monthNumber)
-            ->count();
+                ->whereMonth('created_at', $monthNumber + 1)
+                ->distinct('phone')   
+                ->count('phone');
 
 
         $aashiyanaCount = Order::with(["orderItems"])->whereYear('created_at', $year)
@@ -575,14 +576,20 @@ class DashboardController extends Controller
         return Excel::download(new UniqueLeadsExport($year, $month), 'unique_leads_export.xlsx');
     }
 
+
     public function exportInfluencerVisits(Request $request)
     {
         $month = $request->month;
         $year = $request->year;
 
-        return Excel::download(new InfluencerVisitsExport($year, $month), 'influencer_visits_export.xlsx');
-    }
+        $exportMonth = $month + 1;
 
+        $monthFormatted = str_pad($exportMonth, 2, '0', STR_PAD_LEFT);
+
+        $fileName = "influencer_visits_{$monthFormatted}_{$year}.xlsx";
+
+        return Excel::download(new InfluencerVisitsExport($year, $month), $fileName);
+    }
     public function exportAashiyanaOrders(Request $request)
     {
         $month = $request->month;

@@ -2,8 +2,10 @@
 
 namespace App\Exports;
 
-use App\Models\RescheduledRoute;
+use App\Models\InfluencerVisit;
 use App\Models\Target;
+use App\Models\Employee;
+use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -14,6 +16,7 @@ class InfluencerVisitsExport implements FromCollection, WithMapping, WithHeading
     protected $year, $month, $row = 1;
     protected $targetsByEmployee = [];
     protected $achievedByEmployee = [];
+    protected $employees = [];
 
     public function __construct($year, $month)
     {
@@ -23,70 +26,45 @@ class InfluencerVisitsExport implements FromCollection, WithMapping, WithHeading
 
     public function collection()
     {
-        $routes = RescheduledRoute::with('employee')
-            ->whereYear('assign_date', $this->year)
-            ->whereMonth('assign_date', $this->month)
-            ->get();
+        $this->employees = Employee::select('id', 'name', 'employee_code')->get();
 
         $this->targetsByEmployee = Target::where('month', $this->month)
             ->where('year', $this->year)
             ->pluck('customer_visit', 'employee_id')
             ->toArray();
 
-        foreach ($routes as $route) {
-            $employeeId = $route->employee_id;
-            $customers = collect(json_decode($route->customers ?? '[]', true))
-                ->where('scheduled', true)
-                ->where('status', 'Completed');
+        $this->achievedByEmployee = InfluencerVisit::whereYear('created_at', $this->year)
+            ->whereMonth('created_at', $this->month)
+            ->whereNotNull('phone')
+            ->select('created_by', DB::raw('COUNT(DISTINCT phone) as count'))
+            ->groupBy('created_by')
+            ->pluck('count', 'created_by')
+            ->toArray();
 
-            if (!isset($this->achievedByEmployee[$employeeId])) {
-                $this->achievedByEmployee[$employeeId] = 0;
-            }
-            $this->achievedByEmployee[$employeeId] += $customers->count();
-        }
-
-        return $routes;
+        return $this->employees;
     }
 
-    public function map($route): array
+    public function map($employee): array
     {
-        $employee = optional($route->employee);
-        $employeeId = $employee->id ?? null;
-
-        $customers = collect(json_decode($route->customers ?? '[]', true))
-            ->where('scheduled', true)
-            ->where('status', 'Completed');
-
-        $completedCount = $customers->count();
-        $completedNames = $customers->pluck('name')->implode(', ');
-
-        $target = $this->targetsByEmployee[$employeeId] ?? 0;
-        $achieved = $this->achievedByEmployee[$employeeId] ?? 0;
-
+        $employeeId = $employee->id;
 
         return [
-            $this->row++,
-            optional($route->employee)->name,
-            $route->route_name,
-            $route->assign_date,
-            $completedCount,
-            $completedNames,
-            $target,
-            $achieved,
+            $this->row++, 
+            $employee->name,
+            $employee->employee_code,
+            $this->targetsByEmployee[$employeeId] ?? 0,
+            $this->achievedByEmployee[$employeeId] ?? 0,
         ];
     }
 
     public function headings(): array
     {
         return [
-            'S.No',
+            'Sl. No',
             'Employee Name',
-            'Route Name',
-            'Assigned Date',
-            'Completed Visits Count',
-            'Completed Customer Names',
+            'Employee Code',
             'Target',
-            'Achieved',
+            'Achieved'
         ];
     }
 }
