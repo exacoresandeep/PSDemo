@@ -101,6 +101,7 @@
                         $('#view_billing_date').text(order.billing_date);
                         $('#view_status').html(order.status_badge);
 			            $('#view_scheme').html(order.scheme);
+			            $('#view_instructions').html(order.instructions);
                         $('#order_status').html(order.order_status);
                         $('#view_total_outstanding').text(order.total_outstanding);
                         // $('#view_total_outstanding').text(order.total_outstanding);

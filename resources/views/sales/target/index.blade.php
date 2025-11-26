@@ -59,7 +59,7 @@
                     <th>Target By Year</th>
                     <th>Target By Month</th>
                     <th>Unique Lead</th>
-                    <th>Customer Visit</th>
+                    <th>Influencer Visit</th>
                     <th>Aashiyana Count</th>
                     <th>Targets in Tons</th>
                     <th>Action</th>

@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\District;
 use App\Models\Regions;
 use App\Models\EmployeeType;
+use App\Models\InfluencerVisit;
 use App\Models\RescheduledRoute;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -256,14 +257,18 @@ class TargetController extends Controller
                                 ->whereMonth('created_at', $monthNumber)
                                 ->count();
     
-            $customerVisitCount = RescheduledRoute::where('employee_id', $employeeId)
-                ->whereYear('assign_date', $year)
-                ->whereMonth('assign_date', $monthNumber)
-                ->get()
-                ->sum(function ($route) {
-                    $customers = collect(json_decode($route->customers ?? '[]', true));
-                    return $customers->where('scheduled', true)->where('status', 'Completed')->count();
-                });
+            // $customerVisitCount = RescheduledRoute::where('employee_id', $employeeId)
+            //     ->whereYear('assign_date', $year)
+            //     ->whereMonth('assign_date', $monthNumber)
+            //     ->get()
+            //     ->sum(function ($route) {
+            //         $customers = collect(json_decode($route->customers ?? '[]', true));
+            //         return $customers->where('scheduled', true)->where('status', 'Completed')->count();
+            //     });
+            $customerVisitCount = InfluencerVisit::where('created_by', $employeeId)
+                ->whereYear('created_at', $year)
+                ->whereMonth('created_at', $monthNumber)
+                ->count();
     
             $aashiyanaCount = Order::where('created_by', $employeeId)
                                 ->whereYear('created_at', $year)
@@ -274,7 +279,7 @@ class TargetController extends Controller
             $orders = Order::where('created_by', $employeeId)
                             ->whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber)
-                            ->where('status', 'Delivered')
+                            ->where('order_approved', '1')
                             ->pluck('id');
     
             $achievedOrderQuantity = DB::table('order_items')
@@ -300,13 +305,13 @@ class TargetController extends Controller
                             ->where('year', $year)
                             ->where('notification_status', "pending")
 			    ->get();
-	    $authController = new AuthController();
+	        $authController = new AuthController();
 
             foreach($targetchange as $item)
-	    {
-		   // dd($item);
+	        {
+		    // dd($item);
                 //......................notification..............
-//                $authController = new AuthController();
+            //  $authController = new AuthController();
                 $authController->changeNotificationStatus('targets', $item->id,'opened');  
             }
             return response()->json([
@@ -417,14 +422,10 @@ class TargetController extends Controller
                 ->whereMonth('created_at', $monthNumber)
                 ->count();
     
-            $customerVisitCount = RescheduledRoute::where('employee_id', $empId)
-                ->whereYear('assign_date', $year)
-                ->whereMonth('assign_date', $monthNumber)
-                ->get()
-                ->sum(function ($route) {
-                    $customers = collect(json_decode($route->customers ?? '[]', true));
-                    return $customers->where('scheduled', true)->where('status', 'Completed')->count();
-                });
+            $customerVisitCount = InfluencerVisit::where('created_by', $empId)
+                ->whereYear('created_at', $year)
+                ->whereMonth('created_at', $monthNumber)
+                ->count();
     
             $totalAchieved['influencer_visits'] += $customerVisitCount;
     
@@ -437,11 +438,13 @@ class TargetController extends Controller
             $orders = Order::where('created_by', $empId)
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNumber)
-                ->where('status', 'Delivered')
+                ->where('order_approved', '1')
                 ->get();
 
-         
-            $orderQuantity = $orders->sum('invoice_quantity');
+            $orderQuantity = DB::table('order_items')
+                                        ->whereIn('order_id', $orders)
+                                        ->sum('total_quantity');
+            // $orderQuantity = $orders->sum('invoice_quantity');
             
             $totalAchieved['product_quantity'] += $orderQuantity;
         }

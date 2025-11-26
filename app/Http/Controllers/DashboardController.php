@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Exports\LeadsExport;
 use App\Models\Product;
+use App\Models\InfluencerVisit;
 use App\Exports\OutstandingPaymentsExport;
 use App\Exports\CreditNoteExport;
 use App\Exports\DealerVisitExport;
@@ -110,7 +111,7 @@ class DashboardController extends Controller
 
         $orders = Order::whereYear('created_at', $year)
             ->whereMonth('created_at', $month + 1) 
-            ->where('status', 'Delivered')
+            // ->where('status', 'Delivered')
             ->where('order_approved', '1')
             ->where(function ($q) {
                 $q->where(function ($q1) {
@@ -137,7 +138,7 @@ class DashboardController extends Controller
 
         $orders = Order::whereYear('created_at', $year)
             ->whereMonth('created_at', $month + 1) 
-            ->where('status', 'Delivered')
+            // ->where('status', 'Delivered')
             ->where('order_approved', '1')
             ->where(function ($q) {
                 $q->where(function ($q1) {
@@ -228,13 +229,17 @@ class DashboardController extends Controller
                             ->whereMonth('created_at', $monthNumber+1)
                             ->count();
 
-        $customerVisitCount = RescheduledRoute::whereYear('assign_date', $year)
-                            ->whereMonth('assign_date', $monthNumber+1)
-                            ->get()
-                            ->sum(function ($route) {
-                                $customers = collect(json_decode($route->customers ?? '[]', true));
-                                return $customers->where('scheduled', true)->where('status', 'Completed')->count();
-                            });
+        // $customerVisitCount = RescheduledRoute::whereYear('assign_date', $year)
+        //                     ->whereMonth('assign_date', $monthNumber+1)
+        //                     ->get()
+        //                     ->sum(function ($route) {
+        //                         $customers = collect(json_decode($route->customers ?? '[]', true));
+        //                         return $customers->where('scheduled', true)->where('status', 'Completed')->count();
+        //                     });
+        $customerVisitCount = InfluencerVisit::whereYear('created_at', $year)
+            ->whereMonth('created_at', $monthNumber)
+            ->count();
+
 
         $aashiyanaCount = Order::whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber+1)
@@ -243,12 +248,12 @@ class DashboardController extends Controller
 
         $orders = Order::whereYear('created_at', $year)
                         ->whereMonth('created_at', $monthNumber+1)
-                        ->where('status', 'Delivered')
+                        ->where('order_approved', '1')
                         ->pluck('id');
 
-        $achievedOrderQuantity = DB::table('orders')
-                                    ->whereIn('id', $orders)
-                                    ->sum('invoice_quantity');
+        $achievedOrderQuantity = DB::table('order_items')
+            ->whereIn('order_id', $orders)
+            ->sum('total_quantity');
 
         return response()->json([
             'target' => $totalTargets,
@@ -432,12 +437,18 @@ class DashboardController extends Controller
         $result = [];
 
         foreach ($employees as $employee) {
-            $totalQty = Order::where('created_by', $employee->id)
-                ->whereBetween('created_at', [$fromDate, $toDate])
-                ->sum('invoice_quantity');
+            // $totalQty = Order::where('created_by', $employee->id)
+            //     ->whereBetween('created_at', [$fromDate, $toDate])
+            //     ->sum('invoice_quantity');
+            $totalQty = DB::table('order_items')
+                ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->where('orders.created_by', $employee->id)
+                ->where('orders.order_approved', '1')
+                ->whereBetween('orders.created_at', [$fromDate, $toDate])
+                ->sum('order_items.total_quantity');
             $totalAmount = Order::where('created_by', $employee->id)
                 ->whereBetween('created_at', [$fromDate, $toDate])
-                ->sum('invoice_total');
+                ->sum('total_amount');
             $result[] = [
                 'region' => $employee->region?->name ?? 'N/A',
                 'employee_type' => $employee->employeeType?->type_name ?? 'N/A',
