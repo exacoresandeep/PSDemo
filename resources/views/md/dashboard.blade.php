@@ -24,7 +24,7 @@
    
     <div class="row mb-3">
         <div class="col-md-4 md-header">
-            Welcome to Your <span class="md-header">Tata Tiscon </span> Dashboard
+            Welcome to Your <span class="md-header productName"><i class="fa fa-circle-o-notch fa-spin"></i></span> Dashboard
         </div>
         <div class="col-md-8 d-flex justify-content-end" style="overflow-x:auto; white-space:nowrap;">
             <div class="date-filter d-flex align-items-center" style="flex-wrap:nowrap; gap:15px;">
@@ -49,7 +49,7 @@
     {{-- Today's summary --}}
     <div class="row md-dash-summary mb-4 pb-5">
         <div class="col-md-12 mb-3">
-            <h4>Today’s Sales Summary - 03/11/2025</h4>
+            <h4 class="inputType">Today’s Sales Summary - <span class="inputDateRange">03/11/2022</span></h4>
         </div>
         <div class="col">
         <div class="dash-item-box">
@@ -58,7 +58,7 @@
                 <h4>Total Orders</h4>
             </div>
             <div>
-                <h2 id="totalOrder">56</h2>
+                <h2 id="totalOrder"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
             </div>
             </div>                  
         </div>
@@ -71,7 +71,7 @@
                 <h4>Total Lead Open</h4>
             </div>
             <div>
-                <h2 id="totalLead">0</h2>
+                <h2 id="totalLead"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
             </div>
             </div>                  
         </div>
@@ -84,7 +84,7 @@
                 <h4> Influencer Visit</h4>
             </div>
             <div>
-                <h2 id="totalInfluencerVisit">56</h2>
+                <h2 id="totalInfluencerVisit"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
             </div>
             </div>                  
         </div>
@@ -97,7 +97,7 @@
                 <h4>Dealer Visit</h4>
             </div>
             <div>
-                <h2 id="totalDealerVisit">56</h2>
+                <h2 id="totalDealerVisit"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
             </div>
             </div>                  
         </div>
@@ -110,7 +110,7 @@
                 <h4>Completed Activity</h4>
             </div>
             <div>
-                <h2 id="totalCompletedActivity">56</h2>
+                <h2 id="totalCompletedActivity"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
             </div>
             </div>                  
         </div>
@@ -276,7 +276,6 @@
                             <option value="5">Sales Manager</option>
                         </select>
                         <select class="form-control" id="regionSalesPerformance">
-                            <option value="">All Regions</option>
                             @foreach($regions as $region)
                                 <option value="{{ $region->id }}">{{ $region->name }}</option>
                             @endforeach
@@ -308,11 +307,11 @@
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div>
                         <h5>Team on Duty</h5>
-                        <h2>34</h2>
+                        <h2 id="teamOnDuty">34</h2>
                     </div>
                     <div class="text-right">
                         <h5>Team on Leave</h5>
-                        <h2>15</h2>
+                        <h2 id="teamOnLeave">15</h2>
                     </div>
                 </div>
             </div>
@@ -322,9 +321,9 @@
                     <p style="color:#555;margin-bottom:8px;">This shows the current stock status for TATA Tiscon products.</p>
 
                     <div style="display:flex; gap:12px; margin-bottom:12px;">
-                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Total <strong>12</strong> Products</div>
-                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">In Stock <strong>10</strong></div>
-                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Out Of Stock <strong>02</strong></div>
+                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Total <strong id="totalStock">12</strong> Products</div>
+                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">In Stock <strong id="totalInStock">10</strong></div>
+                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Out Of Stock <strong id="totalOutOfStock">02</strong></div>
                     </div>
 
                     <div class="stock-table">
@@ -423,7 +422,53 @@
 @section('scripts')
 <script>
 
+function formatDate(date) {
+    const d = new Date(date);
+    return d.toLocaleDateString("en-GB"); // DD/MM/YYYY
+}
 
+// Highlight buttons
+function activateButton(buttonId) {
+    $("#btn-today, #btn-week").removeClass("btn-primary").addClass("btn-outline-primary");
+    $(buttonId).removeClass("btn-outline-primary").addClass("btn-primary");
+}
+
+// Today
+$("#btn-today").click(function () {
+    activateButton("#btn-today");
+
+    let today = formatDate(new Date());
+    $(".inputType").html(`Today’s Sales Summary - <span class="inputDateRange">${today}</span>`);
+});
+
+// This Week
+$("#btn-week").click(function () {
+    activateButton("#btn-week");
+
+    let today = new Date();
+    let first = new Date(today.setDate(today.getDate() - today.getDay() + 1)); // Monday
+    let last  = new Date(first);
+    last.setDate(first.getDate() + 6); // Sunday
+
+    let range = `${formatDate(first)} - ${formatDate(last)}`;
+
+    $(".inputType").html(`Weekly Sales Summary - <span class="inputDateRange">${range}</span>`);
+});
+
+// Custom Date Range
+$("#fromDate, #toDate").change(function () {
+    let from = $("#fromDate").val();
+    let to   = $("#toDate").val();
+
+    if (from && to) {
+        // Clear button highlight
+        $("#btn-today, #btn-week").removeClass("btn-primary").addClass("btn-outline-primary");
+
+        $(".inputType").html(
+            `Custom Date Sales Summary - <span class="inputDateRange">${formatDate(from)} - ${formatDate(to)}</span>`
+        );
+    }
+});
 $(document).ready(function () {
     
     // Load today's data on page load
@@ -458,7 +503,6 @@ function loadToday() {
 
     $("#fromDate").val(today);
     $("#toDate").val(today);
-
     loadDashboardData(today, today);
 }
 
@@ -483,29 +527,105 @@ function loadThisWeek() {
 function loadDashboardData(fromDate, toDate) {
 
     console.log("Loading MD dashboard:", fromDate, "to", toDate);
-
+    let employeeType = $('#employeeTypeSalesPerformance').val();
+    let region = $('#regionSalesPerformance').val();
     $.ajax({
         url: "/md/getMDData",
         method: "GET",
         data: {
             from: fromDate,
-            to: toDate
+            to: toDate,
+             employee_type_id:employeeType, 
+             region_id:region
         },
-        success: function(response) {
+        success: function(r) {
+            $(".productName").html(r.productName);
+            /** -------- TOP SUMMARY (Today Section) -------- **/
+            $("#totalOrder").text(r.totalOrder);
+            $("#totalLead").text(r.totalLeadOpen);
+            $("#totalInfluencerVisit").text(r.totalInfluencerVisit);
+            $("#totalDealerVisit").text(r.totalDealerVisit);
+            $("#totalCompletedActivity").text(r.totalCompletedActivity);
 
             $("#totalEmployees").text(response.totalEmployees);
             $("#totalVisits").text(response.totalVisits);
             $("#totalOrders").text(response.totalOrders);
             $("#totalCollections").text(response.totalCollections);
             $("#totalOutstanding").text(response.totalOutstanding);
+            /** -------- BIG 3 CARDS -------- **/
+            $("#totalSales").text(r.totalSalesRevenue);
+            $("#totalOrderCount").text(r.totalSalesOrderCount);
 
-            // Add any other counts the MD dashboard has
+            $("#totalQuantity").text(r.totalSalesQuantityTon);
+            $("#totalLeadGenerated").text(r.totalLeadGenerated);
+
+            /** -------- OUTSTANDING PAYMENTS -------- **/
+            $("#totalOP").text(r.totalOutstandingPayment);
+            $("#orderCountOP").text(r.outstandingOrderCount);
+
+            $("#totalOPCollection").text(r.totalOutstandingCollection);
+            $("#orderCountCollection").text(r.collectionOrderCount);
+
+            /** -------- CREDIT NOTE -------- **/
+            $("#totalCredit").text(r.totalCreditNoteAmount);
+            $("#orderCountCredit").text(r.creditNoteCount);
+
+            /** -------- Highest / Lowest Selling Item -------- **/
+            $("#highestSellingItem").text(r.highestSellingItem);
+            $("#lowestSellingItem").text(r.lowestSellingItem);
+
+            /** -------- CUSTOMER PERFORMANCE -------- **/
+            $("#topCustomerName").text(r.topCustomerName);
+            $("#topCustomerQty").text(r.topCustomerQty);
+            $("#topCustomerAmount").text(r.topCustomerAmount);
+
+            $("#leastCustomerName").text(r.leastCustomerName);
+            $("#leastCustomerQty").text(r.leastCustomerQty);
+            $("#leastCustomerAmount").text(r.leastCustomerAmount);
+
+            /** -------- Sales Performance (Bottom Table) -------- **/
+            // If table rows come from API array
+            if (r.salesPerformance && r.salesPerformance.length > 0) {
+                
+                let rows = "";
+
+                r.salesPerformance.forEach(item => {
+                    rows += `
+                        <tr>
+                            <td>${item.region}</td>
+                            <td>${item.employeeType}</td>
+                            <td>${item.employeeName}</td>
+                            <td>${item.sellingQty}</td>
+                            <td>${item.amount}</td>
+                        </tr>
+                    `;
+                });
+
+                $("#salesPerformanceTableBody").html(rows);
+            }
+            $("#leastCustomerAmount").text(r.leastCustomerAmount);
+            
+            $("#teamOnDuty").text(r.teamOnDuty); 
+            $("#teamOnLeave").text(r.teamOnLeave); 
+            $("#totalStock").text(r.totalStock); 
+            $("#totalInStock").text(r.totalInStock); 
+            $("#totalOutOfStock").text(r.totalOutOfStock); 
+            $("#uniqueTarget").text(r.uniqueTarget); 
+            $("#uniqueAchieved").text(r.uniqueAchieved); 
+            $("#influencerAchieved").text(r.influencerAchieved); 
+            $("#influencerTarget").text(r.influencerTarget); 
+            $("#aashiyanaTarget").text(r.aashiyanaTarget); 
+            $("#aashiyanaAchieved").text(r.aashiyanaAchieved); 
+            $("#productsTarget").text(r.productsTarget); 
+            $("#productsAchieved").text(r.productsAchieved); 
+            
         },
         error: function(xhr) {
             console.error("Dashboard Load Error", xhr.responseText);
         }
     });
 }
+
 
 
 </script>
