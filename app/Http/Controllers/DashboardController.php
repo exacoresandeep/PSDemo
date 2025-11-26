@@ -123,7 +123,9 @@ class DashboardController extends Controller
             })
             ->get();
 
-        $totalRevenue = $orders->sum('invoice_total'); 
+        $totalRevenue = $orders->sum(function ($order) {
+            return $order->orderItems->sum('total_quantity');
+        });
         $orderCount = $orders->count();
 
         return response()->json([
@@ -742,6 +744,204 @@ class DashboardController extends Controller
             'totalLeads' => $totalLeads
         ]);
     }
+    public function fetchSalesData(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+
+        $orders = Order::whereBetween('created_at', [$from, $to])
+            ->where('order_approved', '1')
+            ->where(function ($q) {
+                $q->where(function ($q1) {
+                    $q1->where('dealer_flag_order', '0')
+                    ->whereHas('createdBy', function ($q2) {
+                        $q2->where('employee_type_id', '!=', 1);
+                    });
+                })->orWhere('dealer_flag_order', '1'); 
+            })
+            ->with('orderItems')
+            ->get();
+
+        $totalSalesRevenue = $orders->sum('total_amount');
+
+        $orderCount = $orders->count();
+
+        return response()->json([
+            'totalSalesRevenue' => $totalSalesRevenue,
+            'orderCount' => $orderCount
+        ]);
+    }
+    public function fetchSalesQuantity(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+
+        $orders = Order::whereBetween('created_at', [$from, $to])
+            ->where('order_approved', '1')
+            ->where(function ($q) {
+                $q->where(function ($q1) {
+                    $q1->where('dealer_flag_order', '0')
+                    ->whereHas('createdBy', function ($q2) {
+                        $q2->where('employee_type_id', '!=', 1);
+                    });
+                })->orWhere('dealer_flag_order', '1'); 
+            })
+            ->with('orderItems')
+            ->get();
+
+        $totalSalesQuantity = $orders->sum(function ($order) {
+            return $order->orderItems->sum('total_quantity'); 
+        });
+
+        $orderCount = $orders->count();
+
+        return response()->json([
+            'totalSalesQuantity' => $totalSalesQuantity,
+            'orderCount' => $orderCount
+        ]);
+    }
+    public function fetchLeadsGenerated(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+
+        $totalLeadsGenerated = Lead::whereBetween('created_at', [$from, $to])
+            ->whereNotNull('phone')
+            ->distinct('phone')
+            ->count('phone');
+
+        return response()->json([
+            'totalLeadsGenerated' => $totalLeadsGenerated
+        ]);
+    }
+    public function fetchHighestLowest(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+
+        $orderIds = Order::where('order_approved', '1')
+            ->whereBetween('created_at', [$from, $to])
+            ->where(function ($q) {
+                $q->where(function ($q1) {
+                    $q1->where('dealer_flag_order', '0')
+                        ->whereHas('createdBy', function ($q2) {
+                            $q2->where('employee_type_id', '!=', 1);
+                        });
+                })->orWhere('dealer_flag_order', '1');
+            })
+            ->pluck('id');
+
+        $productSales = [];
+
+        $orderItems = \App\Models\OrderItem::whereIn('order_id', $orderIds)->get();
+
+        foreach ($orderItems as $item) {
+            foreach ($item->product_details as $detail) {
+
+                $typeName = $detail['type_name'];   
+                $qty      = $detail['quantity'];
+
+                if (!isset($productSales[$typeName])) {
+                    $productSales[$typeName] = 0;
+                }
+
+                $productSales[$typeName] += $qty;
+            }
+        }
+
+        $highestSelling = null;
+        $lowestSelling  = null;
+
+        if (!empty($productSales)) {
+            $highestSelling = array_keys($productSales, max($productSales))[0];
+
+            $lowestSelling  = array_keys($productSales, min($productSales))[0];
+        }
+
+        return response()->json([
+            'highest' => $highestSelling,
+            'lowest'  => $lowestSelling
+        ]);
+    }
+
+    public function fetchCustomerPerformance(Request $request)
+    {
+        $from = $request->from;
+        $to   = $request->to;
+
+        $ordersQuery = Order::with('orderItems')
+            ->where('order_approved', '1')
+            ->where('status', '!=', 'Rejected')
+            ->where(function ($query) {
+                $query->where(function ($q) {
+                    $q->where('dealer_flag_order', '1')
+                        ->whereNotNull('created_by_dealer');
+                })->orWhere(function ($q) {
+                    $q->where('dealer_flag_order', '0')
+                        ->whereNotNull('dealer_id')
+                        ->whereHas('createdBy', function ($empQuery) {
+                            $empQuery->where('employee_type_id', '!=', 1);
+                        });
+                });
+            });
+
+        if ($from && $to) {
+            $ordersQuery->whereBetween('created_at', [$from . " 00:00:00", $to . " 23:59:59"]);
+        }
+
+        $orders = $ordersQuery->get();
+
+        $customerPerformance = [];
+
+        foreach ($orders as $order) {
+            $dealerId = $order->dealer_flag_order == '1' ? $order->created_by_dealer : $order->dealer_id;
+            if (!$dealerId) continue;
+
+            if (!isset($customerPerformance[$dealerId])) {
+                $customerPerformance[$dealerId] = [
+                    'total_quantity' => 0,
+                    'total_amount' => 0
+                ];
+            }
+
+            $customerPerformance[$dealerId]['total_quantity'] += $order->orderItems->sum('total_quantity');
+
+            $customerPerformance[$dealerId]['total_amount'] += $order->total_amount;
+        }
+
+        if (empty($customerPerformance)) {
+            return response()->json([
+                'most_purchased' => null,
+                'least_purchased' => null
+            ]);
+        }
+
+        $sorted = collect($customerPerformance)->sortByDesc('total_quantity');
+
+        $mostId = $sorted->keys()->first();
+        $leastId = $sorted->keys()->last();
+
+        $mostDealer = Dealer::find($mostId);
+        $leastDealer = Dealer::find($leastId);
+
+        return response()->json([
+            'most_purchased' => [
+                'dealer_id' => $mostId,
+                'dealer_name' => $mostDealer?->dealer_name ?? 'N/A',
+                'total_quantity' => round($sorted[$mostId]['total_quantity'], 2),
+                'total_amount' => round($sorted[$mostId]['total_amount'], 2),
+            ],
+            'least_purchased' => [
+                'dealer_id' => $leastId,
+                'dealer_name' => $leastDealer?->dealer_name ?? 'N/A',
+                'total_quantity' => round($sorted[$leastId]['total_quantity'], 2),
+                'total_amount' => round($sorted[$leastId]['total_amount'], 2),
+            ],
+        ]);
+    }
+
+
+
 
     public function fetchTotalOrder(){
         $productID= \App\Helpers\ProductHelper::getSelectedProductID();
@@ -842,12 +1042,20 @@ class DashboardController extends Controller
 
         $productID = \App\Helpers\ProductHelper::getSelectedProductID();
         $productName =Product::where("id",$productID)->select("product_name")->first();
-         // Use from/to request for both
         $dealerData     = $this->fetchDealerVisitData($request)->getData()->totalDealerVisit;
         $influencerData       = $this->fetchInfluencerVisitData($request)->getData()->totalInfluencerVisit;
 
         $overall = $this->fetchOverallTargetAndAchievement($request);
         $LeadsData = $this->fetchLeadsData($request)->getData()->totalLeads;
+
+        $salesData = $this->fetchSalesData($request)->getData();
+        $salesQuantity = $this->fetchSalesQuantity($request)->getData();
+
+        $leadsGenerated = $this->fetchLeadsGenerated($request)->getData();
+
+        $highestLowest = $this->fetchHighestLowest($request)->getData();
+        $customerPerformance = $this->fetchCustomerPerformance($request)->getData();
+
         $approvedOrders = $this->fetchTotalOrder($request)->getData()->approvedOrders;
         $targets   = $overall['target'];
         $achieved  = $overall['achieved'];
@@ -868,10 +1076,11 @@ class DashboardController extends Controller
             // Dummy value (change if needed)
             'totalCompletedActivity'=> 12,
 
-            'totalSalesRevenue'     => 2500000,     
-            'totalSalesOrderCount'  => 120,
-            'totalSalesQuantityTon' => 180,
-            'totalLeadGenerated'    => 32,
+            'totalSalesRevenue'     => $salesData->totalSalesRevenue ?? 0,     
+            'totalSalesOrderCount'  => $salesData->orderCount ?? 0,
+            'totalSalesQuantityTon' => $salesQuantity->totalSalesQuantity ?? 0, 
+            'totalSalesQuantityCount' => $salesQuantity->orderCount ?? 0, 
+            'totalLeadGenerated'    => $leadsGenerated->totalLeadsGenerated ?? 0,
 
             'totalOutstandingPayment' => 750000,
             'outstandingOrderCount'   => 22,
@@ -882,16 +1091,16 @@ class DashboardController extends Controller
             'totalCreditNoteAmount' => 120000,
             'creditNoteCount'       => 6,
 
-            'highestSellingItem' => "Smart Roof Sheet 0.45mm",
-            'lowestSellingItem'  => "Color Coated Trim Sheet",
+            'highestSellingItem' => $highestLowest->highest ?? '-',
+            'lowestSellingItem'  => $highestLowest->lowest ?? '-',
 
-            'topCustomerName'   => "ABC Traders",
-            'topCustomerQty'    => 40,
-            'topCustomerAmount' => 950000,
+            'topCustomerName'   => $customerPerformance->most_purchased->dealer_name ?? 'N/A',
+            'topCustomerQty'    => $customerPerformance->most_purchased->total_quantity ?? 0,
+            'topCustomerAmount' => $customerPerformance->most_purchased->total_amount ?? 0,
 
-            'leastCustomerName'   => "XYZ Hardware",
-            'leastCustomerQty'    => 2,
-            'leastCustomerAmount' => 15000,
+            'leastCustomerName'   => $customerPerformance->least_purchased->dealer_name ?? 'N/A',
+            'leastCustomerQty'    => $customerPerformance->least_purchased->total_quantity ?? 0,
+            'leastCustomerAmount' => $customerPerformance->least_purchased->total_amount ?? 0,
 
             'salesPerformance' => $salesPerformance,
 

@@ -282,8 +282,8 @@ class AdminController extends Controller
                         'designation' => $designation,
                         'employee_type_id' => $employeeType->id,
                         'reporting_manager' => $reportingManagerId,
-			'reporting_manager_name' => $reportingManagerName, 
-			'address' => $address,
+                        'reporting_manager_name' => $reportingManagerName, 
+                        'address' => $address,
                         'emergency_contact' => $emergencyContact,
                         'password' => $hashedPassword, // Store encrypted password
                         'status' => '1',

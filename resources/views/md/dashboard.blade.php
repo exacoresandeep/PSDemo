@@ -1,4 +1,3 @@
-{{-- resources/views/md_dashboard_recreate.blade.php --}}
 @extends('layouts.mdapp') {{-- or layouts.mdapp --}}
 @section('title','MD Dashboard — Recreated')
 
@@ -13,7 +12,7 @@
     }
 
     .date-input input {
-        width: 140px; /* prevent breaking to new row */
+        width: 140px; 
     }
 </style>
 @endsection
@@ -46,7 +45,6 @@
 
     </div>
 
-    {{-- Today's summary --}}
     <div class="row md-dash-summary mb-4 pb-5">
         <div class="col-md-12 mb-3">
             <h4 class="inputType">Today’s Sales Summary - <span class="inputDateRange">03/11/2022</span></h4>
@@ -119,20 +117,18 @@
         
     </div>
 
-    {{-- big top cards --}}
     <div class="row mb-4">
         <div class="col-md-4">
             <div class="dashboard-card card-bg-1">
                 <div class="d-flex justify-content-between align-items-start">
                     <div><h4>Total Sales Revenue for TATA Tiscon</h4></div>
-                    
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div><h1><i class="fa fa-inr" aria-hidden="true"></i> <span id="totalSales">357076000.56</span></h1></div>
+                    <div><h1>Ton <span id="totalSales">0</span></h1></div>
                     <div class="text-right">
                         <h5 >Order Count</h5>
-                        <h2 id="totalOrderCount">35</h2>
+                        <h2 id="totalSalesOrderCount">0</h2>
                     </div>
                 </div>
             </div>
@@ -142,14 +138,13 @@
             <div class="dashboard-card card-bg-2">
                 <div class="d-flex justify-content-between align-items-start">
                     <div><h4>Total Sales Quantity for TATA Tiscon</h4></div>
-                    
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div><h1><span>Ton</span> <span id="totalQuantity">100.23</span></h1></div>
+                    <div><h1><span>Ton</span> <span id="totalQuantity">0</span></h1></div>
                     <div class="text-right">
                         <h5>Order Count</h5>
-                        <h2 id="totalOrderCount">35</h2>
+                        <h2 id="totalOrderCount">0</h2>
                     </div>
                 </div>
             </div>
@@ -163,7 +158,7 @@
                 </div>
 
                 <div class="d-flex align-items-center mt-3">
-                    <div><h1 id="totalLeadGenerated">104</h1></div>
+                    <div><h1 id="totalLeadGenerated">0</h1></div>
                 </div>
             </div>
         </div>
@@ -242,9 +237,9 @@
                             <table class="table table-striped">
                                 <tr><td>Customer Name</td><td>Purchased Qty (TON)</td><td>Amount</td></tr>
                                 <tr>
-                                    <td id="topCustomerName">ABC Steels and Corporation</td>
-                                    <td id="topCustomerQty">78.87</td>
-                                    <td id="topCustomerAmount">28,98,456.00</td>
+                                    <td id="topCustomerName">-</td>
+                                    <td id="topCustomerQty">-</td>
+                                    <td id="topCustomerAmount">-</td>
                                 </tr>
                             </table>
                         </div>
@@ -254,9 +249,9 @@
                             <table class="table table-striped">
                                 <tr><td>Customer Name</td><td>Purchased Qty (TON)</td><td>Amount</td></tr>
                                 <tr>
-                                    <td id="leastCustomerName">Steel Hub</td>
-                                    <td id="leastCustomerQty">8.87</td>
-                                    <td id="leastCustomerAmount">1,98,456.00</td>
+                                    <td id="leastCustomerName">-</td>
+                                    <td id="leastCustomerQty">-</td>
+                                    <td id="leastCustomerAmount">-</td>
                                 </tr>
                             </table>
                         </div>
@@ -547,16 +542,17 @@ function loadDashboardData(fromDate, toDate) {
             $("#totalDealerVisit").text(r.totalDealerVisit);
             $("#totalCompletedActivity").text(r.totalCompletedActivity);
 
-            $("#totalEmployees").text(response.totalEmployees);
-            $("#totalVisits").text(response.totalVisits);
-            $("#totalOrders").text(response.totalOrders);
-            $("#totalCollections").text(response.totalCollections);
-            $("#totalOutstanding").text(response.totalOutstanding);
+            $("#totalEmployees").text(r.totalEmployees);
+            $("#totalVisits").text(r.totalVisits);
+            $("#totalOrders").text(r.totalOrders);
+            $("#totalCollections").text(r.totalCollections);
+            $("#totalOutstanding").text(r.totalOutstanding);
             /** -------- BIG 3 CARDS -------- **/
             $("#totalSales").text(r.totalSalesRevenue);
-            $("#totalOrderCount").text(r.totalSalesOrderCount);
+            $("#totalSalesOrderCount").text(r.totalSalesOrderCount);
 
             $("#totalQuantity").text(r.totalSalesQuantityTon);
+            $("#totalOrderCount").text(r.totalSalesQuantityCount);
             $("#totalLeadGenerated").text(r.totalLeadGenerated);
 
             /** -------- OUTSTANDING PAYMENTS -------- **/
