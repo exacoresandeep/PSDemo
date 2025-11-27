@@ -30,14 +30,15 @@
                 
                 <button class="btn btn-primary" id="btn-today">Today</button>
                 <button class="btn btn-outline-primary" id="btn-week">This Week</button>
-
+                
                 <strong>Custom Date</strong>
-
+                
                 <input type="date" class="form-control" id="fromDate" style="min-width:140px;">
                 
                 <strong>To</strong>
-
+                
                 <input type="date" class="form-control" id="toDate" style="min-width:140px;">
+                <button class="btn btn-primary" id="submitbtn">Submit</button>
 
             </div>
         </div>
@@ -121,14 +122,14 @@
         <div class="col-md-4">
             <div class="dashboard-card card-bg-1">
                 <div class="d-flex justify-content-between align-items-start">
-                    <div><h4>Total Sales Revenue for TATA Tiscon</h4></div>
+                    <div><h4>Total Sales Revenue for <span class="productName"><i class="fa fa-circle-o-notch fa-spin"></i></span></h4></div>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div><h1>Ton <span id="totalSales">0</span></h1></div>
+                    <div><h1>Ton <span id="totalSales"><i class="fa fa-circle-o-notch fa-spin"></i></span></h1></div>
                     <div class="text-right">
                         <h5 >Order Count</h5>
-                        <h2 id="totalSalesOrderCount">0</h2>
+                        <h2 id="totalSalesOrderCount"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
                     </div>
                 </div>
             </div>
@@ -137,14 +138,14 @@
         <div class="col-md-4">
             <div class="dashboard-card card-bg-2">
                 <div class="d-flex justify-content-between align-items-start">
-                    <div><h4>Total Sales Quantity for TATA Tiscon</h4></div>
+                    <div><h4>Total Sales Quantity for <span class="productName"><i class="fa fa-circle-o-notch fa-spin"></i></span></h4></div>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div><h1><span>Ton</span> <span id="totalQuantity">0</span></h1></div>
+                    <div><h1><span>Ton</span> <span id="totalQuantity"><i class="fa fa-circle-o-notch fa-spin"></i></span></h1></div>
                     <div class="text-right">
                         <h5>Order Count</h5>
-                        <h2 id="totalOrderCount">0</h2>
+                        <h2 id="totalOrderCount"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
                     </div>
                 </div>
             </div>
@@ -158,7 +159,7 @@
                 </div>
 
                 <div class="d-flex align-items-center mt-3">
-                    <div><h1 id="totalLeadGenerated">0</h1></div>
+                    <div><h1 id="totalLeadGenerated"><i class="fa fa-circle-o-notch fa-spin"></i></h1></div>
                 </div>
             </div>
         </div>
@@ -177,10 +178,10 @@
                         <div class="dashboard-card card-bg-4">
                             <h4>Total Outstanding Payments</h4>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h1><i class="fa fa-inr"></i> <span id="totalOP">2656058.46</span></h1></div>
+                                <div><h1><i class="fa fa-inr"></i> <span id="totalOP"><i class="fa fa-circle-o-notch fa-spin"></i></span></h1></div>
                                 <div class="text-right">
                                     <h5>Order Count</h5>
-                                    <h2 id="orderCountOP">35</h2>
+                                    <h2 id="orderCountOP"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
                                 </div>
                             </div>
                         </div>
@@ -190,10 +191,10 @@
                         <div class="dashboard-card card-bg-1">
                             <h4>Total Collection Against Outstanding Payments</h4>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h1><i class="fa fa-inr"></i> <span id="totalOPCollection">726550.55</span></h1></div>
+                                <div><h1><i class="fa fa-inr"></i> <span id="totalOPCollection"><i class="fa fa-circle-o-notch fa-spin"></i></span></h1></div>
                                 <div class="text-right">
                                     <h5>Order Count</h5>
-                                    <h2 id="orderCountCollection">35</h2>
+                                    <h2 id="orderCountCollection"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
                                 </div>
                             </div>
                         </div>
@@ -206,10 +207,10 @@
                     <div class="dashboard-card card-bg-5 h-auto mb-4">
                         <h4>Total Credit Note Amount</h4>
                         <div class="d-flex justify-content-between align-items-center">
-                            <div><h1><i class="fa fa-inr"></i> <span id="totalCredit">2046000.06</span></h1></div>
+                            <div><h1><i class="fa fa-inr"></i> <span id="totalCredit"><i class="fa fa-circle-o-notch fa-spin"></i></span></h1></div>
                             <div class="text-right">
                                 <h5>Credit Note Count</h5>
-                                <h2 id="orderCountCredit">35</h2>
+                                <h2 id="orderCountCredit"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
                             </div>
                         </div>
                     </div>
@@ -219,12 +220,12 @@
 
                             <div class="row" style="background:#D9FFE3;color:#34C759;font-weight:600;padding:10px;border-radius:6px;">
                                 <div class="col-md-6">Highest Selling Item</div>
-                                <div class="col-md-6 text-right" id="highestSellingItem">18mm</div>
+                                <div class="col-md-6 text-right" id="highestSellingItem"><i class="fa fa-circle-o-notch fa-spin"></i></div>
                             </div>
 
                             <div class="row mt-2" style="background:#FFECEA;color:#F14431;font-weight:600;padding:10px;border-radius:6px;">
                                 <div class="col-md-6">Lowest Selling Item</div>
-                                <div class="col-md-6 text-right" id="lowestSellingItem">12mm</div>
+                                <div class="col-md-6 text-right" id="lowestSellingItem"><i class="fa fa-circle-o-notch fa-spin"></i></div>
                             </div>
                         </div>
                 </div>
@@ -302,23 +303,23 @@
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div>
                         <h5>Team on Duty</h5>
-                        <h2 id="teamOnDuty">34</h2>
+                        <h2 id="teamOnDuty"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
                     </div>
                     <div class="text-right">
                         <h5>Team on Leave</h5>
-                        <h2 id="teamOnLeave">15</h2>
+                        <h2 id="teamOnLeave"><i class="fa fa-circle-o-notch fa-spin"></i></h2>
                     </div>
                 </div>
             </div>
             {{-- Stock insights --}}
                 <div class="stock-cover mt-3 bg-white">
                     <h4>Stock Insights</h4>
-                    <p style="color:#555;margin-bottom:8px;">This shows the current stock status for TATA Tiscon products.</p>
+                    <p style="color:#555;margin-bottom:8px;">This shows the current stock status for <span class="productName"><i class="fa fa-circle-o-notch fa-spin"></i></span> products.</p>
 
                     <div style="display:flex; gap:12px; margin-bottom:12px;">
-                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Total <strong id="totalStock">12</strong> Products</div>
-                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">In Stock <strong id="totalInStock">10</strong></div>
-                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Out Of Stock <strong id="totalOutOfStock">02</strong></div>
+                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Total <strong id="totalStock"><i class="fa fa-circle-o-notch fa-spin"></i></strong> Products</div>
+                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">In Stock <strong id="totalInStock"><i class="fa fa-circle-o-notch fa-spin"></i></strong></div>
+                        <div style="background:#f8f8f8;padding:10px;border-radius:8px;">Out Of Stock <strong id="totalOutOfStock"><i class="fa fa-circle-o-notch fa-spin"></i></strong></div>
                     </div>
 
                     <div class="stock-table">
@@ -329,7 +330,7 @@
                             <tbody>
                                 @foreach ($stocks as $stock)
                                     <tr>
-                                        <td>TATA Tiscon</td>
+                                        <td><span class="productName"><i class="fa fa-circle-o-notch fa-spin"></i></span></td>
                                         <td>{{ $stock['type_name'] }}</td>
                                         <td>{{ number_format($stock['total_stock_quantity'], 2, '.', '') }}</td>
                                     </tr>
@@ -351,8 +352,8 @@
                         <div class="dashboard-card card-bg-2 mt-2">
                             <h4>Unique Leads</h4>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="uniqueTarget">350</h2></div>
-                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="uniqueAchieved">208</h2></div>
+                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="uniqueTarget"><i class="fa fa-circle-o-notch fa-spin"></i></h2></div>
+                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="uniqueAchieved"><i class="fa fa-circle-o-notch fa-spin"></i></h2></div>
                             </div>
                         </div>
                     </div>
@@ -360,8 +361,8 @@
                         <div class="dashboard-card card-bg-2 mt-2">
                             <h4>Influencer Visit</h4>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="influencerTarget">400</h2></div>
-                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="influencerAchieved">388</h2></div>
+                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="influencerTarget"><i class="fa fa-circle-o-notch fa-spin"></i></h2></div>
+                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="influencerAchieved"><i class="fa fa-circle-o-notch fa-spin"></i></h2></div>
                             </div>
                         </div>
                     </div>
@@ -369,8 +370,8 @@
                         <div class="dashboard-card card-bg-2 mt-2">
                             <h4>Aashiyana</h4>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="aashiyanaTarget">26</h2></div>
-                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="aashiyanaAchieved">24</h2></div>
+                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="aashiyanaTarget"><i class="fa fa-circle-o-notch fa-spin"></i></h2></div>
+                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="aashiyanaAchieved"><i class="fa fa-circle-o-notch fa-spin"></i></h2></div>
                             </div>
                         </div>
                     </div>
@@ -378,8 +379,8 @@
                          <div class="dashboard-card card-bg-2 mt-2">
                             <h4>Products</h4>
                             <div class="d-flex justify-content-between align-items-center">
-                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="productsTarget">100.00 <span style="font-size:12px;">TON</span></h2></div>
-                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="productsAchieved">98.87 <span style="font-size:12px;">TON</span></h2></div>
+                                <div><h5>Target <i class="fa fa-bullseye"></i></h5><h2 id="productsTarget"><i class="fa fa-circle-o-notch fa-spin"></i> <span style="font-size:12px;">TON</span></h2></div>
+                                <div class="text-right"><h5>Achieved <i class="fa fa-trophy"></i></h5><h2 id="productsAchieved"><i class="fa fa-circle-o-notch fa-spin"></i><span style="font-size:12px;">TON</span></h2></div>
                             </div>
                         </div>
                     </div>
@@ -451,7 +452,7 @@ $("#btn-week").click(function () {
 });
 
 // Custom Date Range
-$("#fromDate, #toDate").change(function () {
+$("#submitbtn").on("click",function () {
     let from = $("#fromDate").val();
     let to   = $("#toDate").val();
 
@@ -468,7 +469,7 @@ $(document).ready(function () {
     
     // Load today's data on page load
     loadToday();
-
+    
     // Button: Today
     $("#btn-today").click(function () {
         loadToday();
@@ -480,28 +481,33 @@ $(document).ready(function () {
     });
 
     // Custom Date Change
-    $("#fromDate, #toDate").change(function () {
+    $("#submitbtn").on("click",function () {
         let from = $("#fromDate").val();
         let to   = $("#toDate").val();
         
         if(from !== "" && to !== ""){
-            loadDashboardData(from, to);
+            loadDashboardData1(from, to);
+            loadDashboardData2(from, to);
+            loadDashboardData3(from, to);
+            loadDashboardData4(from, to);
+            updateSalesPerformanceBody(from, to);
         }
     });
 
 });
-
-
 
 function loadToday() {
     let today = new Date().toISOString().split("T")[0];
 
     $("#fromDate").val(today);
     $("#toDate").val(today);
-    loadDashboardData(today, today);
+    loadDashboardData1(today, today);
+    loadDashboardData2(today, today);
+    loadDashboardData3(today, today);
+    loadDashboardData4(today, today);
+    updateSalesPerformanceBody(today, today);
 }
 
-// This Week
 function loadThisWeek() {
     let now = new Date();
     let first = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Monday
@@ -514,24 +520,24 @@ function loadThisWeek() {
     $("#fromDate").val(from);
     $("#toDate").val(to);
 
-    loadDashboardData(from, to);
+    loadDashboardData1(from, to);
+    loadDashboardData2(from, to);
+    loadDashboardData3(from, to);
+    loadDashboardData4(from, to);
+    updateSalesPerformanceBody(from, to);
 }
 
-
-
-function loadDashboardData(fromDate, toDate) {
-
-    console.log("Loading MD dashboard:", fromDate, "to", toDate);
+function loadDashboardData1(fromDate, toDate) {
     let employeeType = $('#employeeTypeSalesPerformance').val();
     let region = $('#regionSalesPerformance').val();
     $.ajax({
-        url: "/md/getMDData",
+        url: "/md/getMDData1",
         method: "GET",
         data: {
             from: fromDate,
             to: toDate,
-             employee_type_id:employeeType, 
-             region_id:region
+            employee_type_id:employeeType, 
+            region_id:region
         },
         success: function(r) {
             $(".productName").html(r.productName);
@@ -554,7 +560,29 @@ function loadDashboardData(fromDate, toDate) {
             $("#totalQuantity").text(r.totalSalesQuantityTon);
             $("#totalOrderCount").text(r.totalSalesQuantityCount);
             $("#totalLeadGenerated").text(r.totalLeadGenerated);
+           
+            
+        },
+        error: function(xhr) {
+            console.error("Dashboard Load Error", xhr.responseText);
+        }
+    });
+}
 
+function loadDashboardData2(fromDate, toDate) {
+    let employeeType = $('#employeeTypeSalesPerformance').val();
+    let region = $('#regionSalesPerformance').val();
+    $.ajax({
+        url: "/md/getMDData2",
+        method: "GET",
+        data: {
+            from: fromDate,
+            to: toDate,
+             employee_type_id:employeeType, 
+             region_id:region
+        },
+        success: function(r) {
+           
             /** -------- OUTSTANDING PAYMENTS -------- **/
             $("#totalOP").text(r.totalOutstandingPayment);
             $("#orderCountOP").text(r.outstandingOrderCount);
@@ -566,6 +594,29 @@ function loadDashboardData(fromDate, toDate) {
             $("#totalCredit").text(r.totalCreditNoteAmount);
             $("#orderCountCredit").text(r.creditNoteCount);
 
+           
+            
+        },
+        error: function(xhr) {
+            console.error("Dashboard Load Error", xhr.responseText);
+        }
+    });
+}
+
+function loadDashboardData3(fromDate, toDate) {
+    let employeeType = $('#employeeTypeSalesPerformance').val();
+    let region = $('#regionSalesPerformance').val();
+    $.ajax({
+        url: "/md/getMDData3",
+        method: "GET",
+        data: {
+            from: fromDate,
+            to: toDate,
+             employee_type_id:employeeType, 
+             region_id:region
+        },
+        success: function(r) {
+           
             /** -------- Highest / Lowest Selling Item -------- **/
             $("#highestSellingItem").text(r.highestSellingItem);
             $("#lowestSellingItem").text(r.lowestSellingItem);
@@ -581,28 +632,40 @@ function loadDashboardData(fromDate, toDate) {
 
             /** -------- Sales Performance (Bottom Table) -------- **/
             // If table rows come from API array
-            if (r.salesPerformance && r.salesPerformance.length > 0) {
-                
-                let rows = "";
-
-                r.salesPerformance.forEach(item => {
-                    rows += `
-                        <tr>
-                            <td>${item.region}</td>
-                            <td>${item.employeeType}</td>
-                            <td>${item.employeeName}</td>
-                            <td>${item.sellingQty}</td>
-                            <td>${item.amount}</td>
-                        </tr>
-                    `;
-                });
-
-                $("#salesPerformanceTableBody").html(rows);
-            }
+            
             $("#leastCustomerAmount").text(r.leastCustomerAmount);
             
-            $("#teamOnDuty").text(r.teamOnDuty); 
-            $("#teamOnLeave").text(r.teamOnLeave); 
+            
+        },
+        error: function(xhr) {
+            console.error("Dashboard Load Error", xhr.responseText);
+        }
+    });
+}
+
+function loadDashboardData4(fromDate, toDate) {
+    let employeeType = $('#employeeTypeSalesPerformance').val();
+    let region = $('#regionSalesPerformance').val();
+    $.ajax({
+        url: "/md/getMDData4",
+        method: "GET",
+        data: {
+            from: fromDate,
+            to: toDate,
+             employee_type_id:employeeType, 
+             region_id:region
+        },
+        success: function(r) {
+            if(r.attendance!=false){
+                console.log(r.attendance);
+                $("#teamOnDuty").text(r.teamOnDuty); 
+                $("#teamOnLeave").text(r.teamOnLeave); 
+                $(".attnd-overview").show();
+
+            } else {
+                $(".attnd-overview").hide();
+            }
+            
             $("#totalStock").text(r.totalStock); 
             $("#totalInStock").text(r.totalInStock); 
             $("#totalOutOfStock").text(r.totalOutOfStock); 
@@ -622,7 +685,48 @@ function loadDashboardData(fromDate, toDate) {
     });
 }
 
+$("#employeeTypeSalesPerformance, #regionSalesPerformance").on('change', function () {
+    let from = $("#fromDate").val();
+    let to   = $("#toDate").val();
+    updateSalesPerformanceBody(from,to);
+});
 
+function updateSalesPerformanceBody(fromDate, toDate) {
+    let employeeType = $('#employeeTypeSalesPerformance').val();
+    let region = $('#regionSalesPerformance').val();
+    
+    // Example AJAX
+    $.ajax({
+        url: "/md/getMDData5",
+        type: "GET",
+        data: {
+            from: fromDate,
+            to: toDate,
+            employee_type_id:employeeType, 
+            region_id:region
+        },
+        success: function (r) {
+            if (r.salesPerformance && r.salesPerformance.length > 0) {
+                
+                let rows = "";
+
+                r.salesPerformance.forEach(item => {
+                    rows += `
+                        <tr>
+                            <td>${item.region}</td>
+                            <td>${item.employeeType}</td>
+                            <td>${item.employeeName}</td>
+                            <td>${item.sellingQty}</td>
+                            <td>${item.amount}</td>
+                        </tr>
+                    `;
+                });
+
+                $("#salesPerformanceTableBody").html(rows);
+            }
+        }
+    });
+}
 
 </script>
 @endsection
