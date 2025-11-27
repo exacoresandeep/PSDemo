@@ -16,6 +16,9 @@ class InfluencerVisitFollowUp extends Model
         'reason',
         'created_by',
     ];
+    protected $casts = [
+        'follow_up_date' => 'datetime', 
+    ];
     public function influencervisit()
     {
         return $this->belongsTo(InfluencerVisit::class);

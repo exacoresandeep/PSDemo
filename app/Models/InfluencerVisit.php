@@ -20,11 +20,13 @@ class InfluencerVisit extends Model
         'steel_used',
         'other_steels',
         'total_deal_volume',
+        'won_volume',
         'follow_up_date',
         'lost_volume', 
         'lost_to_competitor', 
         'competitor_name',
         'reason_for_lost', 
+        'chain_id',
         'status',
         'created_by'
     ];

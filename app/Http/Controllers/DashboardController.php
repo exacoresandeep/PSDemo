@@ -1035,7 +1035,7 @@ class DashboardController extends Controller
 
 
 
-    public function getMDData(Request $request)
+    public function getMDData(Request $request) 
     {
         $from = $request->from;
         $to   = $request->to;

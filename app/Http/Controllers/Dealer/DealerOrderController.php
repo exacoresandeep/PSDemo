@@ -438,7 +438,7 @@ class DealerOrderController extends Controller
                 'orderItems.product:id,product_name,product_code',
                 'paymentTerm:id,name',
                 'vehicleCategory:id,vehicle_category_name',
-            ])->findOrFail($orderId);
+            ])->findOrFail($orderId); 
 
             // --- Process Order Items ---
             // --- Process Order Items ---

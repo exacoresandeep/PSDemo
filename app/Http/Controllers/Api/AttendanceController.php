@@ -397,7 +397,6 @@ class AttendanceController extends Controller
                     'message' => 'Latitude and longitude are required. Please enable location services.',
                 ]);
             }
-            // ✅ Validation
             $request->validate([
                 'leave_date'   => 'required|date',
                 'remarks' => 'required|string|max:1000',
@@ -407,22 +406,20 @@ class AttendanceController extends Controller
 
             $leaveDate = Carbon::parse($request->leave_date)->format('Y-m-d');
 
-            // ✅ Check if attendance already exists for the date
             $attendance = Attendance::where('employee_id', $employeeId)
                                     ->where('date', $leaveDate)
                                     ->where('status', "leave")
-                                    ->where('leave_type', "!=","Full Day")
+                                    // ->where('leave_type', "!=","Full Day")
                                     ->first();
 
             if ($attendance) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 400,
-                    'message' => 'Attendance already marked for this date.',
+                    'message' => 'You have already applied leave for this date.',
                 ], 400);
             }
 
-            // ✅ Create absent record
             $attendance = Attendance::create([
                 'employee_id'    => $employeeId,
                 'date'           => $leaveDate,
