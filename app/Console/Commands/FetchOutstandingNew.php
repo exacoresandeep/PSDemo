@@ -20,14 +20,12 @@ class FetchOutstandingNew extends Command
         $this->info("Starting Outstanding Payment Sync...");
 
         try {
-            // Connect to HANA
             $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
             if (!$conn) {
                 $this->error('ODBC Connection Failed: ' . odbc_errormsg());
                 return 1;
             }
 
-            // Get all dealers with dealer_code
             $dealers = Dealer::whereNotNull('dealer_code')->get();
 	    
 	    foreach ($dealers as $dealer) {

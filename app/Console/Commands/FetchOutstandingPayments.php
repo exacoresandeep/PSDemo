@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\Log;
 
 class FetchOutstandingPayments extends Command
 {
-//	Log::info('✅ Running FetchOutstandingPayments at ' . now());
     protected $signature = 'app:fetch-outstanding-payments';
     protected $description = 'Fetch and store outstanding payments from SAP HANA';
 
@@ -43,7 +42,6 @@ class FetchOutstandingPayments extends Command
      Log::info('✅ Running FetchOutstandingPayments at ' . now());
 
         try {
-            // Define date range (e.g., last 3 months)
             $start = Carbon::createFromFormat('Ymd', '20210101');
             $end = Carbon::now();
 
@@ -58,7 +56,7 @@ class FetchOutstandingPayments extends Command
                 $toDate = $start->copy()->addMonths(2)->format('Ymd');
 
                 $sql = "CALL \"PRABHU_NEW\".\"MobileApp_OutstandingPayment_Param\"('$fromDate', '$toDate')";
-		$result = odbc_exec($conn, $sql);
+		        $result = odbc_exec($conn, $sql);
 		
                 if (!$result) {
                     $this->warn("ODBC Query Failed for range $fromDate - $toDate: " . odbc_errormsg($conn));
@@ -70,7 +68,6 @@ class FetchOutstandingPayments extends Command
                 while ($row = odbc_fetch_array($result)) {
                     $response[] = array_map('trim', $row);
                 }
-	//	print_r($response);
                 if (empty($response)) {
                     $this->warn("No data found for range $fromDate - $toDate");
                     $start->addMonths(2);
@@ -96,11 +93,10 @@ class FetchOutstandingPayments extends Command
                         $order = Order::create([
                             'dealer_id' => $dealer->id,
                             'invoice_number' => $invoiceNumber,
-			    'invoice_date' => $this->safeParseDate($first['Invoice Date']),
-			    'invoice_quantity' => $first['Quantity'],
+                            'invoice_date' => $this->safeParseDate($first['Invoice Date']),
+                            'invoice_quantity' => $first['Quantity'],
                             'invoice_total' => $first['Invoice Total'],
                             'status' => 'Delivered',
-                            // Add created_by and dealer_flag_order if needed
                         ]);
 
                         foreach ($items as $item) {
@@ -152,8 +148,8 @@ class FetchOutstandingPayments extends Command
                                     'invoice_number' => $invoiceNumber,
                                     'payment_document_no' => $item['Payment Doc Number'],
                                     'payment_date' => $this->safeParseDate($item['Payment Date']),
-					'invoice_date' => $this->safeParseDate($item['Invoice Date']),
-				    'payment_amount' => $item['Payment Amount Applied'],
+                                    'invoice_date' => $this->safeParseDate($item['Invoice Date']),
+                                    'payment_amount' => $item['Payment Amount Applied'],
                                 ]);
                             }
                         }
