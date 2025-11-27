@@ -1,4 +1,4 @@
-@extends('layouts.mdapp') {{-- or layouts.mdapp --}}
+@extends('layouts.mdapp') 
 @section('title','MD Dashboard — Recreated')
 
 @section('styles')
