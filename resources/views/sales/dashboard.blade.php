@@ -525,29 +525,29 @@
         //     .val(year).trigger('change');
     });
     $('#exportLeadBtn').on('click', function() {
-        const month = $('#monthLead').val();
-        const year = $('#yearLead').val();
+        const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         const url = `{{ route('sales.exportLeads') }}?month=${month}&year=${year}`;
         window.location.href = url;
     });
 
     $('#exportOutstandingBtn').on('click', function() {
-        const month = $('#monthOP').val();
-        const year = $('#yearOP').val();
+        const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         const url = `{{ route('sales.outstanding') }}?month=${month}&year=${year}`;
         window.location.href = url;
     });
 
     $('#exportCreditBtn').on('click', function() {
-        const month = $('#monthCredit').val();
-        const year = $('#yearCredit').val();
+        const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         const url = `{{ route('sales.creditnote') }}?month=${month}&year=${year}`;
         window.location.href = url;
     });
 
     $('#exportSalesBtn').on('click', function() {
-        let month = $('#monthSalesPerformance').val();
-        let year = $('#yearSalesPerformance').val();
+        const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         let employeeType = $('#employeeTypeSalesPerformance').val();
         let region = $('#regionSalesPerformance').val();
         let url =
@@ -556,43 +556,43 @@
     });
 
     $('#exportDealerBtn').on('click', function() {
-        const month = $('#monthDealer').val();
-        const year = $('#yearDealer').val();
+        const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         const url = `{{ route('sales.exportDealerVisit') }}?month=${month}&year=${year}`;
         window.location.href = url;
     });
 
     $('#exportInfluencerBtn').on('click', function() {
-        const month = $('#monthInfluencer').val();
-        const year = $('#yearInfluencer').val();
+       const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         const url = `{{ route('sales.exportInfluencerVisit') }}?month=${month}&year=${year}`;
         window.location.href = url;
     });
 
     $('#exportUniqueLeadsBtn').on('click', function() {
-        const month = $('#monthTarget').val();
-        const year = $('#yearTarget').val();
+       const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         const url = `{{ route('sales.unique-leads') }}?month=${month}&year=${year}`;
         window.open(url, '_blank');
     });
 
     $('#exportInfluencerVisitBtn').on('click', function() {
-        const month = $('#monthTarget').val();
-        const year = $('#yearTarget').val();
+        const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         const url = `{{ route('sales.influencer-visits') }}?month=${month}&year=${year}`;
         window.open(url, '_blank');
     });
 
     $('#exportAashiyanaBtn').on('click', function() {
-        const month = $('#monthTarget').val();
-        const year = $('#yearTarget').val();
+        const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         const url = `{{ route('sales.aashiyana-orders') }}?month=${month}&year=${year}`;
         window.open(url, '_blank');
     });
 
     $('#exportTisconBtn').on('click', function() {
-        const month = $('#monthTarget').val();
-        const year = $('#yearTarget').val();
+        const month = $('#commonMonth').val();
+        const year = $('#commonYear').val();
         const url = `{{ route('sales.tiscon-orders') }}?month=${month}&year=${year}`;
         window.open(url, '_blank');
     });
