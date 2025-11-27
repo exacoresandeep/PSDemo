@@ -1545,7 +1545,7 @@ public function notificationList()
         }
     }
     // public function getProductTypes(Request $request)
-    // {
+    // {.
     //     try {
     //         $user = Auth::user();
     //         $productId = $request->input('product_id');
