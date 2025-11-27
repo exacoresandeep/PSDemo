@@ -19,7 +19,7 @@ use Illuminate\Support\Str;
 
 class LeadController extends Controller
 {
-
+//
     public function index(Request $request)
     {
         try {

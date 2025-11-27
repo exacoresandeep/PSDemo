@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Exports\LeadsExport;
 use App\Models\Product;
-use App\Models\InfluencerVisit;
 use App\Exports\OutstandingPaymentsExport;
 use App\Exports\CreditNoteExport;
 use App\Exports\DealerVisitExport;
@@ -111,7 +110,7 @@ class DashboardController extends Controller
 
         $orders = Order::whereYear('created_at', $year)
             ->whereMonth('created_at', $month + 1) 
-            // ->where('status', 'Delivered')
+            ->where('status', 'Delivered')
             ->where('order_approved', '1')
             ->where(function ($q) {
                 $q->where(function ($q1) {
@@ -123,9 +122,7 @@ class DashboardController extends Controller
             })
             ->get();
 
-        $totalRevenue = $orders->sum(function ($order) {
-            return $order->orderItems->sum('total_quantity');
-        });
+        $totalRevenue = $orders->sum('invoice_total'); 
         $orderCount = $orders->count();
 
         return response()->json([
@@ -140,7 +137,7 @@ class DashboardController extends Controller
 
         $orders = Order::whereYear('created_at', $year)
             ->whereMonth('created_at', $month + 1) 
-            // ->where('status', 'Delivered')
+            ->where('status', 'Delivered')
             ->where('order_approved', '1')
             ->where(function ($q) {
                 $q->where(function ($q1) {
@@ -243,18 +240,16 @@ class DashboardController extends Controller
                             })
                             ->count();
 
-        // $customerVisitCount = RescheduledRoute::whereYear('assign_date', $year)
-        //                     ->whereMonth('assign_date', $monthNumber+1)
-        //                     ->get()
-        //                     ->sum(function ($route) {
-        //                         $customers = collect(json_decode($route->customers ?? '[]', true));
-        //                         return $customers->where('scheduled', true)->where('status', 'Completed')->count();
-        //                     });
-        $customerVisitCount = InfluencerVisit::whereYear('created_at', $year)
-                ->whereMonth('created_at', $monthNumber + 1)
-                ->distinct('phone')   
-                ->count('phone');
-
+        $customerVisitCount = RescheduledRoute::with(["employee"])->whereYear('assign_date', $year)
+                            ->whereMonth('assign_date', $monthNumber+1)
+                            ->whereHas('employee', function($q) use ($productID) {
+                                $q->whereJsonContains('products', (string)$productID);
+                            })
+                            ->get()
+                            ->sum(function ($route) {
+                                $customers = collect(json_decode($route->customers ?? '[]', true));
+                                return $customers->where('scheduled', true)->where('status', 'Completed')->count();
+                            });
 
         $aashiyanaCount = Order::with(["orderItems"])->whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber+1)
@@ -266,12 +261,15 @@ class DashboardController extends Controller
 
         $orders = Order::with(["orderItems"])->whereYear('created_at', $year)
                         ->whereMonth('created_at', $monthNumber+1)
-                        ->where('order_approved', '1')
+                        ->whereHas('orderItems', function ($q) use ($productID) {
+                            $q->where('product_id', $productID);
+                        })
+                        ->where('status', 'Approved')
                         ->pluck('id');
 
-        $achievedOrderQuantity = DB::table('order_items')
-            ->whereIn('order_id', $orders)
-            ->sum('total_quantity');
+        $achievedOrderQuantity = DB::table('orders')
+                                    ->whereIn('id', $orders)
+                                    ->sum('invoice_quantity');
 
         return response()->json([
             'target' => $totalTargets,
@@ -459,18 +457,18 @@ class DashboardController extends Controller
         $result = [];
 
         foreach ($employees as $employee) {
-            // $totalQty = Order::where('created_by', $employee->id)
-            //     ->whereBetween('created_at', [$fromDate, $toDate])
-            //     ->sum('invoice_quantity');
-            $totalQty = DB::table('order_items')
-                ->join('orders', 'order_items.order_id', '=', 'orders.id')
-                ->where('orders.created_by', $employee->id)
-                ->where('orders.order_approved', '1')
-                ->whereBetween('orders.created_at', [$fromDate, $toDate])
-                ->sum('order_items.total_quantity');
-            $totalAmount = Order::where('created_by', $employee->id)
+            $totalQty = Order::with(["orderItems"])->where('created_by', $employee->id)
                 ->whereBetween('created_at', [$fromDate, $toDate])
-                ->sum('total_amount');
+                ->whereHas('orderItems', function ($q) use ($productID) {
+                                $q->where('product_id', $productID);
+                            })
+                ->sum('invoice_quantity');
+            $totalAmount = Order::with(["orderItems"])->where('created_by', $employee->id)
+                ->whereBetween('created_at', [$fromDate, $toDate])
+                ->whereHas('orderItems', function ($q) use ($productID) {
+                                $q->where('product_id', $productID);
+                            })
+                ->sum('invoice_total');
             $result[] = [
                 'region' => $employee->region?->name ?? 'N/A',
                 'employee_type' => $employee->employeeType?->type_name ?? 'N/A',
@@ -578,20 +576,14 @@ class DashboardController extends Controller
         return Excel::download(new UniqueLeadsExport($year, $month), 'unique_leads_export.xlsx');
     }
 
-
     public function exportInfluencerVisits(Request $request)
     {
         $month = $request->month;
         $year = $request->year;
 
-        $exportMonth = $month + 1;
-
-        $monthFormatted = str_pad($exportMonth, 2, '0', STR_PAD_LEFT);
-
-        $fileName = "influencer_visits_{$monthFormatted}_{$year}.xlsx";
-
-        return Excel::download(new InfluencerVisitsExport($year, $month), $fileName);
+        return Excel::download(new InfluencerVisitsExport($year, $month), 'influencer_visits_export.xlsx');
     }
+
     public function exportAashiyanaOrders(Request $request)
     {
         $month = $request->month;
@@ -744,204 +736,6 @@ class DashboardController extends Controller
             'totalLeads' => $totalLeads
         ]);
     }
-    public function fetchSalesData(Request $request)
-    {
-        $from = $request->from;
-        $to   = $request->to;
-
-        $orders = Order::whereBetween('created_at', [$from, $to])
-            ->where('order_approved', '1')
-            ->where(function ($q) {
-                $q->where(function ($q1) {
-                    $q1->where('dealer_flag_order', '0')
-                    ->whereHas('createdBy', function ($q2) {
-                        $q2->where('employee_type_id', '!=', 1);
-                    });
-                })->orWhere('dealer_flag_order', '1'); 
-            })
-            ->with('orderItems')
-            ->get();
-
-        $totalSalesRevenue = $orders->sum('total_amount');
-
-        $orderCount = $orders->count();
-
-        return response()->json([
-            'totalSalesRevenue' => $totalSalesRevenue,
-            'orderCount' => $orderCount
-        ]);
-    }
-    public function fetchSalesQuantity(Request $request)
-    {
-        $from = $request->from;
-        $to   = $request->to;
-
-        $orders = Order::whereBetween('created_at', [$from, $to])
-            ->where('order_approved', '1')
-            ->where(function ($q) {
-                $q->where(function ($q1) {
-                    $q1->where('dealer_flag_order', '0')
-                    ->whereHas('createdBy', function ($q2) {
-                        $q2->where('employee_type_id', '!=', 1);
-                    });
-                })->orWhere('dealer_flag_order', '1'); 
-            })
-            ->with('orderItems')
-            ->get();
-
-        $totalSalesQuantity = $orders->sum(function ($order) {
-            return $order->orderItems->sum('total_quantity'); 
-        });
-
-        $orderCount = $orders->count();
-
-        return response()->json([
-            'totalSalesQuantity' => $totalSalesQuantity,
-            'orderCount' => $orderCount
-        ]);
-    }
-    public function fetchLeadsGenerated(Request $request)
-    {
-        $from = $request->from;
-        $to   = $request->to;
-
-        $totalLeadsGenerated = Lead::whereBetween('created_at', [$from, $to])
-            ->whereNotNull('phone')
-            ->distinct('phone')
-            ->count('phone');
-
-        return response()->json([
-            'totalLeadsGenerated' => $totalLeadsGenerated
-        ]);
-    }
-    public function fetchHighestLowest(Request $request)
-    {
-        $from = $request->from;
-        $to   = $request->to;
-
-        $orderIds = Order::where('order_approved', '1')
-            ->whereBetween('created_at', [$from, $to])
-            ->where(function ($q) {
-                $q->where(function ($q1) {
-                    $q1->where('dealer_flag_order', '0')
-                        ->whereHas('createdBy', function ($q2) {
-                            $q2->where('employee_type_id', '!=', 1);
-                        });
-                })->orWhere('dealer_flag_order', '1');
-            })
-            ->pluck('id');
-
-        $productSales = [];
-
-        $orderItems = \App\Models\OrderItem::whereIn('order_id', $orderIds)->get();
-
-        foreach ($orderItems as $item) {
-            foreach ($item->product_details as $detail) {
-
-                $typeName = $detail['type_name'];   
-                $qty      = $detail['quantity'];
-
-                if (!isset($productSales[$typeName])) {
-                    $productSales[$typeName] = 0;
-                }
-
-                $productSales[$typeName] += $qty;
-            }
-        }
-
-        $highestSelling = null;
-        $lowestSelling  = null;
-
-        if (!empty($productSales)) {
-            $highestSelling = array_keys($productSales, max($productSales))[0];
-
-            $lowestSelling  = array_keys($productSales, min($productSales))[0];
-        }
-
-        return response()->json([
-            'highest' => $highestSelling,
-            'lowest'  => $lowestSelling
-        ]);
-    }
-
-    public function fetchCustomerPerformance(Request $request)
-    {
-        $from = $request->from;
-        $to   = $request->to;
-
-        $ordersQuery = Order::with('orderItems')
-            ->where('order_approved', '1')
-            ->where('status', '!=', 'Rejected')
-            ->where(function ($query) {
-                $query->where(function ($q) {
-                    $q->where('dealer_flag_order', '1')
-                        ->whereNotNull('created_by_dealer');
-                })->orWhere(function ($q) {
-                    $q->where('dealer_flag_order', '0')
-                        ->whereNotNull('dealer_id')
-                        ->whereHas('createdBy', function ($empQuery) {
-                            $empQuery->where('employee_type_id', '!=', 1);
-                        });
-                });
-            });
-
-        if ($from && $to) {
-            $ordersQuery->whereBetween('created_at', [$from . " 00:00:00", $to . " 23:59:59"]);
-        }
-
-        $orders = $ordersQuery->get();
-
-        $customerPerformance = [];
-
-        foreach ($orders as $order) {
-            $dealerId = $order->dealer_flag_order == '1' ? $order->created_by_dealer : $order->dealer_id;
-            if (!$dealerId) continue;
-
-            if (!isset($customerPerformance[$dealerId])) {
-                $customerPerformance[$dealerId] = [
-                    'total_quantity' => 0,
-                    'total_amount' => 0
-                ];
-            }
-
-            $customerPerformance[$dealerId]['total_quantity'] += $order->orderItems->sum('total_quantity');
-
-            $customerPerformance[$dealerId]['total_amount'] += $order->total_amount;
-        }
-
-        if (empty($customerPerformance)) {
-            return response()->json([
-                'most_purchased' => null,
-                'least_purchased' => null
-            ]);
-        }
-
-        $sorted = collect($customerPerformance)->sortByDesc('total_quantity');
-
-        $mostId = $sorted->keys()->first();
-        $leastId = $sorted->keys()->last();
-
-        $mostDealer = Dealer::find($mostId);
-        $leastDealer = Dealer::find($leastId);
-
-        return response()->json([
-            'most_purchased' => [
-                'dealer_id' => $mostId,
-                'dealer_name' => $mostDealer?->dealer_name ?? 'N/A',
-                'total_quantity' => round($sorted[$mostId]['total_quantity'], 2),
-                'total_amount' => round($sorted[$mostId]['total_amount'], 2),
-            ],
-            'least_purchased' => [
-                'dealer_id' => $leastId,
-                'dealer_name' => $leastDealer?->dealer_name ?? 'N/A',
-                'total_quantity' => round($sorted[$leastId]['total_quantity'], 2),
-                'total_amount' => round($sorted[$leastId]['total_amount'], 2),
-            ],
-        ]);
-    }
-
-
-
 
     public function fetchTotalOrder(){
         $productID= \App\Helpers\ProductHelper::getSelectedProductID();
@@ -1034,7 +828,6 @@ class DashboardController extends Controller
     }
 
 
-
     public function getMDData(Request $request)
     {
         $from = $request->from;
@@ -1042,20 +835,12 @@ class DashboardController extends Controller
 
         $productID = \App\Helpers\ProductHelper::getSelectedProductID();
         $productName =Product::where("id",$productID)->select("product_name")->first();
+         // Use from/to request for both
         $dealerData     = $this->fetchDealerVisitData($request)->getData()->totalDealerVisit;
         $influencerData       = $this->fetchInfluencerVisitData($request)->getData()->totalInfluencerVisit;
 
         $overall = $this->fetchOverallTargetAndAchievement($request);
         $LeadsData = $this->fetchLeadsData($request)->getData()->totalLeads;
-
-        $salesData = $this->fetchSalesData($request)->getData();
-        $salesQuantity = $this->fetchSalesQuantity($request)->getData();
-
-        $leadsGenerated = $this->fetchLeadsGenerated($request)->getData();
-
-        $highestLowest = $this->fetchHighestLowest($request)->getData();
-        $customerPerformance = $this->fetchCustomerPerformance($request)->getData();
-
         $approvedOrders = $this->fetchTotalOrder($request)->getData()->approvedOrders;
         $targets   = $overall['target'];
         $achieved  = $overall['achieved'];
@@ -1076,11 +861,10 @@ class DashboardController extends Controller
             // Dummy value (change if needed)
             'totalCompletedActivity'=> 12,
 
-            'totalSalesRevenue'     => $salesData->totalSalesRevenue ?? 0,     
-            'totalSalesOrderCount'  => $salesData->orderCount ?? 0,
-            'totalSalesQuantityTon' => $salesQuantity->totalSalesQuantity ?? 0, 
-            'totalSalesQuantityCount' => $salesQuantity->orderCount ?? 0, 
-            'totalLeadGenerated'    => $leadsGenerated->totalLeadsGenerated ?? 0,
+            'totalSalesRevenue'     => 2500000,     
+            'totalSalesOrderCount'  => 120,
+            'totalSalesQuantityTon' => 180,
+            'totalLeadGenerated'    => 32,
 
             'totalOutstandingPayment' => 750000,
             'outstandingOrderCount'   => 22,
@@ -1091,16 +875,16 @@ class DashboardController extends Controller
             'totalCreditNoteAmount' => 120000,
             'creditNoteCount'       => 6,
 
-            'highestSellingItem' => $highestLowest->highest ?? '-',
-            'lowestSellingItem'  => $highestLowest->lowest ?? '-',
+            'highestSellingItem' => "Smart Roof Sheet 0.45mm",
+            'lowestSellingItem'  => "Color Coated Trim Sheet",
 
-            'topCustomerName'   => $customerPerformance->most_purchased->dealer_name ?? 'N/A',
-            'topCustomerQty'    => $customerPerformance->most_purchased->total_quantity ?? 0,
-            'topCustomerAmount' => $customerPerformance->most_purchased->total_amount ?? 0,
+            'topCustomerName'   => "ABC Traders",
+            'topCustomerQty'    => 40,
+            'topCustomerAmount' => 950000,
 
-            'leastCustomerName'   => $customerPerformance->least_purchased->dealer_name ?? 'N/A',
-            'leastCustomerQty'    => $customerPerformance->least_purchased->total_quantity ?? 0,
-            'leastCustomerAmount' => $customerPerformance->least_purchased->total_amount ?? 0,
+            'leastCustomerName'   => "XYZ Hardware",
+            'leastCustomerQty'    => 2,
+            'leastCustomerAmount' => 15000,
 
             'salesPerformance' => $salesPerformance,
 
