@@ -240,6 +240,9 @@ use App\Http\Controllers\ExpenseController;
             Route::post('update-influencer-visit/{visitId}', [LeadController::class, 'updateInfluencerVisit']); //New
             Route::get('influencer-visit-listing', [LeadController::class, 'influencerVisitListing']); //New
             Route::get('influencer-visit-details/{id}', [LeadController::class, 'influencerVisitDetails']); //New
+            Route::get('/influencer/open-list', [LeadController::class, 'influencerOpenList']);
+            Route::get('/influencer/won-list', [LeadController::class, 'influencerWonList']);
+            Route::get('/influencer/lost-list', [LeadController::class, 'influencerLostList']);
             Route::get('districts', [AuthController::class, 'getDistricts']);
             Route::get('employee/products', [EmployeeController::class, 'getEmployeeProducts']);
     

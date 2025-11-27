@@ -59,7 +59,7 @@ class Lead extends Model
     {
         return $this->belongsTo(District::class, 'district_id');
     }
-    public function tripRoute()
+    public function tripRoute() 
     {
         return $this->belongsTo(TripRoute::class, 'trip_route_id');
     }

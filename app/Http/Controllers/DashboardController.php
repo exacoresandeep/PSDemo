@@ -1080,6 +1080,7 @@ class DashboardController extends Controller
             })
             ->get();
 
+    public function getMDData(Request $request) 
         return response()->json([
             'success' => true,
             'statusCode' => 200,

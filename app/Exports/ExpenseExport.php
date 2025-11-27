@@ -68,7 +68,7 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping, Should
     public function map($expense): array
     {
         static $count = 0;
-        $count++;
+        $count++; 
 
         // calculate total amount dynamically
         $pricePerKm = $this->methodPrices[$expense->travel_method] ?? 0;
