@@ -1214,8 +1214,8 @@ class DashboardController extends Controller
     }
     public function getMDData4(Request $request)
     {
-        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
-        $product =Product::where("id",$productID)->select("product_code")->first();
+        // $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+        // $product =Product::where("id",$productID)->select("product_code")->first();
         $overall = $this->fetchOverallTargetAndAchievement($request);
         $targets   = $overall['target'];
         $achieved  = $overall['achieved'];
