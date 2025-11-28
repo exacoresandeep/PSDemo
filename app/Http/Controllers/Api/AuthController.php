@@ -548,7 +548,7 @@ public function updateFcmToken(Request $request)
 //             ], 500);
 //         }
 //     }
-public function notificationList()
+    public function notificationList()
     {
         try {
             $user = Auth::user();
@@ -1628,11 +1628,7 @@ public function notificationList()
 
             $productCode = strtolower($product->product_code);
 
-            
 
-            /* ---------------------------------------------------------
-            CASE 2: DURASHINE (Search inside products_details table)
-            --------------------------------------------------------- */
             if ($productCode === 'durashine' ) {
 
                 $query = ProductDetails::select(
