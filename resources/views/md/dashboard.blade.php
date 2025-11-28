@@ -312,7 +312,7 @@
                 </div>
             </div>
             {{-- Stock insights --}}
-                <div class="stock-cover mt-3 bg-white">
+                <div class="stock-cover bg-white">
                     <h4>Stock Insights</h4>
                     <p style="color:#555;margin-bottom:8px;">This shows the current stock status for <span class="productName"><i class="fa fa-circle-o-notch fa-spin"></i></span> products.</p>
 
