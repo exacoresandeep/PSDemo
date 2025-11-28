@@ -1758,9 +1758,9 @@ class LeadController extends Controller
                 $parentVolume = InfluencerVisit::where('id', $visit->chain_id)
                     ->value('total_deal_volume');
 
-                $data['total_deal_volume'] = (float) ($parentVolume ?? 0);
+                $data['total_deal_volume'] =  ($parentVolume ?? 0);
             } else {
-                $data['total_deal_volume'] = (float) $visit->total_deal_volume;
+                $data['total_deal_volume'] =  $visit->total_deal_volume;
             }
 
 
