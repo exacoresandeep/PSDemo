@@ -1369,6 +1369,8 @@ class OrderController extends Controller
                     'outstanding_payment_id' => $outstandingPaymentId,
                     'committed_date' => $commitment['committed_date'],
                     'committed_amount' => $commitment['committed_amount'],
+                    'employee_id' => $employee->id,
+                    'notification_status' => 'pending',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];

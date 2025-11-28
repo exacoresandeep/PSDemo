@@ -523,6 +523,7 @@ class LeadController extends Controller
                     'lead_id' => $lead->id,
                     'follow_up_date' => $request->follow_up_date,
                     'reason' => $request->follow_up_reason,
+                    'notification_status' => 'pending',
                     'created_by' => Auth::id(),
                 ]);
     
@@ -1025,6 +1026,7 @@ class LeadController extends Controller
                     'influencer_visit_id' => $visit->id,
                     'follow_up_date'      => $request->follow_up_date,
                     'reason'              => $request->follow_up_reason,
+                    'notification_status' => 'pending',
                     'created_by'          => Auth::id(),
                 ]);
             }
@@ -1123,7 +1125,7 @@ class LeadController extends Controller
         }
     }
 
-   public function updateInfluencerVisit(Request $request, $visitId)
+    public function updateInfluencerVisit(Request $request, $visitId)
     {
         try {
             $validated = $request->validate([
@@ -1162,6 +1164,7 @@ class LeadController extends Controller
                     'influencer_visit_id' => $visit->id,
                     'follow_up_date'      => $request->follow_up_date,
                     'reason'              => $request->follow_up_reason,
+                    'notification_status' => 'pending',
                     'created_by'          => Auth::id(),
                 ]);
             }

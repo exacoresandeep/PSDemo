@@ -590,7 +590,7 @@ class ActivityController extends Controller
             'instruction' => 'required|string',
     	]);
     	$emp=Employee::find($request->employee_id);
-    	 $deviceToken=$emp->fcm_token ?? null;
+    	$deviceToken=$emp->fcm_token ?? null;
     
             $activity = Activity::create([
                 'activity_type_id' => $request->activity_type_id,
