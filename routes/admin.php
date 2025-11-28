@@ -251,7 +251,11 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
 
     Route::prefix('md')->middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('md.dashboard');
-        Route::get('/getMDData', [DashboardController::class, 'getMDData'])->name('md.getMDData');
+        Route::get('/getMDData1', [DashboardController::class, 'getMDData1'])->name('md.getMDData1');
+        Route::get('/getMDData2', [DashboardController::class, 'getMDData2'])->name('md.getMDData2');
+        Route::get('/getMDData3', [DashboardController::class, 'getMDData3'])->name('md.getMDData3');
+        Route::get('/getMDData4', [DashboardController::class, 'getMDData4'])->name('md.getMDData4');
+        Route::get('/getMDData5', [DashboardController::class, 'getMDData5'])->name('md.getMDData5');
         Route::get('/sales-data', [DashboardController::class, 'getSalesData'])->name('md.getSalesData'); 
         Route::get('/sales-quantity', [DashboardController::class, 'getSalesQuantity'])->name('md.getSalesQuantity'); 
         Route::get('/leads-data', [DashboardController::class, 'getLeadsData'])->name('md.getLeadsData');

@@ -1658,7 +1658,7 @@ class DealerOrderController extends Controller
     //             $order->reason_for_rejection = $validatedData['reason_for_rejection'];
     //         } else {
     //             $order->reason_for_rejection = null;
-    //         }
+    //         }..
     //         $order->save();
 	// 	    $value="pending";
     //         if($validatedData['status']=="Rejected"){

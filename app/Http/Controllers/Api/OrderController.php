@@ -1746,7 +1746,7 @@ class OrderController extends Controller
                         'message' => "Region not found for the RSM.",
                     ], 404);
                 }
-       
+       //..
                 $districtsInRegion = District::where('regions_id', $region->id)->pluck('id')->toArray();
                 $salesEmployee = Employee::where('id', $employee_id)
                     ->whereIn('district_id', $districtsInRegion)

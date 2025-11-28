@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Employee;
 use App\Models\OutstandingPayment;
 use App\Models\Payment;
+use App\Models\Attendance;
 use App\Models\Lead;
 use App\Models\RescheduledRoute;
 use App\Models\Target;
@@ -998,10 +999,14 @@ class DashboardController extends Controller
         $request->validate([
             'from' => 'required|date',
             'to'   => 'required|date',
+            'employee_type_id'   => 'required',
+            'region_id'   => 'required',
         ]);
 
         $from = $request->from;
         $to   = $request->to;
+        $region_id   = $request->region_id;
+        $employee_type_id   = $request->employee_type_id;
 
         $productID = \App\Helpers\ProductHelper::getSelectedProductID();
 
@@ -1009,10 +1014,15 @@ class DashboardController extends Controller
                 'createdBy.region',
                 'createdBy.employeeType'
             ])
-            ->whereDate('created_at', '>=', $from)
-            ->whereDate('created_at', '<=', $to)
+           ->whereBetween('created_at', [$from, $to])
             ->whereHas('orderItems', function ($q) use ($productID) {
                 $q->where('product_id', $productID);
+            })
+            ->whereHas('createdBy', function ($q) use ($employee_type_id, $region_id) {
+                $q->where('employee_type_id', $employee_type_id)
+                ->whereHas('district', function ($q2) use ($region_id) {
+                    $q2->where('regions_id', $region_id);
+                });
             })
             ->selectRaw('created_by, SUM(invoice_quantity) as qty, SUM(invoice_total) as amt')
             ->groupBy('created_by')
@@ -1025,6 +1035,7 @@ class DashboardController extends Controller
                     'employeeName'  => $row->createdBy->name ?? '-',
                     'sellingQty'    => (float) ($row->qty ?? 0),
                     'amount'        => (float) ($row->amt ?? 0),
+                    'createdBy'     => $row->createdBy
                 ];
             });
 
@@ -1032,65 +1043,152 @@ class DashboardController extends Controller
             'salesPerformance' => $data
         ]);
     }
-
-
-
-    public function getMDData(Request $request) 
+    public function fetchTotalCompletedActivity(Request $request)
     {
+        $request->validate([
+            'from' => 'required|date',
+            'to'   => 'required|date',
+        ]);
         $from = $request->from;
         $to   = $request->to;
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+        $data = Activity::whereBetween('completed_date', [$from, $to])
+                        ->where('status',"Completed")   
+                        ->count();
+        return response()->json([
+            'totalCompletedActivity' => $data
+        ]);
+    }
+
+    public function fetchCreditNoteStats(Request $request)
+    {
+        $request->validate([
+            'from' => 'required|date',
+            'to'   => 'required|date',
+        ]);
+
+        $from = $request->from;
+        $to   = $request->to;
+
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+
+        $creditNotes = CreditNote::with(["order.orderItems"])
+            ->whereBetween('date', [$from, $to])
+            ->where('status', 'open')
+            ->whereHas('order.orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
+            })
+            ->get();
+
+    public function getMDData(Request $request) 
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'data' => [
+                'credit_note_amount' => round($creditNotes->sum('total_row_amount'), 2),
+                'credit_note_count'  => $creditNotes->count(),
+                'order_count'        => $creditNotes->pluck('order_id')->unique()->count(),
+            ]
+        ]);
+    }
+
+    public function fetchOutstandingPaymentsData(Request $request)
+    {
+        $request->validate([
+            'from' => 'required|date',
+            'to'   => 'required|date',
+        ]);
+
+        $from = $request->from;
+        $to   = $request->to;
+
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+
+        $outstanding = OutstandingPayment::with(["order.orderItems"])
+            ->whereBetween('invoice_date', [$from, $to])
+            ->where('status', 'open')
+            ->whereHas('order.orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
+            })
+            ->get();
+
+        $payments = Payment::whereBetween('payment_date', [$from, $to])->get();
+
+        return response()->json([
+            'totalOutstandingAmount'  => $outstanding->sum('outstanding_amount'),
+            'totalOutstandingInvoices'=> $outstanding->count(),
+            'totalCollectionAmount'   => $payments->sum('payment_amount'),
+            'totalPaidInvoices'       => $payments->unique('invoice_number')->count()
+        ]);
+    }
+
+    public function getMDData1(Request $request)
+    {
+        // $from = $request->from;
+        // $to   = $request->to;
 
         $productID = \App\Helpers\ProductHelper::getSelectedProductID();
         $productName =Product::where("id",$productID)->select("product_name")->first();
         $dealerData     = $this->fetchDealerVisitData($request)->getData()->totalDealerVisit;
         $influencerData       = $this->fetchInfluencerVisitData($request)->getData()->totalInfluencerVisit;
-
-        $overall = $this->fetchOverallTargetAndAchievement($request);
+        $totalCompletedActivity = $this->fetchTotalCompletedActivity($request)->getData()->totalCompletedActivity;
         $LeadsData = $this->fetchLeadsData($request)->getData()->totalLeads;
 
         $salesData = $this->fetchSalesData($request)->getData();
         $salesQuantity = $this->fetchSalesQuantity($request)->getData();
-
         $leadsGenerated = $this->fetchLeadsGenerated($request)->getData();
-
-        $highestLowest = $this->fetchHighestLowest($request)->getData();
-        $customerPerformance = $this->fetchCustomerPerformance($request)->getData();
-
         $approvedOrders = $this->fetchTotalOrder($request)->getData()->approvedOrders;
-        $targets   = $overall['target'];
-        $achieved  = $overall['achieved'];
-
-        $salesPerformance = $this->fetchSalesPerformance($request)->getData()->salesPerformance;
-
-
+       
         return response()->json([
 
             'productName'            => $productName->product_name,
             'totalOrder'            => $approvedOrders,
             'totalLeadOpen'         => $LeadsData,
-
-            // ✔ FIXED → return integer values only
             'totalInfluencerVisit'  => $influencerData,
             'totalDealerVisit'      => $dealerData,
+            'totalCompletedActivity'=> $totalCompletedActivity,
 
-            // Dummy value (change if needed)
-            'totalCompletedActivity'=> 12,
-
-            'totalSalesRevenue'     => $salesData->totalSalesRevenue ?? 0,     
+            'totalSalesRevenue'     => round($salesData->totalSalesRevenue, 2) ?? 0,     
             'totalSalesOrderCount'  => $salesData->orderCount ?? 0,
-            'totalSalesQuantityTon' => $salesQuantity->totalSalesQuantity ?? 0, 
+            'totalSalesQuantityTon' => round($salesQuantity->totalSalesQuantity, 2) ?? 0, 
             'totalSalesQuantityCount' => $salesQuantity->orderCount ?? 0, 
             'totalLeadGenerated'    => $leadsGenerated->totalLeadsGenerated ?? 0,
+        ]);
+    }
 
-            'totalOutstandingPayment' => 750000,
-            'outstandingOrderCount'   => 22,
+     public function getMDData2(Request $request)
+    {
+        // $from = $request->from;
+        // $to   = $request->to;
 
-            'totalOutstandingCollection' => 350000,
-            'collectionOrderCount'       => 12,
+        $creditNoteStats        = $this->fetchCreditNoteStats($request)->getData()->data;
+        $outstandingPaymentData = $this->fetchOutstandingPaymentsData($request)->getData();
 
-            'totalCreditNoteAmount' => 120000,
-            'creditNoteCount'       => 6,
 
+        return response()->json([
+
+            'totalCreditNoteAmount' => round($creditNoteStats->credit_note_amount, 2),
+            'creditNoteCount'       => $creditNoteStats->credit_note_count,
+            'creditNoteOrderCount'  => $creditNoteStats->order_count,
+
+            'totalOutstandingPayment'  => round($outstandingPaymentData->totalOutstandingAmount, 2),
+            'outstandingOrderCount'=> $outstandingPaymentData->totalOutstandingInvoices,
+
+            'totalOutstandingCollection'   => round($outstandingPaymentData->totalCollectionAmount, 2),
+            'collectionOrderCount'       => $outstandingPaymentData->totalPaidInvoices,
+
+           
+        ]);
+    }
+
+     public function getMDData3(Request $request)
+    {
+        $highestLowest = $this->fetchHighestLowest($request)->getData();
+        $customerPerformance = $this->fetchCustomerPerformance($request)->getData();
+        
+        return response()->json([
+
+            
             'highestSellingItem' => $highestLowest->highest ?? '-',
             'lowestSellingItem'  => $highestLowest->lowest ?? '-',
 
@@ -1102,10 +1200,47 @@ class DashboardController extends Controller
             'leastCustomerQty'    => $customerPerformance->least_purchased->total_quantity ?? 0,
             'leastCustomerAmount' => $customerPerformance->least_purchased->total_amount ?? 0,
 
-            'salesPerformance' => $salesPerformance,
+            // 'salesPerformance' => $salesPerformance,
 
-            'teamOnDuty'     => 18,
-            'teamOnLeave'    => 3,
+        ]);
+    }
+
+    public function getMDData5(Request $request){
+         $salesPerformance = $this->fetchSalesPerformance($request)->getData()->salesPerformance;
+        
+        return response()->json([
+            'salesPerformance' => $salesPerformance,
+        ]);
+    }
+    public function getMDData4(Request $request)
+    {
+        // $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+        // $product =Product::where("id",$productID)->select("product_code")->first();
+        $overall = $this->fetchOverallTargetAndAchievement($request);
+        $targets   = $overall['target'];
+        $achieved  = $overall['achieved'];
+
+        $presentCount = null;
+        $leaveCount = null;
+        $from = $request->from;
+        $to   = $request->to;
+        if($from==$to){
+            $presentCount = Attendance::whereDate('date', $from)
+                    ->where('status', 'present')
+                    ->count();
+            $leaveCount = Attendance::whereDate('date', $from)
+                    ->where('status', 'leave')
+                    ->count();
+        }
+        // $stockDetails=$this->stockDetails($product->product_code);
+        $stockDetails=0;
+        // dd($stockDetails);
+        
+        return response()->json([
+
+            'attendance'     => (bool)($to == $from),
+            'teamOnDuty'     => $presentCount,
+            'teamOnLeave'    => $leaveCount,
 
             'totalStock'      => 350,
             'totalInStock'    => 280,
@@ -1125,6 +1260,61 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function stockDetails($productItem)
+    {
+        try {
+           
+            $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
+
+            if (!$conn) {
+                return response()->json([
+                    'data' => []
+                ]);
+            }
+            $sql = "CALL \"PRABHU_NEW\".\"Mobile_App_GetStock\"('$productItem','')";
+            $result = odbc_exec($conn, $sql);
+
+            if (!$result) {
+                odbc_close($conn);
+                return response()->json([
+                    'data' => []
+                ]);
+            }
+
+           $stockData = [];
+
+            while ($row = odbc_fetch_array($result)) {
+                $row = array_map('trim', $row);
+                foreach ($row as $key => $value) {
+                    $row[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
+                }
+
+                $qty = isset($row['OnHand']) ? floatval($row['OnHand']) : 0;
+
+                if ($qty > 10) {
+                    $status = "In-Stock";
+                } elseif ($qty >= 1 && $qty <= 10) {
+                    $status = "Low Stock";
+                } else {
+                    $status = "Out of Stock";
+                }
+
+                $row['status'] = $status;
+
+                $stockData[] = $row;
+            }
 
 
+            odbc_close($conn);
+
+            return response()->json([
+                'data' => $stockData
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'data' => []
+            ]);
+        }
+    }
 }

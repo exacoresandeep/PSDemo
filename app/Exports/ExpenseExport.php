@@ -8,6 +8,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
+
 class ExpenseExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
 {
     protected $from_date, $to_date, $employee_type, $employee_id, $travel_method;
