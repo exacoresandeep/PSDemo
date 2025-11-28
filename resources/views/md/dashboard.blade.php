@@ -167,7 +167,7 @@
 
     <div class="row mb-4">
         <div class="col-md-8">
-            <div class="dashboard-card-cover">
+            <div class="dashboard-card-cover mt-0">
                 <div class="row mb-3">
                     <div class="col-md-6"><h4>Outstanding Payments</h4></div>
                     
@@ -215,8 +215,8 @@
                         </div>
                     </div>
 
-                    <div class="bg-white hs-card">
-                            <h4>Highest and Lowest Selling Item</h4>
+                    <div class="stock-cover bg-white hs-card">
+                            <h5>Highest and Lowest Selling Item</h5>
 
                             <div class="row" style="background:#D9FFE3;color:#34C759;font-weight:600;padding:10px;border-radius:6px;">
                                 <div class="col-md-6">Highest Selling Item</div>
@@ -229,7 +229,7 @@
                             </div>
                         </div>
                 </div>
-                <div class="col-md-7">
+                <div class="col-md-7 stock-cover">
                     <div class="bg-white hs-card">
                         <h4>Customer Performance</h4>
                         <h5 style="color:#34C759">Top Customer</h5>
@@ -259,7 +259,7 @@
                     </div>
                 </div>
             </div>
-            <div class="bg-white hs-card">
+            <div class="bg-white hs-card stock-cover">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h4>Sales Performance By Region</h4>
 
@@ -298,7 +298,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="attnd-overview">
+            <div class="stock-cover attnd-overview">
                 <h4>Attendance Overview</h4>
                 <div class="d-flex justify-content-between align-items-center mt-3">
                     <div>
