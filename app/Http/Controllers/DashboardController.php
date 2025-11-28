@@ -950,43 +950,43 @@ class DashboardController extends Controller
             ->where('status', '!=', 'Rejected')
             ->whereHas('orderItems', function ($q) use ($productID) {
                 $q->where('product_id', $productID);
-            })
-            ->where(function ($query) {
-                $query->where(function ($q) {
-                    $q->where('dealer_flag_order', '1')
-                        ->where(function ($subQuery) {
-                            $subQuery->where('send_for_approval', '1')
-                                ->orWhereNull('send_for_approval');
-                        })
-                        ->where(function ($subQuery) {
-                            $subQuery->where('order_approved', '!=', '0')
-                                ->orWhereIn('order_approved_by', function ($subQuery) {
-                                    $subQuery->select('id')
-                                        ->from('users')
-                                        ->where('role_id', 2);
-                                });
-                        });
-                })->orWhere(function ($q) {
-                    $q->where('dealer_flag_order', '0')
-                        ->where(function ($subQuery) {
-                            $subQuery->where('order_approved', '!=', '0')
-                                ->orWhereIn('order_approved_by', function ($subQuery) {
-                                    $subQuery->select('id')
-                                        ->from('users')
-                                        ->where('role_id', 2);
-                                });
-                        });
-                });
             });
+            // ->where(function ($query) {
+            //     $query->where(function ($q) {
+            //         $q->where('dealer_flag_order', '1')
+            //             ->where(function ($subQuery) {
+            //                 $subQuery->where('send_for_approval', '1')
+            //                     ->orWhereNull('send_for_approval');
+            //             })
+            //             ->where(function ($subQuery) {
+            //                 $subQuery->where('order_approved', '!=', '0')
+            //                     ->orWhereIn('order_approved_by', function ($subQuery) {
+            //                         $subQuery->select('id')
+            //                             ->from('users')
+            //                             ->where('role_id', 2);
+            //                     });
+            //             });
+            //     })->orWhere(function ($q) {
+            //         $q->where('dealer_flag_order', '0')
+            //             ->where(function ($subQuery) {
+            //                 $subQuery->where('order_approved', '!=', '0')
+            //                     ->orWhereIn('order_approved_by', function ($subQuery) {
+            //                         $subQuery->select('id')
+            //                             ->from('users')
+            //                             ->where('role_id', 2);
+            //                     });
+            //             });
+            //     });
+            // });
 
-        $pendingOrders = \App\Models\Order::query()
-            ->with(['orderItems'])
-            ->where('status', '!=', 'Rejected')
-            ->where('order_approved', '0')
-            ->whereHas('orderItems', function ($q) use ($productID) {
-                $q->where('product_id', $productID);
-            })
-            ->count();  
+        // $pendingOrders = \App\Models\Order::query()
+        //     ->with(['orderItems'])
+        //     ->where('status', '!=', 'Rejected')
+        //     ->where('order_approved', '0')
+        //     ->whereHas('orderItems', function ($q) use ($productID) {
+        //         $q->where('product_id', $productID);
+        //     })
+        //     ->count();  
         $approvedOrders = (clone $baseQuery)->where('order_approved', '1')->count();
          return response()->json([
             'approvedOrders' => $approvedOrders
@@ -1080,16 +1080,15 @@ class DashboardController extends Controller
             })
             ->get();
 
-    // public function getMDData(Request $request) 
-    //     return response()->json([
-    //         'success' => true,
-    //         'statusCode' => 200,
-    //         'data' => [
-    //             'credit_note_amount' => round($creditNotes->sum('total_row_amount'), 2),
-    //             'credit_note_count'  => $creditNotes->count(),
-    //             'order_count'        => $creditNotes->pluck('order_id')->unique()->count(),
-    //         ]
-    //     ]);
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'data' => [
+                'credit_note_amount' => round($creditNotes->sum('total_row_amount'), 2),
+                'credit_note_count'  => $creditNotes->count(),
+                'order_count'        => $creditNotes->pluck('order_id')->unique()->count(),
+            ]
+        ]);
     }
 
     public function fetchOutstandingPaymentsData(Request $request)
