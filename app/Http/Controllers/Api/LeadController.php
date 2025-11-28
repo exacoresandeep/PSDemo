@@ -960,318 +960,7 @@ class LeadController extends Controller
             ], 500);
         }
     }
-    // public function createInfluencerVisit(Request $request)
-    // {
-    //     try {
-    //         $validated = $request->validate([
-    //             'influencer_name'     => 'required|string|max:255',
-    //             'phone'               => 'required|string|max:20',
-    //             'place'               => 'required|string|max:255',
-    //             'influencer_type'     => 'required|string|max:255',
-    //             'visit_type'          => 'required|string|max:255',
-    //             'purpose'             => 'required|string|max:255',
-    //             'district_id'         => 'required|integer',
-    //             'lead_type'           => 'required|string|max:255',
-    //             'current_project'     => 'nullable|string|max:255',
-    //             'upcoming_project'    => 'nullable|string|max:255',
-    //             'steel_used'          => 'nullable|array',
-    //             'other_steels'	      => 'nullable|string|max:255',
-    //             'total_deal_volume'   => 'required|numeric',
-    //             'status'              => 'nullable|in:Opened,Follow Up,Won,Lost',
-
-    //             // Follow Up
-    //             'follow_up_date'      => 'required_if:status,Follow Up|nullable|date',
-    //             'follow_up_reason'    => 'required_if:status,Follow Up|nullable|string',
-    
-    //             // Lost
-    //             'lost_details.lost_volume' => 'required_if:status,Lost|nullable|numeric',
-    //             'lost_details.lost_to_competitor' => 'required_if:status,Lost|nullable|string',
-    //             'lost_details.competitor_name' => 'nullable|string',
-    //             'lost_details.reason_for_lost' => 'required_if:status,Lost|nullable|string',
-    
-    //             // Won
-    //             'order_details.dealer_id'        => 'nullable|exists:dealers,id',
-    //             'order_details.dealer_flag_order'=> 'nullable|numeric',
-    //             'order_details.payment_terms_id' => 'required_if:status,WON|nullable|exists:payment_terms,id',
-    //             'order_details.credit_days'      => 'nullable|string|max:255',
-    //             'order_details.total_amount'     => 'required_if:status,Won|nullable|numeric',
-    //             'order_details.order_items'      => 'required_if:status,Won|nullable|array',
-    //             'order_details.order_items.*.product_id'        => 'required_with:order_details.order_items|exists:products,id',
-    //             // 'order_details.order_items.*.total_quantity'    => 'required_with:order_details.order_items|numeric',
-    //             // 'order_details.order_items.*.balance_quantity'  => 'required_with:order_details.order_items|numeric',
-    //             'order_details.order_items.*.product_details'   => 'nullable|array',
-    //             'order_details.attachment' => 'nullable|array',
-    //             'order_details.attachment.*' => 'nullable|string',
-             
-    //         ]);
-    //         if (isset($validated['steel_used']) && is_array($validated['steel_used'])) {
-    //             $validated['steel_used'] = $validated['steel_used']; 
-    //         } else {
-    //             $validated['steel_used'] = null;
-    //         }
-    //         $validated['created_by'] = Auth::id();
-    //         $validated['status'] = $validated['status'] ?? 'Opened';
-    
-    //          DB::beginTransaction();
-
-    //     $visit = InfluencerVisit::create($validated);
-
-    //     $order = null;
-
-    //     if ($validated['status'] === 'Follow Up') {
-    //         InfluencerVisitFollowUp::create([
-    //             'influencer_visit_id' => $visit->id,
-    //             'follow_up_date'      => $request->follow_up_date,
-    //             'reason'              => $request->follow_up_reason,
-    //             'created_by'          => Auth::id(),
-    //         ]);
-
-    //         $visit->update([
-    //             'follow_up_date' => $request->follow_up_date,
-    //         ]);
-    //     }
-
-    //     // Lost
-    //     if ($validated['status'] === 'Lost' && !empty($request->lost_details)) {
-    //         $visit->update([
-    //             'lost_volume'        => $request->lost_details['lost_volume'],
-    //             'lost_to_competitor' => $request->lost_details['lost_to_competitor'],
-    //             'competitor_name' => $request->lost_details['competitor_name'],
-    //             'reason_for_lost'    => $request->lost_details['reason_for_lost'],
-    //         ]);
-    //     }
-
-    //     if ($validated['status'] === 'Won' && !empty($request->order_details)) {
-    //         $employee = Auth::user();
-    //         $details = $request->order_details;
-
-    //         $convertDate = function ($date) {
-    //             if (!$date) return null;
-    //             try {
-    //                 return \Carbon\Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
-    //             } catch (\Exception $e) {
-    //                 try {
-    //                     return \Carbon\Carbon::createFromFormat('d-m-Y', $date)->format('Y-m-d');
-    //                 } catch (\Exception $e2) {
-    //                     return $date; 
-    //                 }
-    //             }
-    //         };
-
-    //         $billingDate = $convertDate($details['billing_date'] ?? null);
-    //         $deliveryDate = $convertDate($details['delivery_date'] ?? null);
-    //         $paymentDate  = $convertDate($details['payment_date'] ?? null);
-
-    //         $mainProductId = !empty($details['order_items'][0]['product_id'])
-    //             ? $details['order_items'][0]['product_id']
-    //             : null;
-
-    //         $orderData = [
-    //             'influencer_visit_id' => $visit->id,
-    //             'order_type'          => $details['order_type'] ?? null,
-    //             'customer_type_id'    => $details['customer_type_id'] ?? null,
-    //             'order_category'      => $details['order_category'] ?? null,
-    //             'lead_id'             => $details['lead_id'] ?? null,
-    //             'dealer_id'           => $details['dealer_id'] ?? null,
-    //             'payment_terms_id'    => $details['payment_terms_id'],
-    //             'credit_days'         => $details['credit_days'] ?? null,
-    //             'advance_amount'      => $details['advance_amount'] ?? null,
-    //             'payment_date'        => $paymentDate,
-    //             'billing_date'        => $billingDate ?? now()->format('Y-m-d'),
-    //             'delivery_date'       => $deliveryDate ?? now()->addDays(2)->format('Y-m-d'),
-    //             'total_amount'        => (float) ($details['total_amount'] ?? 0),
-    //             'additional_information' => $details['additional_information'] ?? null,
-    //             'status'              => 'Pending',
-    //             'vehicle_category_id' => $details['vehicle_category_id'] ?? null,
-    //             'vehicle_type'        => $details['vehicle_type'] ?? null,
-    //             'vehicle_number'      => $details['vehicle_number'] ?? null,
-    //             'driver_name'         => $details['driver_name'] ?? null,
-    //             'driver_phone'        => $details['driver_phone'] ?? null,
-    //             'scheme'              => $details['scheme'] ?? null,
-    //             'source'              => 'influencer_won',
-    //             'created_by'          => $employee->id,
-    //             'attachment'          => $details['attachment'] ?? [],
-    //             'product_id'          => $mainProductId,
-    //         ];
-
-    //         $order = Order::create($orderData);
-
-    //         foreach ($details['order_items'] as $orderItem) {
-    //             $totalPieces = 0;
-    //             $totalTon = 0;
-    //             $productDetails = [];
-
-    //             $quantityType = $orderItem['quantity_type'] ?? 'Ton'; 
-
-    //             if (!empty($orderItem['product_details'])) {
-    //                 foreach ($orderItem['product_details'] as $pd) {
-    //                     $pieces = isset($pd['pieces']) ? (float)$pd['pieces'] : 0;
-    //                     $tonnage = isset($pd['tonnage']) ? (float)$pd['tonnage'] : 0;
-
-    //                     $totalPieces += $pieces;
-    //                     $totalTon += $tonnage;
-
-    //                     $typeName = \App\Models\ProductType::where('id', $pd['product_type_id'])->value('type_name');
-    //                     $pd['type_name'] = $typeName ?? null;
-    //                     $pd['quantity_type'] = $quantityType;
-
-    //                     $productDetails[] = $pd;
-    //                 }
-    //             }
-
-    //             // ✅ compute total safely
-    //             $orderItem['total_quantity'] = ($quantityType === 'Pieces')
-    //                 ? round($totalPieces, 2)
-    //                 : round($totalTon, 2);
-
-    //             $orderItem['product_details'] = $productDetails;
-    //             $orderItem['quantity_type'] = $quantityType;
-
-    //             $order->orderItems()->create($orderItem);
-    //         }
-
-
-    //         $visit->update(['status' => 'Won']);
-    //     }
-
-    //     DB::commit();
-    
-    //         return response()->json([
-    //             'success' => true,
-    //             'message' => 'Influencer visit created successfully.',
-    //             'data' => $visit
-    //         ], 201);
-    //     } catch (\Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => $e->getMessage()
-    //         ], 500);
-    //     }
-    // }
-    // public function updateInfluencerVisit(Request $request, $visitId)
-    // {
-    //     try {
-    //         $validated = $request->validate([
-    //             'status'              => 'required|in:Opened,Follow Up,Won,Lost',
-    
-    //             // Follow Up
-    //             'follow_up_date'      => 'required_if:status,Follow Up|nullable|date',
-    //             'follow_up_reason'    => 'required_if:status,Follow Up|nullable|string',
-    
-    //             // Lost
-    //             'lost_details.lost_volume' => 'required_if:status,Lost|nullable|numeric',
-    //             'lost_details.lost_to_competitor' => 'required_if:status,Lost|nullable|string',
-    //             'lost_details.competitor_name' => 'nullable|string',
-    //             'lost_details.reason_for_lost' => 'required_if:status,Lost|nullable|string',
-    
-    //             // Won
-    //             // 'order_details.customer_type_id' => 'required_if:status,Won|nullable|exists:customer_types,id',
-    //             'order_details.dealer_id'        => 'nullable|exists:dealers,id',
-    //             'order_details.dealer_flag_order'=> 'nullable|numeric',
-    //             'order_details.payment_terms_id' => 'required_if:status,Won|nullable|exists:payment_terms,id',
-    //             'order_details.credit_days'      => 'nullable|string',
-    //             'order_details.total_amount'     => 'required_if:status,Won|nullable|numeric',
-    //             'order_details.order_items'      => 'required_if:status,Won|nullable|array',
-    //             'order_details.order_items.*.product_id'        => 'required_with:order_details.order_items|exists:products,id',
-    //             // 'order_details.order_items.*.total_quantity'    => 'required_with:order_details.order_items|numeric',
-    //             // 'order_details.order_items.*.balance_quantity'  => 'required_with:order_details.order_items|numeric',
-    //             'order_details.order_items.*.product_details'   => 'nullable|array',
-    //             'order_details.attachment' => 'nullable|array',
-    //             'order_details.attachment.*' => 'nullable|string',
-    //         ]);
-    
-    //         $visit = InfluencerVisit::findOrFail($visitId);
-    
-    //         DB::beginTransaction();
-    
-    //         // Store follow up
-    //         if ($request->status === 'Follow Up') {
-    //             InfluencerVisitFollowUp::create([
-    //                 'influencer_visit_id' => $visit->id,
-    //                 'follow_up_date' => $request->follow_up_date,
-    //                 'reason' => $request->follow_up_reason,
-    //                 'created_by' => Auth::id(),
-    //             ]);
-    //         }
-    
-    //         // Update influencer visit
-    //         $visit->update([
-    //             'follow_up_date' => $request->follow_up_date,
-    //             'status'              => $request->status,
-    //         ]);
-    
-    //         $order = null;
-    
-    //         // Store order if status is WON
-    //         if ($request->status === 'Won' && !empty($request->order_details)) {
-    //             $details = $request->order_details;
-                
-    //             $order = Order::create([
-    //                 'influencer_visit_id' => $visit->id,
-    //                 'dealer_id'           => $details['dealer_id'] ?? null,
-    //                 'dealer_flag_order'   => $details['dealer_flag_order'] ?? '0',
-    //                 'payment_terms_id'    => $details['payment_terms_id'],
-    //                 'credit_days'         => $details['credit_days'] ?? 0,
-    //                 'total_amount'        => (float)$details['total_amount'],
-    //                 // 'billing_date'        => now()->format('Y-m-d'),
-    //                 'status'              => 'Pending',
-    //                 'source'              => 'influencer_won',
-    //                 'created_by'          => Auth::id(),
-    //                 'attachment'          => $details['attachment'] ?? $request->attachment ?? [],
-    //             ]);
-    
-    //             if (!empty($details['order_items'])) {
-    //                 $items = array_map(function ($item) use ($order) {
-    //                     return [
-    //                         'order_id' => $order->id,
-    //                         'product_id' => $item['product_id'],
-    //                         'total_quantity' => $item['total_quantity'],
-    //                         'balance_quantity' => $item['balance_quantity'],
-    //                         'product_details' => json_encode($item['product_details']),
-    //                         'created_at' => now(),
-    //                         'updated_at' => now(),
-    //                     ];
-    //                 }, $details['order_items']);
-    
-    //                 OrderItem::insert($items);
-    //             }
-    //         }
-    
-    //         // Store lost reason if status is LOST
-    //         if ($request->status === 'Lost' && !empty($request->lost_details)) {
-    //             $visit->update([
-    //                 'lost_volume' => $request->lost_details['lost_volume'],
-    //                 'lost_to_competitor' => $request->lost_details['lost_to_competitor'],
-    //                 'competitor_name' => $request->lost_details['competitor_name'],
-    //                 'reason_for_lost' => $request->lost_details['reason_for_lost'],
-    //             ]);
-    //         }
-    
-    //         DB::commit();
-    
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Influencer visit updated successfully.',
-    //             'data' => $visit,
-    //             'order_details' => $order,
-    //         ], 200);
-    //     } catch (\Illuminate\Validation\ValidationException $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 422,
-    //             'message' => 'Validation error',
-    //             'errors' => $e->errors(),
-    //         ], 422);
-    //     } catch (\Exception $e) {
-    //         DB::rollBack();
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
+   
     public function createInfluencerVisit(Request $request)
     {
         try {
@@ -1654,16 +1343,17 @@ class LeadController extends Controller
     {
         return $this->getInfluencerVisitListByStatus(['Opened', 'Follow Up']);
     }
-    public function influencerWonList()
+    public function influencerWonList(Request $request)
     {
-        return $this->getInfluencerVisitListByStatus(['Won']);
+        $productId = $request->product_id;
+         return $this->getInfluencerVisitListByStatus(['Won'], $productId);
     }
     public function influencerLostList()
     {
         return $this->getInfluencerVisitListByStatus(['Lost']);
     }
 
-    private function getInfluencerVisitListByStatus(array $statuses)
+    private function getInfluencerVisitListByStatus(array $statuses, $productId = null)
     {
         $employee = Auth::user();
 
@@ -1687,6 +1377,11 @@ class LeadController extends Controller
             ->whereIn('status', $statuses)
             ->orderBy('created_at', 'desc');
 
+        if ($productId) {
+            $query->whereHas('order', function ($q) use ($productId) {
+                $q->where('product_id', $productId);
+            });
+        }
         $visits = $query->get()->map(function ($visit) {
             return [
                 'id' => $visit->id,
@@ -1749,11 +1444,6 @@ class LeadController extends Controller
             $data['other_steels'] = $visit->other_steels;
 
 
-            // ---------------------------------------------------------
-            // TOTAL DEAL VOLUME
-            // If chain_id exists → use root lead's total_deal_volume
-            // Else → use its own
-            // ---------------------------------------------------------
             if ($visit->chain_id) {
                 $parentVolume = InfluencerVisit::where('id', $visit->chain_id)
                     ->value('total_deal_volume');
@@ -1763,12 +1453,6 @@ class LeadController extends Controller
                 $data['total_deal_volume'] =  $visit->total_deal_volume;
             }
 
-
-            // ---------------------------------------------------------
-            // WON & LOST VOLUME (SUM OF ENTIRE LEAD GROUP)
-            // chain_id → parent lead
-            // no chain_id → itself is parent
-            // ---------------------------------------------------------
             $leadParentId = $visit->chain_id ?? $visit->id;
 
             $leadVisits = InfluencerVisit::where(function ($q) use ($leadParentId) {
@@ -1787,23 +1471,6 @@ class LeadController extends Controller
             })->values();
 
 
-            // ---------------------------------------------------------
-            // FOLLOW UP LIST (If status = Follow Up)
-            // ---------------------------------------------------------
-            // if ($visit->status === 'Follow Up') {
-            //     $data['follow_ups'] = $visit->followUps->map(function ($followUp) {
-            //         return [
-            //             'id' => $followUp->id,
-            //             'follow_up_date' => $followUp->follow_up_date,
-            //             'follow_up_reason' => $followUp->reason,
-            //         ];
-            //     })->values();
-            // }
-
-
-            // ---------------------------------------------------------
-            // LOST DETAILS (If status = Lost)
-            // ---------------------------------------------------------
             if ($visit->status === 'Lost') {
                 $data['lost_volume'] = (float) $visit->lost_volume;
                 $data['lost_to_competitor'] = $visit->lost_to_competitor;
@@ -1811,10 +1478,6 @@ class LeadController extends Controller
                 $data['reason_for_lost'] = $visit->reason_for_lost;
             }
 
-
-            // ---------------------------------------------------------
-            // WON DETAILS (If status = Won)
-            // ---------------------------------------------------------
             if ($visit->status === 'Won' && $visit->order) {
                 $order = $visit->order;
                 $orderItems = $order->orderItems->map(function ($item) {
