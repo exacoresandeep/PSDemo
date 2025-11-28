@@ -979,14 +979,14 @@ class DashboardController extends Controller
                 });
             });
 
-        $pendingOrders = \App\Models\Order::query()
-            ->with(['orderItems'])
-            ->where('status', '!=', 'Rejected')
-            ->where('order_approved', '0')
-            ->whereHas('orderItems', function ($q) use ($productID) {
-                $q->where('product_id', $productID);
-            })
-            ->count();  
+        // $pendingOrders = \App\Models\Order::query()
+        //     ->with(['orderItems'])
+        //     ->where('status', '!=', 'Rejected')
+        //     ->where('order_approved', '0')
+        //     ->whereHas('orderItems', function ($q) use ($productID) {
+        //         $q->where('product_id', $productID);
+        //     })
+        //     ->count();  
         $approvedOrders = (clone $baseQuery)->where('order_approved', '1')->count();
          return response()->json([
             'approvedOrders' => $approvedOrders
