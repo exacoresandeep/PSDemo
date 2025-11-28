@@ -1080,16 +1080,16 @@ class DashboardController extends Controller
             })
             ->get();
 
-    public function getMDData(Request $request) 
-        return response()->json([
-            'success' => true,
-            'statusCode' => 200,
-            'data' => [
-                'credit_note_amount' => round($creditNotes->sum('total_row_amount'), 2),
-                'credit_note_count'  => $creditNotes->count(),
-                'order_count'        => $creditNotes->pluck('order_id')->unique()->count(),
-            ]
-        ]);
+    // public function getMDData(Request $request) 
+    //     return response()->json([
+    //         'success' => true,
+    //         'statusCode' => 200,
+    //         'data' => [
+    //             'credit_note_amount' => round($creditNotes->sum('total_row_amount'), 2),
+    //             'credit_note_count'  => $creditNotes->count(),
+    //             'order_count'        => $creditNotes->pluck('order_id')->unique()->count(),
+    //         ]
+    //     ]);
     }
 
     public function fetchOutstandingPaymentsData(Request $request)

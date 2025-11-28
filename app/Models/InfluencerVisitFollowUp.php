@@ -15,6 +15,7 @@ class InfluencerVisitFollowUp extends Model
         'follow_up_date',
         'reason',
         'created_by',
+        'notification_status',
     ];
     protected $casts = [
         'follow_up_date' => 'datetime', 

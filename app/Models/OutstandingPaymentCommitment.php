@@ -11,15 +11,21 @@ class OutstandingPaymentCommitment extends Model
 
     protected $fillable = [
         'outstanding_payment_id',
+        'employee_id',  
         'committed_date',
-	'committed_amount',
-	'notification_status'
+        'committed_amount',
+        'notification_status'
     ];
 
     public $timestamps = false;
+
     public function outstandingPayment()
     {
         return $this->belongsTo(OutstandingPayment::class);
+    }
+     public function employee()
+    {
+        return $this->belongsTo(Employee::class);
     }
 }
 

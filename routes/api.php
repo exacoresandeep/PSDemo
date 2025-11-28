@@ -34,6 +34,7 @@ use App\Http\Controllers\ExpenseController;
 
         Route::prefix('dealer')->group(function () {
             Route::post('login', [DealerController::class, 'login']);
+            Route::post('loginCommon', [AuthController::class, 'loginCommon']);
             Route::post('getCreditNoteForInvoice', [HanaController::class, 'getCreditNoteForInvoice']);
             Route::middleware('auth:sanctum')->group(function () {
                 Route::post('store', [DealerController::class, 'store']);

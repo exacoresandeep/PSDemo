@@ -590,7 +590,7 @@ public function updateFcmToken(Request $request)
                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
                     DATE_FORMAT(created_at, '%d-%m-%Y') as date,
                     DATE_FORMAT(created_at, '%h:%i %p') as time
-                ")
+                    ")
                     ->get()
                     ->map(function ($item) {
                         $item->is_read = (bool)$item->is_read;
@@ -616,8 +616,37 @@ public function updateFcmToken(Request $request)
                         $item->is_read = (bool) $item->is_read;
                         return $item;
                     });
+                $dealerCommitments = DB::table('outstanding_payment_commitments as opc')
+                    ->join('outstanding_payments as op', 'opc.outstanding_payment_id', '=', 'op.id')
+                    ->where('op.dealer_id', $dealerId)
+                    ->selectRaw("
+                        'commitments' as type,
+                        opc.id,
+                        CASE
+                            WHEN opc.notification_status = 'pending' AND DATE(opc.committed_date) = ? THEN CONCAT('Reminder: Commitment of ', FORMAT(opc.committed_amount, 0), ' is scheduled for today by ', (SELECT name FROM employees WHERE id = opc.employee_id))
+                            WHEN opc.notification_status = 'pending' THEN CONCAT('New commitment of ', FORMAT(opc.committed_amount, 0), ' is created by ', (SELECT name FROM employees WHERE id = opc.employee_id), ' for ', DATE_FORMAT(opc.committed_date, '%d-%m-%Y'))
+                            WHEN opc.notification_status = 'approved' THEN CONCAT('Your commitment is approved by Dealer ', (SELECT dealer_name FROM dealers WHERE id = op.dealer_id))
+                            WHEN opc.notification_status = 'rejected' THEN CONCAT('Your commitment is rejected by Dealer ', (SELECT dealer_name FROM dealers WHERE id = op.dealer_id))
+                            ELSE ''
+                        END as notification_message,
+                        opc.notification_status,
+                        IF(opc.notification_status IN ('opened','approved'),1,0) as is_read,
+                        IF(opc.notification_status IN ('opened','approved'), 'read','unread') as read_class,
+                        DATE_FORMAT(opc.created_at,'%d-%m-%Y') as date,
+                        DATE_FORMAT(opc.created_at,'%h:%i %p') as time
+                    ", [$today])
+                    ->get()
+                    ->map(function($item){
+                        $item->is_read = (bool)$item->is_read;
+                        return $item;
+                    });
 
-                $notifications = $notifications->merge($orders)->merge($payments);
+
+
+
+                $notifications = $notifications->merge($orders)
+                                           ->merge($payments)
+                                           ->merge($dealerCommitments);
             }
 
             if ($user->employee_code && !$user->dealer_code) {
@@ -780,15 +809,71 @@ public function updateFcmToken(Request $request)
                         $item->is_read = (bool) $item->is_read;
                         return $item;
                     });
+                $employeeCommitments = DB::table('outstanding_payment_commitments as opc')
+                    ->join('outstanding_payments as op', 'opc.outstanding_payment_id', '=', 'op.id')
+                    ->where('opc.employee_id', $employeeId)
+                    ->selectRaw("
+                        'commitments' as type,
+                        opc.id,
+                        CASE
+                            WHEN opc.notification_status = 'pending' AND DATE(opc.committed_date) = ? THEN CONCAT('Reminder: Your commitment of ', FORMAT(opc.committed_amount, 0), ' is scheduled for today')
+                            WHEN opc.notification_status = 'pending' THEN 'Your commitment is under review'
+                            WHEN opc.notification_status = 'approved' THEN CONCAT('Your commitment is approved by Dealer ', (SELECT dealer_name FROM dealers WHERE id = op.dealer_id))
+                            WHEN opc.notification_status = 'rejected' THEN CONCAT('Your commitment is rejected by Dealer ', (SELECT dealer_name FROM dealers WHERE id = op.dealer_id))
+                            ELSE ''
+                        END as notification_message,
+                        opc.notification_status,
+                        IF(opc.notification_status IN ('opened','approved'),1,0) as is_read,
+                        IF(opc.notification_status IN ('opened','approved'), 'read','unread') as read_class,
+                        DATE_FORMAT(opc.created_at,'%d-%m-%Y') as date,
+                        DATE_FORMAT(opc.created_at,'%h:%i %p') as time
+                    ", [$today])
+                    ->get()
+                    ->map(function($item){
+                        $item->is_read = (bool)$item->is_read;
+                        return $item;
+                    });
+                    $followUpNotifications = DB::table('lead_follow_ups')
+                        ->join('leads', 'lead_follow_ups.lead_id', '=', 'leads.id')
+                        ->whereDate('lead_follow_ups.follow_up_date', $today)
+                        ->where('lead_follow_ups.created_by', $employeeId)
+                        ->selectRaw("
+                            'follow_up' as type,
+                            lead_follow_ups.id,
+                            CONCAT('Reminder: Today is the follow-up date for lead ', leads.customer_name) as notification_message,
+                            lead_follow_ups.notification_status,
+                            IF(lead_follow_ups.notification_status = 'opened', 1, 0) as is_read,
+                            IF(lead_follow_ups.notification_status = 'opened', 'read', 'unread') as read_class,
+                            DATE_FORMAT(lead_follow_ups.follow_up_date, '%d-%m-%Y') as date
+                        ")
+                        ->get()
+                        ->map(function($item){
+                            $item->is_read = (bool)$item->is_read;
+                            return $item;
+                        });
+                    $influencerFollowUps = DB::table('influencer_visit_follow_ups')
+                        ->join('influencer_visits', 'influencer_visit_follow_ups.influencer_visit_id', '=', 'influencer_visits.id')
+                        ->whereDate('influencer_visit_follow_ups.follow_up_date', $today)
+                        ->where('influencer_visit_follow_ups.created_by', $employeeId)
+                        ->selectRaw("
+                            'influencer_follow_up' as type,
+                            influencer_visit_follow_ups.id,
+                            CONCAT(
+                                'Reminder: Today is the follow-up date for influencer ',
+                                influencer_visits.influencer_name
+                            ) as notification_message,
+                            influencer_visit_follow_ups.notification_status,
+                            IF(influencer_visit_follow_ups.notification_status = 'opened', 1, 0) as is_read,
+                            IF(influencer_visit_follow_ups.notification_status = 'opened', 'read', 'unread') as read_class,
+                            DATE_FORMAT(influencer_visit_follow_ups.follow_up_date, '%d-%m-%Y') as date
+                        ")
+                        ->get()
+                        ->map(function ($item) {
+                            $item->is_read = (bool)$item->is_read;
+                            return $item;
+                        });
 
-                // $notifications = collect()
-                //     ->merge($routes)
-                //     ->merge($activities)
-                //     ->merge($employeeOrders)
-                //     ->merge($dealerOrders)
-                //     ->merge($accountApprovals)
-                //     ->merge($targets)
-                //     ->merge($leads);
+              
                 if ($user->employee_type_id == 7) {
                     $inspectionTypes = ['Pre Trip', 'Post Trip', 'Post Service'];
                     $inspectionNotifications = collect();
@@ -970,60 +1055,60 @@ public function updateFcmToken(Request $request)
                         ->merge($dealerOrders)
                         ->merge($accountApprovals)
                         ->merge($targets)
-                        ->merge($leads);
+                        ->merge($leads)
+                        ->merge($employeeCommitments)
+                        ->merge($followUpNotifications)
+                        ->merge($influencerFollowUps);
                 }
             }
+      
+            if (!$user->dealer_code && !$user->employee_code) {
+                $driverId = $user->id;
+
             
-        // ===============================
-        // Driver Notifications
-        // ===============================
-        if (!$user->dealer_code && !$user->employee_code) {
-            $driverId = $user->id;
+                $maintenanceNotifications = DB::table('maintenance_reports')
+                    ->join('assistances', 'maintenance_reports.assistance_id', '=', 'assistances.id')
+                    ->join('trips', 'assistances.trip_id', '=', 'trips.id')
+                    ->where('trips.driver_id', $driverId)
+                    ->where('maintenance_reports.status', 'Completed')
+                    ->selectRaw("
+                        'maintenance' as type,
+                        maintenance_reports.id,
+                        'Maintenance completed. Now restart your trip.' as notification_message,
+                        maintenance_reports.notification_status,
+                        IF(maintenance_reports.notification_status IN ('opened','approved'), 1, 0) as is_read,
+                        IF(maintenance_reports.notification_status IN ('opened','approved'), 'read','unread') as read_class,
+                        DATE_FORMAT(maintenance_reports.updated_at, '%d-%m-%Y') as date,
+                        DATE_FORMAT(maintenance_reports.updated_at, '%h:%i %p') as time
+                    ")
+                    ->get()
+                    ->map(function ($item) {
+                        $item->is_read = (bool)$item->is_read;
+                        return $item;
+                    });
 
-            // ✅ Maintenance notifications (JOIN trips via assistances)
-            $maintenanceNotifications = DB::table('maintenance_reports')
-                ->join('assistances', 'maintenance_reports.assistance_id', '=', 'assistances.id')
-                ->join('trips', 'assistances.trip_id', '=', 'trips.id')
-                ->where('trips.driver_id', $driverId)
-                ->where('maintenance_reports.status', 'Completed')
-                ->selectRaw("
-                    'maintenance' as type,
-                    maintenance_reports.id,
-                    'Maintenance completed. Now restart your trip.' as notification_message,
-                    maintenance_reports.notification_status,
-                    IF(maintenance_reports.notification_status IN ('opened','approved'), 1, 0) as is_read,
-                    IF(maintenance_reports.notification_status IN ('opened','approved'), 'read','unread') as read_class,
-                    DATE_FORMAT(maintenance_reports.updated_at, '%d-%m-%Y') as date,
-                    DATE_FORMAT(maintenance_reports.updated_at, '%h:%i %p') as time
-                ")
-                ->get()
-                ->map(function ($item) {
-                    $item->is_read = (bool)$item->is_read;
-                    return $item;
-                });
+                // ✅ Trip notifications
+                $tripNotifications = DB::table('trips')
+                    ->where('driver_id', $driverId)
+                    ->where('status', 'Completed')
+                    ->selectRaw("
+                        'trip' as type,
+                        id,
+                        'Trip completed. You have reached the garage.' as notification_message,
+                        notification_status,
+                        IF(notification_status IN ('opened','approved'), 1, 0) as is_read,
+                        IF(notification_status IN ('opened','approved'), 'read','unread') as read_class,
+                        DATE_FORMAT(updated_at, '%d-%m-%Y') as date,
+                        DATE_FORMAT(updated_at, '%h:%i %p') as time
+                    ")
+                    ->get()
+                    ->map(function ($item) {
+                        $item->is_read = (bool)$item->is_read;
+                        return $item;
+                    });
 
-            // ✅ Trip notifications
-            $tripNotifications = DB::table('trips')
-                ->where('driver_id', $driverId)
-                ->where('status', 'Completed')
-                ->selectRaw("
-                    'trip' as type,
-                    id,
-                    'Trip completed. You have reached the garage.' as notification_message,
-                    notification_status,
-                    IF(notification_status IN ('opened','approved'), 1, 0) as is_read,
-                    IF(notification_status IN ('opened','approved'), 'read','unread') as read_class,
-                    DATE_FORMAT(updated_at, '%d-%m-%Y') as date,
-                    DATE_FORMAT(updated_at, '%h:%i %p') as time
-                ")
-                ->get()
-                ->map(function ($item) {
-                    $item->is_read = (bool)$item->is_read;
-                    return $item;
-                });
-
-            $notifications = $notifications->merge($maintenanceNotifications)->merge($tripNotifications);
-        }
+                $notifications = $notifications->merge($maintenanceNotifications)->merge($tripNotifications);
+            }
 
             $unreadCount = $notifications->where('is_read', false)->count();
 
@@ -1545,7 +1630,7 @@ public function updateFcmToken(Request $request)
         }
     }
     // public function getProductTypes(Request $request)
-    // {.
+    // {
     //     try {
     //         $user = Auth::user();
     //         $productId = $request->input('product_id');
