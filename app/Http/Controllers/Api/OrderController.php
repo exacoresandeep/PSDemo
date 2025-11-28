@@ -303,6 +303,7 @@ class OrderController extends Controller
                 $authController = new AuthController();
                 $authController->changeNotificationStatus('orders', $orderId,'opened');
     	    }
+
 	        return response()->json([
                 'success' => true,
                 'statusCode' => 200,

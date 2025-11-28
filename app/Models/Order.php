@@ -78,11 +78,20 @@ class Order extends Model
         'aashiyana_attachment' => 'array',  
         'advance_attachment' => 'array',
         'invoice_date' => 'date',
-        'billing_date' => 'date:Y-m-d',
-        'delivery_date' => 'date:Y-m-d',
-        'payment_date' => 'date:Y-m-d',
+        'billing_date' => 'date',
+        'delivery_date' => 'date',
+        'payment_date' => 'date',
         
     ];
+    public function getBillingDateAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('d/m/Y') : null;
+    }
+
+    public function getDeliveryDateAttribute($value)
+    {
+        return $value ? Carbon::parse($value)->format('d/m/Y') : null;
+    }
  
     public function orderType()
     {
