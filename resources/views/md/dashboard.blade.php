@@ -29,7 +29,7 @@
             <div class="date-filter d-flex align-items-center" style="flex-wrap:nowrap; gap:15px;">
                 
                 <button class="btn btn-primary" id="btn-today">Today</button>
-                <button class="btn btn-outline-primary" id="btn-week">This Week</button>
+                <button class="btn btn-secondary bg-black" id="btn-week">This Week</button>
                 
                 <strong>Custom Date</strong>
                 
@@ -126,7 +126,7 @@
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div><h1>Ton <span id="totalSales"><i class="fa fa-circle-o-notch fa-spin"></i></span></h1></div>
+                    <div><h1>₹ <span id="totalSales"><i class="fa fa-circle-o-notch fa-spin"></i></span></h1></div>
                     <div class="text-right">
                         <h5 >Order Count</h5>
                         <h2 id="totalSalesOrderCount"><i class="fa fa-circle-o-notch fa-spin"></i></h2>

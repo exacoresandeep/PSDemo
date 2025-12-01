@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\Dealer;
 use App\Models\Product;
+use App\Models\ProductDetails;
 use App\Models\ProductType;
 use App\Models\Employee;
 use App\Models\AssignRoute;
@@ -629,6 +630,28 @@ class AccountsController extends Controller
         ]);
     }
 
+    public function getProductTypesforPM(Request $request)
+    {
+        $selectedProductCode = session('selected_product_code');$products=[];
+        if ($selectedProductCode) {
+            $products = Product::where('product_code', $selectedProductCode)->first();
+        }else{
+            $user = auth()->user();
+            $productIds = $user->product_ids ?? [];
+
+            $products = Product::whereIn('id', $productIds)
+                ->select('id', 'product_name', 'product_code')
+                ->first();       
+        }
+        // dd($products );
+        // $productTypes = ProductType::where('product_id', $products->id)->get();
+        $ProductDetails = ProductDetails::with(["productType"])->where('product_id', $products->id)->get();
+        return response()->json([
+            'product' => $products,
+            'ProductDetails' => $ProductDetails
+        ]);
+    }
+
     public function priceIndex()
     {
         return view('accounts.price-management.index');
@@ -781,12 +804,10 @@ class AccountsController extends Controller
             $products = Product::whereIn('id', $productIds)
                 ->select('id', 'product_name', 'product_code')
                 ->first();
-
-            // $products = Product::first();          
+      
         }
-        // dd($products->id);
-        // Get the price master row
-        $price = Price::with(['product','productType'])->where('start_date', $request->start_date)
+
+        $price = Price::with(['product','productType.productDetails'])->where('start_date', $request->start_date)
             ->where('end_date', $request->end_date)
             ->where('product_id', $products->id)
             ->get();

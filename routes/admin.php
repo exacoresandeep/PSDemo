@@ -169,6 +169,7 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
             Route::get('/list', [AccountsController::class, 'priceList'])->name('accounts.price.list');
             Route::get('/show', [AccountsController::class, 'priceShow'])->name('accounts.price.show');
             Route::get('/get-product-types', [AccountsController::class, 'getProductTypes'])->name('get.product.types');
+            Route::get('/get-product-types-pm', [AccountsController::class, 'getProductTypesforPM'])->name('get.product.typespm');
         });
     });
      Route::get('/load-product', [AdminController::class, 'loadProduct'])->name('loadProduct');

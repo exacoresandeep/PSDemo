@@ -91,11 +91,22 @@
                 // Set main fields
                 $('#start_date').val(priceData[0].start_date);
                 $('#end_date').val(priceData[0].end_date);
+                $('#selected_product_name').val(priceData[0].product.product_name);
 
                 // Build product type rows
                 let html = '';
                 console.log(priceData);
                 priceData.forEach((row, i) => {
+
+                    let displayName = 
+                        (row.product.product_code === "tata tiscon")
+                        ? row.product_type.type_name
+                        : (
+                            row.product_type.product_details &&
+                            row.product_type.product_details.length > 0
+                                ? row.product_type.product_details[0].product_name
+                                : 'N/A'
+                        );
                     html += `
                         <div class="row mb-2">
 
@@ -103,7 +114,7 @@
 
                             <div class="col-md-4">
                                 <label>Product</label>
-                                <input type="text" class="form-control" value="${row.product_type.type_name}" readonly>
+                                <input type="text" class="form-control" value="${displayName}" readonly>
                             </div>
 
                             <div class="col-md-4">
@@ -198,53 +209,7 @@
 });
 
 
-    $(document).on('click', '.editPrice', function () {
-        const startDate = $(this).data('start');
-        const endDate = $(this).data('end');
-
-        $.ajax({
-            url: '{{ route('accounts.price.edit') }}',
-            type: 'GET',
-            data: {
-                start_date: startDate,
-                end_date: endDate
-            },
-            success: function (res) {
-
-                // Fill modal heading
-                $('#editPriceStartDate').text(moment(res.start_date).format('DD-MM-YYYY'));
-                $('#editPriceEndDate').text(moment(res.end_date).format('DD-MM-YYYY'));
-                $('#editPriceProduct').text(res.product_name);
-
-                // Generate editable table rows
-                let rows = '';
-                res.types.forEach((type, index) => {
-                    rows += `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td>${type.product_type}</td>
-
-                            <td>
-                                <input type="hidden" name="type_id[]" value="${type.id}">
-                                <input type="text" class="form-control" name="dealer_price[]" value="${type.dealer_price}">
-                            </td>
-
-                            <td>
-                                <input type="text" class="form-control" name="advance_dealer_price[]" value="${type.advance_dealer_price}">
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                $('#editPriceTable tbody').html(rows);
-
-                $('#editPriceModal').modal('show');
-            },
-            error: function () {
-                Swal.fire('Error', 'Failed to load price details', 'error');
-            }
-        });
-    });
+   
 
     // Submit Form (Create or Update)
     $('#priceForm').on('submit', function (e) {
@@ -317,29 +282,36 @@
 
     function loadProductTypes() {
         $.ajax({
-            url: "{{ route('get.product.types') }}",
+            url: "{{ route('get.product.typespm') }}",
             type: "GET",
             success: function (data) {
 
                 let product = data.product;
-                let types = data.productTypes;
-
+                let types = data.ProductDetails;
                 // Set readonly product name
                 $("#selected_product_name").val(product.product_name);
 
                 // Set hidden product id
                 $("#selected_product_id").val(product.id);
 
+                // if(product.product_code=="tata tiscon"){
+                //     ${type.type_name}
+                // }else{
+
+                // }
                 // Build product type rows
                 let html = "";
                 types.forEach((type, index) => {
+                    let displayName = (product.product_code === "tata tiscon")
+                    ? type.product_type.type_name
+                    : type.product_name;
                     html += `
                         <div class="row mb-2">
-                            <input type="hidden" name="types[${index}][product_type_id]" value="${type.id}">
+                            <input type="hidden" name="types[${index}][product_type_id]" value="${type.product_type.id}">
                             
                             <div class="col-md-4">
                                 <label class="form-label">Product Type</label>
-                                <input type="text" class="form-control" value="${type.type_name}" readonly>
+                                <input type="text" class="form-control" value="${displayName}" readonly>
                             </div>
 
                             <div class="col-md-4">
