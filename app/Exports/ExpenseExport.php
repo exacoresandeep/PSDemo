@@ -85,7 +85,7 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping, Should
             $km,
             number_format($other, 2),
             $expense->remarks ?? '-',
-            number_format($total, 2),
+            round($total, 2),
         ];
     }
 }

@@ -943,55 +943,34 @@ class DashboardController extends Controller
 
 
 
+public function fetchTotalOrder(Request $request)
+{
+    $from = $request->from;
+    $to   = $request->to;
+    $productID = \App\Helpers\ProductHelper::getSelectedProductID();
 
-    public function fetchTotalOrder(){
-        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
-        $baseQuery = \App\Models\Order::query()->with(['orderItems'])
-            ->where('status', '!=', 'Rejected')
-            ->whereHas('orderItems', function ($q) use ($productID) {
-                $q->where('product_id', $productID);
-            });
-            // ->where(function ($query) {
-            //     $query->where(function ($q) {
-            //         $q->where('dealer_flag_order', '1')
-            //             ->where(function ($subQuery) {
-            //                 $subQuery->where('send_for_approval', '1')
-            //                     ->orWhereNull('send_for_approval');
-            //             })
-            //             ->where(function ($subQuery) {
-            //                 $subQuery->where('order_approved', '!=', '0')
-            //                     ->orWhereIn('order_approved_by', function ($subQuery) {
-            //                         $subQuery->select('id')
-            //                             ->from('users')
-            //                             ->where('role_id', 2);
-            //                     });
-            //             });
-            //     })->orWhere(function ($q) {
-            //         $q->where('dealer_flag_order', '0')
-            //             ->where(function ($subQuery) {
-            //                 $subQuery->where('order_approved', '!=', '0')
-            //                     ->orWhereIn('order_approved_by', function ($subQuery) {
-            //                         $subQuery->select('id')
-            //                             ->from('users')
-            //                             ->where('role_id', 2);
-            //                     });
-            //             });
-            //     });
-            // });
+    $baseQuery = \App\Models\Order::query()
+        ->with(['orderItems'])
+        ->where('status', '!=', 'Rejected')
+        ->whereHas('orderItems', function ($q) use ($productID) {
+            $q->where('product_id', $productID);
+        });
 
-        // $pendingOrders = \App\Models\Order::query()
-        //     ->with(['orderItems'])
-        //     ->where('status', '!=', 'Rejected')
-        //     ->where('order_approved', '0')
-        //     ->whereHas('orderItems', function ($q) use ($productID) {
-        //         $q->where('product_id', $productID);
-        //     })
-        //     ->count();  
-        $approvedOrders = (clone $baseQuery)->where('order_approved', '1')->count();
-         return response()->json([
-            'approvedOrders' => $approvedOrders
+    if ($from && $to) {
+        $baseQuery->whereBetween('created_at', [
+            $from . " 00:00:00",
+            $to . " 23:59:59"
         ]);
     }
+
+    $approvedOrders = (clone $baseQuery)
+        ->where('order_approved', '1')
+        ->count();
+
+    return response()->json([
+        'approvedOrders' => $approvedOrders
+    ]);
+}
 
 
     public function fetchSalesPerformance(Request $request)
