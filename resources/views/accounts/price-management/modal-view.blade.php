@@ -18,7 +18,7 @@
                     </div>
                 </div>
             
-                <table class="table table-bordered" id="viewPriceTable">
+                <table class="table table-bordered table-responsive" id="viewPriceTable">
                     <thead>
                         <tr>
                             <th>Sl.No</th>

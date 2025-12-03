@@ -136,7 +136,7 @@ class EmployeeController extends Controller
             $request->validate([
                 'name' => 'required|string|max:255',
                 'employee_code' => 'required|string|max:50|unique:employees,employee_code,' . $id,
-                'employee_sap_code' => 'required|string|max:22|unique:employees,employee_sap_code,' . $id,
+                'employee_sap_code' => 'required|string|max:22|employee_sap_code,' . $id,
                 'employee_type_id' => 'required|integer',
                 'email' => 'required|email|unique:employees,email,' . $id,
                 'phone' => 'nullable|string|max:15',

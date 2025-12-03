@@ -48,7 +48,7 @@ class ExpenseController extends Controller
         $attendance = Attendance::where('employee_id', $employeeId)
                                 ->where('date', $date)
                                 ->first();
-
+        
         $totalKilometer = 0;
         if ($attendance) {
             $totalKilometer = max(0, ($attendance->ending_km ?? 0) - ($attendance->starting_km ?? 0));

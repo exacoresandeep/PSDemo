@@ -31,7 +31,7 @@
 
     <!-- DataTable Section -->
     <div class="listing-sec">
-        <table class="table table-bordered table-striped w-100" id="bataTable">
+        <table class="table table-bordered table-striped table-responsive w-100" id="bataTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>

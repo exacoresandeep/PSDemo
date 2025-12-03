@@ -40,8 +40,8 @@ class AttendanceController extends Controller
             'longitude'           => 'required|string',
             'starting_remarks'    => 'required|string|max:1000',
             'starting_km'         => 'required',
-            'starting_attachment' => 'required|array', // now an array
-            'starting_attachment.*' => 'string' // each file name must be string
+            // 'starting_attachment' => 'required|array', // now an array
+            // 'starting_attachment.*' => 'string' // each file name must be string
         ]);
 
         if (empty($request->latitude) || empty($request->longitude)) {
@@ -77,13 +77,13 @@ class AttendanceController extends Controller
                 'starting_km'        => $request->starting_km,
                 'starting_attachment'=> json_encode($request->starting_attachment) // store as JSON
             ]);
-            DB::table('attendance_v2')->insert([
-                'c1' => 'in',
-                'log_date' => Carbon::now('Asia/Kolkata'),
-                'pid' => null,
-                'user_id' => $employeeCode,
-                'username' => $username
-            ]);
+            // DB::table('attendance_v2')->insert([
+            //     'c1' => 'in',
+            //     'log_date' => Carbon::now('Asia/Kolkata'),
+            //     'pid' => null,
+            //     'user_id' => $employeeCode,
+            //     'username' => $username
+            // ]);
             try{
                // $this->sendAttendanceToGreytHR($employeeCode,"Mobile App",1);
             } catch (\Exception $e) {
@@ -182,8 +182,8 @@ class AttendanceController extends Controller
             'total_active_hours' => 'required|string',
             'ending_remarks'     => 'required|string|max:1000',
             'ending_km'          => 'required',
-            'ending_attachment'  => 'required|array',
-            'ending_attachment.*'=> 'string'
+            // 'ending_attachment'  => 'required|array',
+            // 'ending_attachment.*'=> 'string'
         ]);
 
         $attendance->update([
@@ -193,13 +193,13 @@ class AttendanceController extends Controller
             'ending_km'          => $request->ending_km,
             'ending_attachment'  => json_encode($request->ending_attachment)
         ]);
-        DB::table('attendance_v2')->insert([
-                    'c1' => 'out',
-                    'log_date' => Carbon::now('Asia/Kolkata'),
-                    'pid' => null,
-                    'user_id' => $employeeCode,
-                    'username' => $username
-                ]);
+        // DB::table('attendance_v2')->insert([
+        //             'c1' => 'out',
+        //             'log_date' => Carbon::now('Asia/Kolkata'),
+        //             'pid' => null,
+        //             'user_id' => $employeeCode,
+        //             'username' => $username
+        //         ]);
         try{
            // $this->sendAttendanceToGreytHR($employeeCode,"Mobile App",0);
         } catch (\Exception $e) {
@@ -303,6 +303,7 @@ class AttendanceController extends Controller
 
     public function getsummary(Request $request)
     {
+        // dd("sdawd");
         try {
             $request->validate([
                 'from_date' => 'required|date_format:d/m/Y',
@@ -341,7 +342,7 @@ class AttendanceController extends Controller
 
             $data = $records->map(function ($record) {
                 return [
-                    'date' => $record->date,
+                    'date' => \Carbon\Carbon::parse($record->date)->format('d/m/Y'),
                     'punch_in' => $record->punch_in,
                     'punch_out' => $record->punch_out,
                     'total_active_hours' => $record->total_active_hours,

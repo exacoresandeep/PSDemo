@@ -250,9 +250,14 @@ class TargetController extends Controller
                     'message' => "Employee not found.",
                 ], 404);
             }
-    
+            if($request->product_code){
+                $productId = Product::where('product_code', $request->product_code)->value('id');
+            }else{
+                $productId = 1;
+            }
             $target = Target::where('employee_id', $employeeId)
                             ->where('month', $month)
+                            ->where('product_id', $productId)
                             ->where('year', $year)
                             ->first();
             $target = $target ? $target->toArray() : null;

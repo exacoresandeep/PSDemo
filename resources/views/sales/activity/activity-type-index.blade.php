@@ -10,7 +10,7 @@
     </div>
 
     <div class="listing-sec">
-        <table class="table table-bordered table-striped w-100" id="activityTypeTable">
+        <table class="table table-bordered table-striped w-100 table-responsive" id="activityTypeTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>

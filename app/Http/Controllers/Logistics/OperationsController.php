@@ -513,7 +513,7 @@ class OperationsController extends Controller
             $product = $item->product;
         
             $productDetails = collect($item->product_details)->map(function ($detail) use ($product, $orderCreatedAt) {
-                $productName = 'TATA TISCON'; // fallback product name
+                $productName = $product->product_name; 
                 $productType = isset($detail['product_type_id']) ? ProductType::find($detail['product_type_id']) : null;
             
                 $typeName = $productType?->type_name ?? 'N/A';
@@ -632,7 +632,7 @@ class OperationsController extends Controller
             });
         }
 
-	$data = $orders->latest()->get()->map(function ($order) {
+	    $data = $orders->latest()->get()->map(function ($order) {
 		$employee = $order->createdBy;
             $isDealerOrder = $order->dealer_flag_order == 1;
             return [
