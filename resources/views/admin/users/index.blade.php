@@ -10,7 +10,7 @@
     </div>
 
     <div class="listing-sec mt-3">
-        <table class="table table-bordered table-striped w-100" id="usersTable">
+        <table class="table table-bordered table-striped w-100 table-responsive" id="usersTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>

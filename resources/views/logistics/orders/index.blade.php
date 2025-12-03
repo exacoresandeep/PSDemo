@@ -7,7 +7,7 @@
     </div>
 
     <div class="listing-sec">
-        <table class="table table-bordered table-striped w-100" id="ordersTable">
+        <table class="table table-bordered table-responsive table-striped w-100" id="ordersTable">
             <thead>
                 <tr>
                     <th><input type="checkbox" id="selectAll"></th>

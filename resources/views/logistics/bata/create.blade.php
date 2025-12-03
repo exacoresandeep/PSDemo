@@ -62,7 +62,7 @@
 
                 <!-- Table -->
                 <div class="table-responsive">
-                    <table class="table table-bordered align-middle text-center">
+                    <table class="table table-bordered table-responsive align-middle text-center">
                         <thead class="table-light">
                             <tr>
                                 <th><input type="checkbox" id="select_all"></th>
@@ -91,7 +91,7 @@
             <div class="mt-5">
                 <h5 class="fw-semibold mb-3">Trips Chosen for Settlement</h5>
                 <div class="table-responsive">
-                    <table class="table table-bordered align-middle text-center" id="paymentListTable">
+                    <table class="table table-bordered table-responsive align-middle text-center" id="paymentListTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Selected Trips</th>
@@ -120,7 +120,7 @@
                 <p class="text-muted small">Listed below are the other expenses associated with the selected trips.</p>
 
                 <div class="table-responsive">
-                    <table class="table table-bordered align-middle text-center" id="otherExpensesTable">
+                    <table class="table table-bordered table-responsive align-middle text-center" id="otherExpensesTable">
                         <thead class="table-light">
                             <tr>
                                 <th>Trip ID</th>

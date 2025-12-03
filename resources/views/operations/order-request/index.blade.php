@@ -44,7 +44,7 @@
         <button id="exportFiltered" class="btn btn-primary">Export</button>
     </div>
 </div>
-        <table class="table table-bordered table-striped w-100" id="ordersTable">
+        <table class="table table-responsive table-bordered table-striped w-100" id="ordersTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>
@@ -199,7 +199,7 @@
 
                         order.order_items.forEach(item => {
                             totalQuantity += item.quantity;
-                            totalAmount += item.rate;
+                            totalAmount += (item.rate*item.quantity);
                             let priceColumn = '';
                             let productPrice = 0;
 
@@ -225,7 +225,7 @@
                                     <td>${item.type_name}</td>
                                     <td>${item.quantity}</td>
                                     ${priceColumn}
-                                    <td>${(item.rate).toFixed(2)}</td>
+                                    <td>${((item.rate)*(item.quantity)).toFixed(2)}</td>
                                 </tr>
                             `;
                         });

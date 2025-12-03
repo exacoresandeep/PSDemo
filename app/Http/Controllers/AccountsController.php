@@ -89,6 +89,28 @@ class AccountsController extends Controller
         }         
 
         return DataTables::of($orders)
+            ->filter(function ($query) use ($request) {
+                if ($search = $request->get('search')['value'] ?? false) {
+
+                    $query->where(function ($q) use ($search) {
+                        $q->where('orders.id', 'LIKE', "%{$search}%")
+                        ->orWhere('orders.total_amount', 'LIKE', "%{$search}%")
+                        ->orWhere('orders.created_at', 'LIKE', "%{$search}%")
+                        ->orWhereHas('dealer', function ($d) use ($search) {
+                            $d->where('dealer_name', 'LIKE', "%{$search}%")
+                                ->orWhere('dealer_code', 'LIKE', "%{$search}%");
+                        })
+                        ->orWhereHas('dealers', function ($d) use ($search) {
+                            $d->where('dealer_name', 'LIKE', "%{$search}%")
+                                ->orWhere('dealer_code', 'LIKE', "%{$search}%");
+                        })
+                        ->orWhereHas('createdBy', function ($u) use ($search) {
+                            $u->where('name', 'LIKE', "%{$search}%")
+                                ->orWhere('employee_code', 'LIKE', "%{$search}%");
+                        });
+                    });
+                }
+            })
             ->addIndexColumn()
             ->addColumn('date', function ($order) {
                 if ($order->order_approved == 1 && $order->accepted_time) {
@@ -514,9 +536,9 @@ class AccountsController extends Controller
                 if ($order->send_for_approval == 0) {
                     $employeeType = 'Area Sales Officer';
 
-                    $dealerRoute = \App\Models\DealerRouteAssignment::where('dealer_id', $dealer->id)->first();
+                    $dealerRoute = DealerRouteAssignment::where('dealer_id', $dealer->id)->first();
                     if ($dealerRoute) {
-                        $assignRoute = \App\Models\AssignRoute::with('employee')->find($dealerRoute->assign_route_id);
+                        $assignRoute = AssignRoute::with('employee')->find($dealerRoute->assign_route_id);
                         if ($assignRoute && $assignRoute->employee) {
                             $employee = $assignRoute->employee;
                             $employeeNameCode = $employee->name . ' - ' . $employee->employee_code;

@@ -37,7 +37,7 @@
                     </div>
 
                     <h5 class="mt-3">Product Details</h5>
-                    <table class="table table-bordered">
+                    <table class="table table-bordered table-responsive">
                         <thead>
                             <tr>
                                 <th>Product Name</th>

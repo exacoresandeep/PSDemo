@@ -8,7 +8,7 @@
     </div>
 
     <div class="listing-sec">
-        <table class="table table-bordered table-striped w-100" id="routeTable">
+        <table class="table table-bordered table-striped w-100 table-responsive" id="routeTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>
@@ -566,25 +566,53 @@
         });
         $(document).on('click', '.deleteRoute', function () {
             var id = $(this).data('id');
-            if (confirm('Are you sure you want to delete this assigned route?')) {
-                $.ajax({
-                    url: '/sales/routes/delete/' + id, // adjust to your actual route
-                    type: 'DELETE',
-                    data: {
-                        _token: $('meta[name="csrf-token"]').attr('content')
-                    },
-                    success: function (response) {
-                        alert(response.message);
-                        $('#assignedRoutesTable').DataTable().ajax.reload(null, false);
-                        location.reload();
-                    },
-                    error: function (xhr) {
-                        console.log(xhr.responseText);
-                        alert('Something went wrong while deleting!');
-                    }
-                });
-            }
+
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "Do you really want to delete this assigned route?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+
+                    $.ajax({
+                        url: '/sales/routes/delete/' + id,
+                        type: 'DELETE',
+                        data: {
+                            _token: $('meta[name="csrf-token"]').attr('content')
+                        },
+                        success: function (response) {
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+
+                            $('#assignedRoutesTable').DataTable().ajax.reload(null, false);
+                            // remove full reload if not needed
+                            // location.reload();
+                        },
+                        error: function (xhr) {
+                            console.log(xhr.responseText);
+
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: 'Something went wrong while deleting!'
+                            });
+                        }
+                    });
+
+                }
+            });
         });
+
 
 
 

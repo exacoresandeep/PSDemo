@@ -11,7 +11,9 @@
 
     <!-- Bootstrap core CSS -->
     <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
-
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&a… rel="stylesheet">
     <!-- Custom styles -->
     <link href="{{ asset('css/style.css') }}" rel="stylesheet">
     
@@ -31,7 +33,7 @@
 
     <main>
         <div class="main-container">
-            <div class="d-flex">
+            <div class="row d-flex">
                 <div class="col-2">
                 @include('includes.sidebar-menu')
                 </div>

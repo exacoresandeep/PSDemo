@@ -15,48 +15,65 @@ class SchemeController extends Controller
         return view('sales.scheme.index');
     }
     public function schemeList(Request $request)
-{
-    // 1. Get session value
-    $selectedCode = session('selected_product_code');
+    {
+        // 1. Get session value
+        $selectedCode = session('selected_product_code');
 
-    // 2. If no session, pick first product_code
-    if (empty($selectedCode)) {
-        $firstProduct = Product::orderBy('id')->first();
-        if ($firstProduct) {
-            $selectedCode = $firstProduct->product_code;
-            session(['selected_product_code' => $selectedCode]); // store for future
+        // 2. If no session, pick first product_code
+        if (empty($selectedCode)) {
+            $firstProduct = Product::orderBy('id')->first();
+            if ($firstProduct) {
+                $selectedCode = $firstProduct->product_code;
+                session(['selected_product_code' => $selectedCode]); // store for future
+            }
         }
+
+        // Build query
+        $query = Scheme::with('product');
+
+        // 3. Filter by selected product code
+        if (!empty($selectedCode)) {
+            $query->whereHas('product', function ($q) use ($selectedCode) {
+                $q->where('product_code', $selectedCode);
+            });
+        }
+
+        return DataTables::of($query)
+            ->filter(function ($query) use ($request) {
+                if ($search = $request->get('search')['value'] ?? false) {
+
+                    $query->where(function ($q) use ($search) {
+
+                        // Search own table columns
+                        $q->where('scheme.scheme', 'LIKE', "%{$search}%")
+                        ->orWhere('scheme.status', 'LIKE', "%{$search}%");
+
+                        // Search in related product table
+                        $q->orWhereHas('product', function ($p) use ($search) {
+                            $p->where('product_name', 'LIKE', "%{$search}%")
+                            ->orWhere('product_code', 'LIKE', "%{$search}%");
+                        });
+                    });
+                }
+            })
+            ->addIndexColumn()
+            ->addColumn('product_name', fn($scheme) => $scheme->product->product_name ?? '-')
+            ->addColumn('scheme', fn($scheme) => $scheme->scheme ?? '-')
+            ->addColumn('status', function ($scheme) {
+                return $scheme->status == 1
+                    ? '<span class="badge bg-success">Active</span>'
+                    : '<span class="badge bg-secondary">Inactive</span>';
+            })
+            ->addColumn('action', function ($scheme) {
+                return '
+                    <button class="btn btn-sm btn-warning" onclick="handleAction(' . $scheme->id . ', \'edit\')" title="Edit">
+                        <i class="fa fa-edit"></i>
+                    </button>
+                ';
+            })
+            ->rawColumns(['status','action'])
+            ->make(true);
     }
-
-    // Build query
-    $query = Scheme::with('product');
-
-    // 3. Filter by selected product code
-    if (!empty($selectedCode)) {
-        $query->whereHas('product', function ($q) use ($selectedCode) {
-            $q->where('product_code', $selectedCode);
-        });
-    }
-
-    return DataTables::of($query)
-        ->addIndexColumn()
-        ->addColumn('product_name', fn($scheme) => $scheme->product->product_name ?? '-')
-        ->addColumn('scheme', fn($scheme) => $scheme->scheme ?? '-')
-        ->addColumn('status', function ($scheme) {
-            return $scheme->status == 1
-                ? '<span class="badge bg-success">Active</span>'
-                : '<span class="badge bg-secondary">Inactive</span>';
-        })
-        ->addColumn('action', function ($scheme) {
-            return '
-                <button class="btn btn-sm btn-warning" onclick="handleAction(' . $scheme->id . ', \'edit\')" title="Edit">
-                    <i class="fa fa-edit"></i>
-                </button>
-            ';
-        })
-        ->rawColumns(['status','action'])
-        ->make(true);
-}
 
     public function store(Request $request)
     {

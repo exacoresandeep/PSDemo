@@ -1527,6 +1527,7 @@ public function updateFcmToken(Request $request)
 
             if (empty($assignedRouteIds) && $user->employee_type_id == 5) {
                 $query = Dealer::query()->where('status', '1');
+               
             }
             elseif (empty($assignedRouteIds)) {
                 return response()->json([
