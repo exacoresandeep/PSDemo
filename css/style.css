@@ -433,35 +433,35 @@ main {
 }
 
 .card-bg-1 {
-  background: url(../public/images/card-bg-1.svg) no-repeat right bottom;
+  background: url(../images/card-bg-1.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
 }
 
 .card-bg-2 {
-  background: url(../public/images/card-bg-2.svg) no-repeat right bottom;
+  background: url(../images/card-bg-2.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
 }
 
 .card-bg-3 {
-  background: url(../public/images/card-bg-3.svg) no-repeat right bottom;
+  background: url(../images/card-bg-3.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
 }
 
 .card-bg-4 {
-  background: url(../public/images/card-bg-4.svg) no-repeat right bottom;
+  background: url(../images/card-bg-4.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
 }
 
 .card-bg-5 {
-  background: url(../public/images/card-bg-5.svg) no-repeat right bottom;
+  background: url(../images/card-bg-5.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
@@ -575,13 +575,13 @@ main {
     margin-top: -5px;;
 }
 .card-bg-6{
-  background: url(../public/images/card-bg-6.svg) no-repeat right bottom;
+  background: url(../images/card-bg-6.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;
 }
 .card-bg-7{
-  background: url(../public/images/card-bg-7.svg) no-repeat right bottom;
+  background: url(../images/card-bg-7.svg) no-repeat right bottom;
   background-size: cover;
   width: 100%;
   height: 100%;

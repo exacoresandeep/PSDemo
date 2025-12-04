@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Warehouse;
 use App\Models\ProductStock;
+use App\Models\Product;
 use App\Models\ProductDetails;
 use App\Models\ProductType;
 use Illuminate\Support\Facades\DB;
@@ -94,7 +95,8 @@ class StockController extends Controller
                 'search_key'   => 'nullable|string|min:3'
             ]);
 
-            $productItem = $request->product_item;
+            $productItem = Product::where("product_code",$request->product_item)->value('sap_id');
+           // dd( $productItem );
             $searchKey   = $request->search_key ?? '';  // If null, pass empty string
 
             // Connect to SAP HANA

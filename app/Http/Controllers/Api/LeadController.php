@@ -27,7 +27,7 @@ class LeadController extends Controller
             $user = Auth::user();
             if ($user !== null) {
                 $leads = Lead::with(['customerType', 'district', 'tripRoute'])
-                            ->where('created_by', $user->id)
+                            // ->where('created_by', $user->id)
                             ->orderBy('created_at', 'desc')
                             ->get();
     
@@ -1568,7 +1568,7 @@ class LeadController extends Controller
             $leads = Lead::with('customerType')
                 ->where('created_by', $user->id)
                 ->whereNotIn('status', ['Won', 'Lost'])
-                ->orderBy('customer_name', 'asc')
+                ->orderBy('created_at', 'desc')
                 ->get();
     
             if ($leads->isEmpty()) {

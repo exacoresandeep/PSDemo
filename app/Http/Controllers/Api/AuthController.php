@@ -1703,7 +1703,7 @@ public function updateFcmToken(Request $request)
             }
 
             $product = Product::find($productId);
-
+// dd($product);    
             if (!$product) {
                 return response()->json([
                     'success' => false,
@@ -1714,9 +1714,7 @@ public function updateFcmToken(Request $request)
 
             $productCode = strtolower($product->product_code);
 
-
-            if ($productCode === 'durashine' ) {
-
+            if ($productCode === 'durashine' || $productCode === 'structura') {
                 $query = ProductDetails::select(
                         'products_details.product_id',
                         'product_types.id as product_type_id',
