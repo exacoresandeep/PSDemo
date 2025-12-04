@@ -429,7 +429,9 @@ class EmployeeController extends Controller
     }
     public function list(Request $request)
     {
-        $query = Employee::with(['employeeType', 'district', 'reportingManager']);
+        $productId = ProductHelper::getSelectedProductId(); 
+        $query = Employee::with(['employeeType', 'district', 'reportingManager'])
+                ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]']);
 
         // Filters
         if (!empty($request->designation)) {

@@ -13,6 +13,7 @@ use App\Models\ProductDetails;
 use App\Models\Product;
 use Yajra\DataTables\Facades\DataTables;
 use Redirect;
+use App\Helpers\ProductHelper;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -202,12 +203,14 @@ class AdminController extends Controller
     }
     public function employeeList(Request $request)
     {
+        $productId = ProductHelper::getSelectedProductId(); 
         $employees = Employee::with('reportingManager') // Load the reporting manager relationship
+                ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])
             ->select([
                 'id', 'employee_code', 'name', 'email', 'phone', 
                 'district', 'area', 'designation', 'reporting_manager', 
                 'address', 'emergency_contact'
-            ]);
+            ])->get();
 
         return DataTables::of($employees)
             ->addColumn('reporting_manager', function ($employee) {
@@ -269,7 +272,7 @@ class AdminController extends Controller
                     $passwordString = strtoupper(substr($name, 0, 3)) . $employeeCode;
                     
                     $hashedPassword = Hash::make($passwordString);
-    
+                    $productId = ProductHelper::getSelectedProductId(); 
                     // Insert Employee
                     Employee::create([
                         'employee_code' => $employeeCode,
@@ -279,6 +282,7 @@ class AdminController extends Controller
                         'district_id' => $districtId,
                         'district' => $districtName,
                         'area' => $area,
+                        'products' => '["' . $productId . '"]',
                         'designation' => $designation,
                         'employee_type_id' => $employeeType->id,
                         'reporting_manager' => $reportingManagerId,

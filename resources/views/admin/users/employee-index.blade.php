@@ -39,7 +39,13 @@ $(document).ready(function() {
         serverSide: false,
         ajax: "{{ route('admin.users.employee-list') }}",
         columns: [
-            { data: 'id', name: 'id' },
+            { 
+                data: null,
+                name: 'index',
+                render: function (data, type, row, meta) {
+                    return meta.row + 1; // Row index (1-based)
+                }
+            },
             { data: 'employee_code', name: 'employee_code' },
             { data: 'name', name: 'name' },
             { data: 'email', name: 'email' },
@@ -71,11 +77,22 @@ $(document).ready(function() {
                 processData: false,
                 contentType: false,
                 success: function(response) {
-                    alert(response.message);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: response.message,
+                        confirmButtonColor: '#3085d6'
+                    });
                     $('#employeesTable').DataTable().ajax.reload(); // Refresh table
                 },
                 error: function(response) {
-                    alert('Error importing file.');
+                    msg='Error importing file.';
+                    Swal.fire({
+                    icon: 'error',
+                    title: 'Oops!',
+                    text: msg,
+                    confirmButtonColor: '#d33'
+                });
                 }
             });
         }
