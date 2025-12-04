@@ -302,9 +302,7 @@
                 // Build product type rows
                 let html = "";
                 types.forEach((type, index) => {
-                    let displayName = (product.product_code === "tata tiscon")
-                    ? type.product_type.type_name
-                    : type.product_name;
+                    let displayName = type.product_type.type_name;
                     html += `
                         <div class="row mb-2">
                             <input type="hidden" name="types[${index}][product_type_id]" value="${type.product_type.id}">

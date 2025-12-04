@@ -1112,12 +1112,15 @@ class RouteController extends Controller
         return view('sales.route.index');
     }
 
-     public function assignedList()
+    public function assignedList()
     {
+        $productId = ProductHelper::getSelectedProductId(); 
         $routes = AssignRoute::with(['employee', 'dealers'])
+                    ->whereHas('employee', function($q) use ($productId) {
+                    $q->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]']);
+                })
             ->get()
             ->groupBy('employee_id'); 
-
         $formattedRoutes = $routes->map(function ($routeGroup) {
             $firstRoute = $routeGroup->first(); 
             

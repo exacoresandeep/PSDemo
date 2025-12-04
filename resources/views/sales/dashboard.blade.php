@@ -195,7 +195,7 @@
                         <div class="dashboard-card card-bg-2" style="margin-top:0px">
                             <div class="row">
                                 <div class="col-md-8">
-                                    <h4>Tiscon Purchase</h4>
+                                    <h4><span class="productName"></span> Purchase</h4>
                                 </div>
                                 <div class="col-md-4 text-right">
                                     <button class="btn btn-outline-secondary export-btn" id="exportTisconBtn">

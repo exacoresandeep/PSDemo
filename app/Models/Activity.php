@@ -23,6 +23,7 @@ class Activity extends Model
     	'notification_status',
     	'remarks',
         'attachments',
+        "created_by",
         'completed_date'
     ];
     protected $casts = [

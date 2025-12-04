@@ -228,7 +228,7 @@ class DashboardController extends Controller
                         ->where('year', $year)
                         ->where('product_id', $productID)
                         ->get();
-
+        // dd($targets->sum('order_quantity'));
         $totalTargets = [
             'unique_leads' => $targets->sum('unique_lead'),
             'customer_visit' => $targets->sum('customer_visit'),
@@ -251,10 +251,15 @@ class DashboardController extends Controller
         //                         $customers = collect(json_decode($route->customers ?? '[]', true));
         //                         return $customers->where('scheduled', true)->where('status', 'Completed')->count();
         //                     });
-        $customerVisitCount = InfluencerVisit::whereYear('created_at', $year)
-                ->whereMonth('created_at', $monthNumber + 1)
-                ->distinct('phone')   
-                ->count('phone');
+        $customerVisitCount = InfluencerVisit::with(["createdBy"])
+        ->whereYear('created_at', $year)
+        ->whereMonth('created_at', $monthNumber + 1)
+        
+        ->whereHas('createdBy', function ($q) use ($productID) {
+            $q->whereJsonContains('products', (string)$productID);
+        })
+        ->distinct('phone') 
+        ->count('phone');
 
 
         $aashiyanaCount = Order::with(["orderItems"])->whereYear('created_at', $year)
@@ -267,11 +272,13 @@ class DashboardController extends Controller
 
         $orders = Order::with(["orderItems"])->whereYear('created_at', $year)
                         ->whereMonth('created_at', $monthNumber+1)
+                        ->where('product_id', $productID)
                         ->where('order_approved', '1')
                         ->pluck('id');
 
         $achievedOrderQuantity = DB::table('order_items')
             ->whereIn('order_id', $orders)
+            ->where('product_id', $productID)
             ->sum('total_quantity');
 
         return response()->json([
