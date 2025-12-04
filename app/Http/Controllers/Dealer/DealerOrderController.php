@@ -258,6 +258,7 @@ class DealerOrderController extends Controller
                             if (isset($productDetail['pieces'])) {
                                 $totalQuantity += (float)$productDetail['pieces'];
                             }
+                            // if($validatedData['product_id']==)
                             if (isset($productDetail['tonnage'])) {
                                 $totalQuantity += (float)$productDetail['tonnage'];
                             }

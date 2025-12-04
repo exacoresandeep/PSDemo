@@ -15,6 +15,7 @@ class ActivityType extends Model
     protected $fillable = [
         'name',
         'status',
+        'created_by',
     ];
 
     protected $casts = [

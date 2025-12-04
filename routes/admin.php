@@ -118,7 +118,7 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
 
         Route::prefix('attendance')->group(function () {
             Route::get('/', [AttendanceController::class, 'index'])->name('sales.attendance.index');
-            Route::post('/list', [AttendanceController::class, 'list'])->name('sales.attendance.list');
+            Route::post('/lists', [AttendanceController::class, 'list'])->name('sales.attendance.list');
             Route::get('/attendance-export', [AttendanceController::class, 'exportAttendance'])->name('attendance.export');
 
         });

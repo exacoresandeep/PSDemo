@@ -340,21 +340,24 @@ class ActivityController extends Controller
             'activity_name' => 'required|string|max:255',
             'status' => 'required|in:1,2',
         ]);
-
+$user = Auth::user();
         $activity_type = ActivityType::create([
             "id" =>27,
             'name' => $request->activity_name,
             'status' => "1",
+            "created_by"=>$user->id,
         ]);
 
         if (!empty($request->fields)) {
             foreach ($request->fields as $field) 
                 {
+                    
                 DB::table('activity_question_labels')->insert([
                     'activity_types_id' => $activity_type->id,
                     'type' => strtolower($field['type']),
                     'label_name' => $field['label'],
                     'label_options' => strtolower($field['type']) === 'select' ? $field['options'] : '',
+                    "created_by"=>$user->id,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -370,8 +373,10 @@ class ActivityController extends Controller
     public function getActivityTypes(Request $request)
     {
         if ($request->ajax()) {
+            $user = Auth::user();
             $query = ActivityType::whereIn('status', ['1', '2'])
                     ->whereNull('deleted_at') 
+                    ->where("created_by",$user->id)
                     ->orderBy('id', 'desc');
     
             return DataTables::of($query)
@@ -495,7 +500,8 @@ class ActivityController extends Controller
     }
     public function list(Request $request)
     {
-        $query = Activity::with(['activityType', 'dealer', 'employee'])->whereNull('deleted_at');
+        $user = Auth::user();
+        $query = Activity::with(['activityType', 'dealer', 'employee'])->whereNull('deleted_at')->where("created_by",$user->id);
 
         if ($request->activity_type) {
             $query->where('activity_type_id', $request->activity_type);
@@ -591,7 +597,7 @@ class ActivityController extends Controller
     	]);
     	$emp=Employee::find($request->employee_id);
     	$deviceToken=$emp->fcm_token ?? null;
-    
+        $user = Auth::user();
             $activity = Activity::create([
                 'activity_type_id' => $request->activity_type_id,
                 'dealer_id' => $request->dealer_id,
@@ -599,6 +605,7 @@ class ActivityController extends Controller
                 'assigned_date' => $request->assigned_date,
                 'due_date' => $request->due_date,
                 'instructions' => $request->instruction,
+                'created_by' => $user->id,
                 'status' => 'Pending',
     	]);
     

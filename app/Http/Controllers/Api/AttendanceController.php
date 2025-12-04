@@ -525,7 +525,17 @@ class AttendanceController extends Controller
 
     public function list(Request $request)
     {
-        $query = Attendance::with(['employee.employeeType']);
+        $user = Auth::user();
+        $product_ids = is_array($user->product_ids)? $user->product_ids : json_decode($user->product_ids, true);
+        
+       $query = Attendance::with(['employee.employeeType'])
+            ->whereHas('employee', function ($sub) use ($product_ids) {
+                $sub->where(function ($q) use ($product_ids) {
+                    foreach ($product_ids as $pid) {
+                        $q->orWhereRaw("JSON_CONTAINS(employees.products, '\"$pid\"')");
+                    }
+                });
+            });
 
         if (!empty($request->employee_type)) {
             $query->whereHas('employee', function ($q) use ($request) {

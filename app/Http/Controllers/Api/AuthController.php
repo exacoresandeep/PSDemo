@@ -63,7 +63,7 @@ class AuthController extends Controller
             ->where('employee_code', $validated['employee_code'])
             ->where('employees.employee_type_id', $validated['employee_type_id'])
             ->select('employees.*', 'employee_types.id as type_id', 'employee_types.type_name') 
-	    ->first();
+	        ->first();
 
         if (!$employee || !Hash::check($validated['password'], $employee->password)) {
             return response()->json([
@@ -84,9 +84,9 @@ class AuthController extends Controller
                     'id' => $employee->id,
                     'employee_code' => $employee->employee_code,
                     'name' => $employee->name,
-                    'designation' => $employee->designation,
-		    'email' => $employee->email,
-		    'password_reset_flag' =>$employee->password_reset_flag == 0 ? false : true,
+                    'designation' => $employee->designation == "Area Sales Manager" ? "District Sales Manager" : $employee->designation,
+                    'email' => $employee->email,
+                    'password_reset_flag' =>$employee->password_reset_flag == 0 ? false : true,
                     'phone' => $employee->phone,
                     'address' => $employee->address,
                     'photo' => $employee->photo,
@@ -95,7 +95,8 @@ class AuthController extends Controller
                 ],
                 'employee_type' => [
                     'id' => $employee->type_id,
-                    'type_name' => $employee->type_name,
+                    'type_name' => $employee->type_name == "Area Sales Manager" ? "District Sales Manager" : $employee->type_name,
+                    
                 ],
                 'token' => $token,
                 'status' => 'active',
@@ -137,7 +138,9 @@ class AuthController extends Controller
                             'id' => $employee->id,
                             'employee_code' => $employee->employee_code,
                             'name' => $employee->name,
-                            'designation' => $employee->designation,
+                            // 'designation' => $employee->designation,
+                            'designation' => $employee->designation == "Area Sales Manager" ? "District Sales Manager" : $employee->designation,
+                    
                             'email' => $employee->email,
                             'password_reset_flag' => $employee->password_reset_flag ? true : false,
                             'phone' => $employee->phone,
@@ -147,7 +150,8 @@ class AuthController extends Controller
                         ],
                         'employee_type' => [
                             'id' => $employee->type_id,
-                            'type_name' => $employee->type_name,
+                            'type_name' => $employee->type_name == "Area Sales Manager" ? "District Sales Manager" : $employee->type_name,
+                
                         ],
                         'token' => $token,
                         'status' => 'active',
@@ -1703,7 +1707,7 @@ public function updateFcmToken(Request $request)
             }
 
             $product = Product::find($productId);
-// dd($product);    
+ 
             if (!$product) {
                 return response()->json([
                     'success' => false,
@@ -1713,19 +1717,19 @@ public function updateFcmToken(Request $request)
             }
 
             $productCode = strtolower($product->product_code);
-
+            
             if ($productCode === 'durashine' || $productCode === 'structura') {
                 $query = ProductDetails::select(
                         'products_details.product_id',
                         'product_types.id as product_type_id',
-                        'products_details.product_name as type_name',
-                        'product_types.rate'
+                        // 'products_details.product_name as type_name',
+                        'product_types.rate',
+                        'product_types.type_name'
                     )
                     ->join('product_types', 'product_types.id', '=', 'products_details.type_id')
                     ->where('products_details.product_id', $productId);
-
                 if (!empty($search)) {
-                    $query->where('products_details.product_name', 'LIKE', $search . '%');
+                        $query->where('product_types.type_name', 'LIKE', '%'. $search . '%');
                 }
 
                 $data = $query->limit(20)->get();
