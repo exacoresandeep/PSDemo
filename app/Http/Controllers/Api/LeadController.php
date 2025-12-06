@@ -301,7 +301,7 @@ class LeadController extends Controller
                         'id' => $order->id,
                         'total_amount' => $order->total_amount,
                         'status' => $order->status,
-                        'billing_date' => $order->billing_date->format('d/M/Y'),
+                        'billing_date' => $order->billing_date,
                         'credit_days'  => $order->credit_days,
                        
                         'order_items' => $order->orderItems->map(function ($item) {
