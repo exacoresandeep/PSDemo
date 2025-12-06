@@ -21,14 +21,10 @@ class CreditNoteExport implements FromCollection, WithHeadings, ShouldAutoSize
 
     public function collection()
     {
-        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
-        $creditNotes = CreditNote::with(['order.orderItems', 'dealer'])
-            ->whereMonth('date', $this->month)
+        $creditNotes = CreditNote::whereMonth('date', $this->month)
             ->whereYear('date', $this->year)
             ->where('status', 'open')
-            ->whereHas('order.orderItems', function ($q) use ($productID) {
-                $q->where('product_id', $productID);
-            })
+            ->with('dealer') // Eager load dealer to avoid N+1
             ->get();
 
         $data = new Collection();

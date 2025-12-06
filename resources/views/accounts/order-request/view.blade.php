@@ -45,13 +45,15 @@
 
 
 
-                    <h5 class="mt-3">Product Detailswdawdd</h5>
+                    <h5 class="mt-3">Product Details</h5>
                     <table class="table table-bordered table-responsive">
                         <thead>
                             <tr>
                                 <th>Product Name</th>
                                 <th>Type</th>
-                                <th>Quantity</th>
+                                <th class="template1">Quantity</th>
+                                <th class="template2">Piece</th>
+                                <th class="template2">Ton</th>
                                 <th id="view_product_price_label" style="display: none;">ADP Price</th>
                                 <th>Price</th>
                             </tr>
@@ -60,7 +62,9 @@
                         <tfoot>
                             <tr>
                                 <th colspan="2">Total</th>
-                                <th id="view_total_quantity"></th>
+                                <th class="template1" id="view_total_quantity"></th>
+                                <th class="template2" id="view_total_pieces"></th>
+                                <th class="template2" id="view_total_tonnage"></th>
                         	    <th id="view_total_product_price"></th>  
 			                    <th id="view_total_amount"></th>
                             </tr>

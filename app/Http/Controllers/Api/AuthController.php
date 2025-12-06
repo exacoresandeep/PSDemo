@@ -1114,6 +1114,9 @@ public function updateFcmToken(Request $request)
                 $notifications = $notifications->merge($maintenanceNotifications)->merge($tripNotifications);
             }
 
+            $notifications = $notifications->sortByDesc(function ($item) {
+                return strtotime($item->date . ' ' . $item->time);
+            })->values();
             $unreadCount = $notifications->where('is_read', false)->count();
 
             return response()->json([

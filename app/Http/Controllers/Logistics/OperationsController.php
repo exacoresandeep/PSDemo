@@ -519,7 +519,8 @@ class OperationsController extends Controller
                 $typeName = $productType?->type_name ?? 'N/A';
                 $quantity = (float) ($detail['quantity'] ?? 0);
                 $rate = $detail['rate'] ?? 0;
-            
+                $pieces=$detail['pieces'] ?? 0;
+                $tonnage=$detail['tonnage'] ?? 0;
                 $adpPrice = null;
                 $dpPrice = null;
             
@@ -540,6 +541,8 @@ class OperationsController extends Controller
                     'product_name' => $productName ?? 'N/A',
                     'type_name'    => $typeName,
                     'quantity'     => $quantity,
+                    'pieces' => $pieces,
+                    'tonnage' => $tonnage,
                     'rate'         =>(float) $rate,
                     'adp_price'    => $adpPrice,
                     'dp_price'     => $dpPrice,
@@ -558,7 +561,7 @@ class OperationsController extends Controller
             'dealer_name' => $dealerName,
             'dealer_code' => $dealerCode,
             'dealer_phone' => $dealerPhone,
-
+            'product_id' => $order->product_id,
             'dealer_district' => $dealerDistrict,
             'driver_name' => $order->driver_name ?? "NA",
             'vehicle_number' => $order->vehicle_number ?? "NA",
@@ -569,7 +572,7 @@ class OperationsController extends Controller
             'dealer_address' => $dealerAddress,
             'order_type' => $order->orderType?->name ?? 'N/A', 
             'payment_type' => $order->paymentTerm?->name ?? 'N/A',
-            'billing_date' => optional($order->billing_date)->format('d/m/Y') ?? 'N/A',
+            'billing_date' => $order->billing_date ?? 'N/A',
             'status_badge' => $order->status,
             'scheme' => $order->scheme,
             'reason_for_rejection' => $order->reason_for_rejection,
