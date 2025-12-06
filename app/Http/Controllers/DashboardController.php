@@ -275,7 +275,7 @@ class DashboardController extends Controller
                         ->where('product_id', $productID)
                         ->where('order_approved', '1')
                         ->pluck('id');
-
+dd($orders);
         $achievedOrderQuantity = DB::table('order_items')
             ->whereIn('order_id', $orders)
             ->where('product_id', $productID)

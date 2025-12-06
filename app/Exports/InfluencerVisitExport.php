@@ -23,7 +23,7 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
 
     public function collection()
     {
-        return InfluencerVisit::with(['district', 'order.dealer', 'order.paymentTerm', 'followUps', 'order.orderItems'])
+        return InfluencerVisit::with(['district', 'order.dealer', 'order.paymentTerm', 'followUps', 'order.orderItems',"createdBy"])
             ->whereYear('created_at', $this->year)
             ->whereMonth('created_at', $this->month)
             ->get();
@@ -133,13 +133,14 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
             $visit->status === 'Lost' ? $visit->lost_to_competitor : '',
             $visit->status === 'Lost' ? $visit->reason_for_lost : '',
 
-            $visit->status === 'Won' ? optional($order->dealer)->dealer_name : '',
-            $visit->status === 'Won' ? optional($order->paymentTerm)->name : '',
-            $visit->status === 'Won' ? $order->credit_days : '',
-            $visit->status === 'Won' ? $order->total_amount : '',
+            $visit->status === 'Won' ? optional(optional($order)->dealer)->dealer_name : '',
+            $visit->status === 'Won' ? optional(optional($order)->paymentTerm)->name : '',
+            $visit->status === 'Won' ? optional($order)->credit_days : '',
+            $visit->status === 'Won' ? optional($order)->total_amount : '',
+
 
             $productSummary,
-            optional($visit->creator)->name ?? '',
+            optional($visit->createdBy)->name ?? '',
             optional($visit->created_at)->format('Y-m-d H:i:s'),
         ];
     }

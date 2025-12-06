@@ -16,16 +16,23 @@ class SchemeController extends Controller
     }
     public function schemeList(Request $request)
     {
-        // 1. Get session value
         $selectedCode = session('selected_product_code');
-
-        // 2. If no session, pick first product_code
         if (empty($selectedCode)) {
-            $firstProduct = Product::orderBy('id')->first();
-            if ($firstProduct) {
-                $selectedCode = $firstProduct->product_code;
-                session(['selected_product_code' => $selectedCode]); // store for future
-            }
+            $user = Auth()->user();
+            $product_ids = is_array($user->product_ids)? $user->product_ids : json_decode($user->product_ids, true);
+            if(!empty($product_ids)){
+                $firstProduct = Product::where('id', $product_ids[0])->first();
+                if ($firstProduct) {
+                    $selectedCode = $firstProduct->product_code;
+                    session(['selected_product_code' => $selectedCode]);
+                }
+            } else {
+                $firstProduct = Product::orderBy('id')->first();
+                if ($firstProduct) {
+                    $selectedCode = $firstProduct->product_code;
+                    session(['selected_product_code' => $selectedCode]);
+                }
+            }        
         }
 
         // Build query

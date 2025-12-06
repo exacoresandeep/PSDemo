@@ -175,11 +175,14 @@
                         }
                         if (order.order_type === "Retail" && order.payment_type === "Advance") {
                             $('#view_product_price_label').show();
+                            $('#view_total_product_price').show();
                             $('#view_product_price_label').text('ADP Price');
                         } else if(order.order_type === "Retail" && order.payment_type === "Credit"){
                             $('#view_product_price_label').show();
+                            $('#view_total_product_price').show();
                             $('#view_product_price_label').text('DP Price');
                         }else {
+                            $('#view_total_product_price').hide();
                             $('#view_product_price_label').hide();
                         }
                         if (order.attachments && order.attachments.length > 0) {
@@ -193,12 +196,14 @@
                             $('#view_attachment').html('<span class="text-muted">No attachment available</span>');
                         }
                         let productHtml = '';
-                        let totalQuantity = 0;
+                        let totalQuantity=totalPieces =totalTonnage= 0;
                         let totalAmount = 0;
                         let totalProductPrice = 0;
 
                         order.order_items.forEach(item => {
                             totalQuantity += item.quantity;
+                            totalPieces += item.pieces;
+                            totalTonnage += item.tonnage;
                             totalAmount += (item.rate*item.quantity);
                             let priceColumn = '';
                             let productPrice = 0;
@@ -223,7 +228,9 @@
                                 <tr>
                                     <td>${item.product_name}</td>
                                     <td>${item.type_name}</td>
-                                    <td>${item.quantity}</td>
+                                    <td class="template1">${item.quantity}</td>
+                                    <td class="template2">${item.pieces}</td>
+                                    <td class="template2">${item.tonnage}</td>
                                     ${priceColumn}
                                     <td>${((item.rate)*(item.quantity)).toFixed(2)}</td>
                                 </tr>
@@ -272,6 +279,13 @@
                         // Store orderId for later use
                         $('#approve_order, #reject_order').data('id', orderId);
 
+                        if(order.product_id == '1' || order.product_id == '4'){
+                            $('.template1').show();
+                            $('.template2').hide();
+                        }else{
+                            $('.template1').hide();
+                            $('.template2').show();
+                        }
                         // Show Modal
                         $('#viewModal').modal({
                             backdrop: 'static', // Prevent clicking outside to close

@@ -158,23 +158,19 @@ class AdminController extends Controller
     {
         $sessionProductCode = session('selected_product_code');
         if ($sessionProductCode) {
-
             $products = Product::where('product_code', $sessionProductCode)
                 ->select('id', 'product_name', 'product_code')
                 ->get();
-
-            // If product not found → fallback to first row
             if ($products->count() === 0) {
                 $products = Product::select('id', 'product_name', 'product_code')
                     ->orderBy('id')
                     ->limit(1)
                     ->get();
             }
-
         } else {
-            // No session → return first product only
-           
-            $products = Product::select('id', 'product_name', 'product_code')
+            $user = auth()->user();
+            $product_ids = is_array($user->product_ids)? $user->product_ids : json_decode($user->product_ids, true);
+            $products = Product::where('id', $product_ids[0])->select('id', 'product_name', 'product_code')
                 ->orderBy('id')
                 ->limit(1)
                 ->get();

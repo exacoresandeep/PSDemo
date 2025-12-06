@@ -93,6 +93,17 @@ class ExpenseController extends Controller
                 'message'    => 'Expense already recorded for today.',
             ]);
         }
+        $attendance = Attendance::where('employee_id', $employeeId)
+                                ->where('date', $date)
+                                ->whereNull('punch_out')
+                                ->first();
+        if ($attendance) {
+            return response()->json([
+                'success'    => false,
+                'statusCode' => 400,
+                'message'    => 'You cannot add day expense before punching out.',
+            ]);
+        }
 
         $attachments = $request->attachment ?? [];
         $methodRates = config('travel_methods');

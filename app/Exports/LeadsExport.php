@@ -22,6 +22,7 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
 
     public function collection()
     {
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
         return Lead::with([
             'customerType',
             'district',
@@ -32,6 +33,9 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             'orders.paymentTerm',
             'followUps'
         ])
+        ->whereHas('createdBy', function($q) use ($productID) {
+            $q->whereJsonContains('products', (string)$productID);
+        })
         ->whereYear('created_at', $this->year)
         ->whereMonth('created_at', $this->month)
         ->get();

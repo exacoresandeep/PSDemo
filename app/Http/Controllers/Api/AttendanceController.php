@@ -237,6 +237,7 @@ class AttendanceController extends Controller
 
     private function sendAttendanceToGreytHR($employeeCode,$doorName, $direction)
     {
+
         try {
             $privateKeyPath = storage_path('app/private-key.pem');
 
@@ -246,10 +247,10 @@ class AttendanceController extends Controller
             }
 
             $isoDate = now('Asia/Kolkata')->format('Y-m-d\TH:i:s.vP');
-
-            $swipe = "{$isoDate},{$employeeCode},{$doorName},{$direction}\n";
-
-            // Sign swipe data
+                $swipe = "{$isoDate},{$employeeCode},{$doorName},{$direction}";
+            //$swipe="2025-10-30T14:22:40.000+05:30,2122,Main Door,1";
+        //	dd($swipe);
+        // Sign swipe data
             $privateKey = file_get_contents($privateKeyPath);
             $pkeyid = openssl_pkey_get_private($privateKey);
             if (!$pkeyid) {
@@ -261,14 +262,15 @@ class AttendanceController extends Controller
             openssl_free_key($pkeyid);
 
             $data = [
-                'id'     => "adminuser",
+            'id'     => "b09fc780-6566-42a4-865e-240bb00f6281",
+            //'id' =>"6051f64b-02d8-4e31-a5e5-dcdd22c55ca7",
                 'swipes' => $swipe,
                 'sign'   => base64_encode($signature)
             ];
-
             $curl = curl_init();
             curl_setopt_array($curl, [
                 CURLOPT_URL            => "https://prabhusteels.greythr.com/v2/attendance/asca/swipes",
+            //           CURLOPT_URL            => "http://tousifapisso.greythr.com/v2/attendance/asca/swipes",
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_POST           => true,
                 CURLOPT_POSTFIELDS     => $data,
@@ -277,6 +279,9 @@ class AttendanceController extends Controller
             ]);
 
             $response = curl_exec($curl);
+            //return "result=".$response."swipe=".$swipe; //this line print the response from greyt HR
+
+
             $statusCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
             $error = curl_error($curl);
             curl_close($curl);
@@ -290,7 +295,6 @@ class AttendanceController extends Controller
                 \Log::error("GreytHR API failed: HTTP {$statusCode}. Response: {$response}");
                 return false;
             }
-
             $directionText = $direction == 1 ? 'IN' : 'OUT';
             \Log::info("GreytHR swipe sent successfully for {$employeeCode} ({$directionText})");
             return true;
@@ -299,6 +303,7 @@ class AttendanceController extends Controller
             return false;
         }
     }
+
 
 
     public function getsummary(Request $request)

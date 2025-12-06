@@ -87,7 +87,7 @@
                 success: function (response) {
                     if (response.success) {
                         let order = response.order;
-                    
+                        console.log(order);
                         $('#view_order_id').text(order.order_id);
                         $('#view_date').text(order.date);
                         $('#view_employee_type').text(order.employee_type);
@@ -126,12 +126,15 @@
                         }
                         if (order.order_type === "Project" && order.payment_type === "Advance") {
                             $('#view_product_price_label').show();
+                            $('#view_total_product_price').show();
                             $('#view_product_price_label').text('ADP Price');
                         } else if(order.order_type === "Project" && order.payment_type === "Credit"){
+                            $('#view_total_product_price').show();
                             $('#view_product_price_label').show();
                             $('#view_product_price_label').text('DP Price');
                         }else {
                             $('#view_product_price_label').hide();
+                            $('#view_total_product_price').hide();
                         }
                       
                         if (order.attachments && order.attachments.length > 0) {
@@ -145,12 +148,14 @@
                             $('#view_attachment').html('<span class="text-muted">No attachment available</span>');
                         }
                         let productHtml = '';
-                        let totalQuantity = 0;
+                        let totalQuantity =totalPieces =totalTonnage= 0;
                         let totalAmount = 0;
                         let totalProductPrice = 0;
 
                         order.order_items.forEach(item => {
                             totalQuantity += item.quantity;
+                            totalPieces += item.pieces;
+                            totalTonnage += item.tonnage;
                             totalAmount += item.quantity * item.rate;
                             let priceColumn = '';
                             let productPrice = 0;
@@ -175,7 +180,9 @@
                                 <tr>
                                     <td>${item.product_name}</td>
                                     <td>${item.type_name}</td>
-                                    <td>${item.quantity}</td>
+                                    <td class="template1">${item.quantity}</td>
+                                    <td class="template2">${item.pieces}</td>
+                                    <td class="template2">${item.tonnage}</td>
                                     ${priceColumn}
                                     <td>${parseFloat(item.rate).toString()}</td>
                                 </tr>
@@ -184,6 +191,8 @@
 
                         $('#view_product_list').html(productHtml);
                         $('#view_total_quantity').text((Math.round(totalQuantity * 1000000) / 1000000).toString());
+                        $('#view_total_pieces').text(totalPieces);
+                        $('#view_total_tonnage').text(totalTonnage);
                         $('#view_total_amount').text(parseFloat(totalAmount).toString());
                         // alert(order);
                         if (order.order_type === "Project" && (order.payment_type === "Advance" || order.payment_type === "Credit")) {
@@ -225,6 +234,14 @@
                         // Store orderId for later use
                         $('#approve_order, #reject_order').data('id', orderId);
 
+
+                        if(order.product_id == '1' || order.product_id == '4'){
+                            $('.template1').show();
+                            $('.template2').hide();
+                        }else{
+                            $('.template1').hide();
+                            $('.template2').show();
+                        }
                         // Show Modal
                         $('#viewModal').modal({
                             backdrop: 'static', // Prevent clicking outside to close

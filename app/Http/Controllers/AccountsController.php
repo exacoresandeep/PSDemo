@@ -561,7 +561,7 @@ class AccountsController extends Controller
                 $product = $item->product;
 
                 return collect($item->product_details)->map(function ($detail) use ($product, $orderCreatedAt) {
-                    $productName = 'TATA TISCON';
+                    $productName = $product->product_name; 
                     $productType = isset($detail['product_type_id'])
                         ? ProductType::find($detail['product_type_id'])
                         : null;
@@ -569,7 +569,8 @@ class AccountsController extends Controller
                     $typeName = $productType?->type_name ?? 'N/A';
                     $quantity = (float) ($detail['quantity'] ?? 0);
                     $rate = (float) ($detail['rate'] ?? 0);
-
+                    $pieces=$detail['pieces'] ?? 0;
+                    $tonnage=$detail['tonnage'] ?? 0;
                     $price = Price::where('product_id', $product->id)
                         ->where('product_type_id', $detail['product_type_id'])
                         ->where('start_date', '<=', $orderCreatedAt)
@@ -581,6 +582,8 @@ class AccountsController extends Controller
                         'product_name' => $productName,
                         'type_name' => $typeName,
                         'quantity' => $quantity,
+                        'pieces' => $pieces,
+                        'tonnage' => $tonnage,
                         'rate' => $rate,
                         'adp_price' => (float) ($price?->advance_dealer_price ?? 0),
                         'dp_price' => (float) ($price?->dealer_price ?? 0),
@@ -595,11 +598,12 @@ class AccountsController extends Controller
                 'employee_name_code' => $employeeNameCode,
                 'dealer_name' => $dealerName,
                 'dealer_code' => $dealerCode,
+                'product_id' => $order->product_id,
                 'dealer_phone' => $dealerPhone,
                 'dealer_address' => $dealerAddress,
                 'order_type' => $order->orderType?->name ?? 'N/A',
                 'payment_type' => $order->paymentTerm?->name ?? 'N/A',
-                'billing_date' => optional($order->billing_date)->format('d/m/Y') ?? 'N/A',
+                'billing_date' => $order->billing_date ?? 'N/A',
                 'status_badge' => $order->status,
                 'scheme' => $order->scheme,
                 'instructions' => $order->additional_information,
