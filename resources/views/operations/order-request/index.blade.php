@@ -232,7 +232,7 @@
                                     <td class="template2">${item.pieces}</td>
                                     <td class="template2">${item.tonnage}</td>
                                     ${priceColumn}
-                                    <td>${((item.rate)*(item.quantity)).toFixed(2)}</td>
+                                    <td>${((item.rate)).toFixed(2)}</td>
                                 </tr>
                             `;
                         });

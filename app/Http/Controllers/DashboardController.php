@@ -29,6 +29,7 @@ use App\Exports\InfluencerVisitsExport;
 use App\Exports\AashiyanaOrdersExport;
 use App\Exports\TisconOrdersExport;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Helpers\ProductHelper;
 
 class DashboardController extends Controller
 {
@@ -223,6 +224,7 @@ class DashboardController extends Controller
         }
 
         $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+
         $nextMonthName = \DateTime::createFromFormat('!m', $nextMonthNumber)->format('F');
         $targets = Target::where('month', $nextMonthName)
                         ->where('year', $year)
@@ -252,14 +254,14 @@ class DashboardController extends Controller
         //                         return $customers->where('scheduled', true)->where('status', 'Completed')->count();
         //                     });
         $customerVisitCount = InfluencerVisit::with(["createdBy"])
-        ->whereYear('created_at', $year)
-        ->whereMonth('created_at', $monthNumber + 1)
-        
-        ->whereHas('createdBy', function ($q) use ($productID) {
-            $q->whereJsonContains('products', (string)$productID);
-        })
-        ->distinct('phone') 
-        ->count('phone');
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $monthNumber + 1)
+            
+            ->whereHas('createdBy', function ($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            })
+            ->distinct('phone') 
+            ->count('phone');
 
 
         $aashiyanaCount = Order::with(["orderItems"])->whereYear('created_at', $year)
@@ -275,11 +277,18 @@ class DashboardController extends Controller
                         ->where('product_id', $productID)
                         ->where('order_approved', '1')
                         ->pluck('id');
-dd($orders);
-        $achievedOrderQuantity = DB::table('order_items')
-            ->whereIn('order_id', $orders)
-            ->where('product_id', $productID)
-            ->sum('total_quantity');
+
+        // $achievedOrderQuantity = DB::table('order_items')
+        //     ->whereIn('order_id', $orders)
+        //     ->where('product_id', $productID)
+        //     ->sum('total_quantity');
+        $achievedOrderQuantity = DB::table('orders')
+            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+            ->whereYear('orders.created_at', $year)
+            ->whereMonth('orders.created_at', $monthNumber + 1)
+            ->where('orders.product_id', $productID)
+            ->where('orders.order_approved', '1')
+            ->sum('order_items.total_quantity');
 
         return response()->json([
             'target' => $totalTargets,
@@ -611,8 +620,9 @@ dd($orders);
     {
         $month = $request->month;
         $year = $request->year;
+        $productID = ProductHelper::getSelectedProductId(); 
 
-        return Excel::download(new TisconOrdersExport($year, $month), 'tiscon_orders_export.xlsx');
+        return Excel::download(new TisconOrdersExport($year, $month, $productID), 'orders_export.xlsx');
     }
     
 

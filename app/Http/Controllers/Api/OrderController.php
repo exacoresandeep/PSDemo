@@ -567,7 +567,7 @@ class OrderController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->value('outstanding_amount');
 
-            $billingDate = $order->billing_date ? Carbon::parse($order->billing_date)->format('d/m/Y') : null;
+            $billingDate = $order->billing_date ? $order->billing_date : null;
             $createdAt = Carbon::parse($order->created_at)->format('d/m/Y');
 
             $orderItems = $order->orderItems->map(function ($item) {

@@ -12,59 +12,63 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 class TisconOrdersExport implements FromCollection, WithMapping, WithHeadings, ShouldAutoSize
 {
-    protected $year, $month, $row = 1;
+    protected $year, $month, $row = 1, $productID;
     protected $targetsByEmployee = [];
     protected $achievedByEmployee = [];
 
-    public function __construct($year, $month)
+    public function __construct($year, $month, $productID)
     {
         $this->year = $year;
         $this->month = $month + 1;
+        $this->productID = $productID;
     }
 
     public function collection()
     {
-        // Get all targets for the month/year
+        // dd($this->productID);
+        // Get all employees who have target
         $this->targetsByEmployee = Target::where('month', $this->month)
             ->where('year', $this->year)
             ->pluck('order_quantity', 'employee_id')
             ->toArray();
 
-        // Get all delivered orders with valid created_by
-        $orders = Order::whereYear('created_at', $this->year)
-            ->whereMonth('created_at', $this->month)
-            ->where('order_approved', '1')
-            ->whereNotNull('created_by')
-            ->get();
+        $targetedEmployeeIds = array_keys(
+            array_filter($this->targetsByEmployee, fn($t) => (float)$t > 0)
+        );
 
-        // Aggregate achieved quantity per employee
-        foreach ($orders as $order) {
-            $empId = $order->created_by;
-            $sumQuantity = $order->orderItems->sum('total_quantity');
-            $this->achievedByEmployee[$empId] = ($this->achievedByEmployee[$empId] ?? 0) + (float) $sumQuantity;
-        }
+        // 👉 Get employees whose products JSON contains productID
+        $productEmployees = Employee::whereJsonContains('products', (string)$this->productID)
+            ->pluck('id')
+            ->toArray();
 
-        // Filter employees who have a non-zero target
-        $targetedEmployeeIds = array_keys(array_filter($this->targetsByEmployee, function ($target) {
-            return (float) $target > 0;
-        }));
+        // Merge both employee lists
+        $finalEmployeeIds = array_unique(array_merge($targetedEmployeeIds, $productEmployees));
 
-        // Return only those employees
-        return Employee::whereIn('id', $targetedEmployeeIds)->get();
+        // 👉 Achieved Quantity (Filtered by product_id also)
+        $this->achievedByEmployee = Order::join('order_items', 'orders.id', '=', 'order_items.order_id')
+            ->selectRaw('orders.created_by as employee_id, SUM(order_items.total_quantity) as achieved_qty')
+            ->whereYear('orders.created_at', $this->year)
+            ->whereMonth('orders.created_at', $this->month)
+            ->where('orders.order_approved', '1')
+            ->where('orders.product_id', $this->productID)
+            ->whereNotNull('orders.created_by')
+            ->groupBy('orders.created_by')
+            ->pluck('achieved_qty', 'employee_id')
+            ->toArray();
+
+        // 👉 Return only employees matching target or product
+        return Employee::whereIn('id', $finalEmployeeIds)->get();
     }
 
     public function map($employee): array
     {
         $empId = $employee->id;
-        $target = (float) ($this->targetsByEmployee[$empId] ?? 0);
-        $achieved = (float) ($this->achievedByEmployee[$empId] ?? 0);
-
         return [
             $this->row++,
             $employee->name,
             $employee->email,
-            $target,
-            $achieved,
+            (float) ($this->targetsByEmployee[$empId] ?? 0),
+            (float) ($this->achievedByEmployee[$empId] ?? 0),
         ];
     }
 
@@ -79,4 +83,5 @@ class TisconOrdersExport implements FromCollection, WithMapping, WithHeadings, S
         ];
     }
 }
+
 

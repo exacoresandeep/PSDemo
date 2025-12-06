@@ -213,7 +213,7 @@
                                     <td>${item.type_name}</td>
                                     <td>${item.quantity}</td>
                                     ${priceColumn}
-                                    <td>${((item.rate)*(item.quantity)).toFixed(2)}</td>
+                                    <td>${((item.rate)).toFixed(2)}</td>
                                 </tr>
                             `;
                         });
