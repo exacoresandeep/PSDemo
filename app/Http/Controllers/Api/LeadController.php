@@ -732,13 +732,10 @@ class LeadController extends Controller
         }
     }
 
-     public function updateLead(Request $request, $leadId)
+    public function updateLead(Request $request, $leadId)
     {
         try {
     
-            // -----------------------------
-            // VALIDATION
-            // -----------------------------
             $validatedData = $request->validate([
                 'type_of_visit' => 'required|string',
                 'construction_type' => 'required|string',
@@ -754,7 +751,6 @@ class LeadController extends Controller
                 'status' => 'required|in:Opened,Follow Up,Won,Lost',
                 'dealer_id' => 'nullable|numeric',
     
-                // LOST RULES
                 'lost_details.lost_volume' => 'required_if:status,Lost|nullable|numeric',
                 'lost_details.lost_to_competitor' => 'required_if:status,Lost|nullable|string',
                 'lost_details.competitor_name' => 'nullable|string',
@@ -767,7 +763,6 @@ class LeadController extends Controller
                 'further_requirement' => 'required_if:status,Lost|nullable|in:Yes,No',
                 'further_volume' => 'required_if:status,Lost|nullable|numeric',
     
-                // WON RULES
                 'order_details.customer_type_id' => 'required_if:status,Won|nullable|exists:customer_types,id',
                 'order_details.dealer_id' => 'required_if:status,Won|exists:dealers,id',
                 'order_details.dealer_flag_order' => 'nullable|numeric',
@@ -781,10 +776,7 @@ class LeadController extends Controller
                 'order_details.attachment' => 'nullable|array',
                 'order_details.attachment.*' => 'nullable|string',
             ]);
-    
-            // -----------------------------
-            // GET LEAD
-            // -----------------------------
+   
             $lead = Lead::where('id', $leadId)
                 ->where('created_by', Auth::id())
                 ->firstOrFail();
@@ -820,29 +812,22 @@ class LeadController extends Controller
                 // ]);
             }
     
-            // -----------------------------
-            // NOTIFICATION STATUS
-            // -----------------------------
+         
             $notification_status = $request->status === 'Follow Up' ? 'approved' : 'pending';
-    
-            // -----------------------------
-            // HANDLE FOLLOW UP
-            // -----------------------------
+ 
             if ($request->status === 'Follow Up') {
     
                 LeadFollowUp::create([
                     'lead_id' => $lead->id,
                     'follow_up_date' => $request->follow_up_date,
                     'reason' => $request->follow_up_reason,
+                    'notification_status' => 'pending',
                     'created_by' => Auth::id(),
                 ]);
     
                 $lead->update(['follow_up_date' => $request->follow_up_date]);
             }
-    
-            // -----------------------------
-            // UPDATE COMMON LEAD INFO
-            // -----------------------------
+   
             $leadData = [
                 'type_of_visit' => $request->type_of_visit,
                 'construction_type' => $request->construction_type,
@@ -864,9 +849,7 @@ class LeadController extends Controller
                 $leadData['dealer_id'] = $request->dealer_id;
             }
     
-            // -----------------------------
-            // LOST LOGIC
-            // -----------------------------
+            
             if ($request->status === 'Lost' && !empty($request->lost_details)) {
                 $lost = $request->lost_details;
     
@@ -885,19 +868,14 @@ class LeadController extends Controller
                 ]);
             }
     
-            // UPDATE LEAD
             $lead->update($leadData);
     
-            // -----------------------------
-            // WON → CREATE ORDER
-            // -----------------------------
              $order = null;
 
             if ($request->status === 'Won' && !empty($request->order_details)) {
 
                 $orderDetails = $request->order_details;
 
-                // Create the order
                 $order = Order::create([
                     'customer_type_id' => $orderDetails['customer_type_id'],
                     'lead_id' => $lead->id,
@@ -914,7 +892,6 @@ class LeadController extends Controller
                     'product_id' => $orderDetails['order_items'][0]['product_id'] ?? null, // SAME AS store()
                 ]);
 
-                // Insert order items
                 foreach ($orderDetails['order_items'] as $item) {
 
                     $totalQuantity = 0;
@@ -924,22 +901,14 @@ class LeadController extends Controller
 
                         foreach ($item['product_details'] as $pd) {
 
-                            // Add pieces
                             if (isset($pd['pieces'])) {
                                 $totalQuantity += (float)$pd['pieces'];
                             }
 
-                            // Add tonnage
-                            // if (isset($pd['tonnage'])) {
-                            //     $totalQuantity += (float)$pd['tonnage'];
-                            // }
-
-                            // Get Type Name
                             $typeName = \App\Models\ProductType::where('id', $pd['product_type_id'])
                                 ->value('type_name');
 
                             $pd['type_name'] = $typeName;
-                            // $pd['quantity_type'] = $item['quantity_type'] ?? null;
 
                             $productDetailsArray[] = $pd;
                         }
@@ -1020,10 +989,8 @@ class LeadController extends Controller
                         'district_id' => $lead->district_id,
                         'assigned_route_id' => $lead->assigned_route_id,
 
-                        // New fresh chain
                         'lead_chain_id' => null,
 
-                        // Start new cycle
                         'status' => 'Opened',
                         'total_volume' => 0,
                         'total_quantity' => 0,
@@ -1032,50 +999,6 @@ class LeadController extends Controller
                     ]);
                 }
     
-                // if ($handledVolume >= $totalDealVolume) {
-                //     Lead::create([
-                //         // 'customer_type' => $lead->customer_type,
-                //         // 'customer_name' => $lead->customer_name,
-                //         // 'phone' => $lead->phone,
-                //         // 'address' => $lead->address,
-                //         // 'city' => $lead->city,
-                //         // 'location' => $lead->location,
-                //         // 'district_id' => $lead->district_id,
-                //         // 'assigned_route_id' => $lead->assigned_route_id,
-                //         // 'status' => 'Opened',
-                //         // 'created_by' => Auth::id(),
-                //         'customer_type' => $lead->customer_type,
-                //         'customer_name' => $lead->customer_name,
-                //         'phone' => $lead->phone,
-                //         'address' => $lead->address,
-                //         'city' => $lead->city,
-                //         'location' => $lead->location,
-                //         'district_id' => $lead->district_id,
-                //         'assigned_route_id' => $lead->assigned_route_id,
-                //         'lead_chain_id' => $lead->lead_chain_id,
-
-                //         // NEW BASIC DETAILS
-                //         'type_of_visit' => $request->type_of_visit,
-                //         'construction_type' => $request->construction_type,
-                //         'construction_type_name' => $request->construction_type_name,
-                //         'stage_of_construction' => $request->stage_of_construction,
-                //         'lead_score' => $request->lead_score,
-                //         'lead_source' => $request->lead_source,
-                //         'source_name' => $request->source_name,
-                //         'total_quantity' => $request->total_quantity,
-                //         'total_volume' => $request->total_volume,
-                //         'dealer_id' => $request->dealer_id,
-
-                //         // FOLLOW UP DATA
-                //         'follow_up_date' => $request->follow_up_date,
-                //         'follow_up_reason' => $request->follow_up_reason,
-
-                //         // SET STATUS TO FOLLOW-UP
-                //         'status' => 'Follow Up',
-
-                //         'created_by' => Auth::id(),
-                //     ]);
-                // }
             }
     
             DB::commit();
