@@ -201,7 +201,7 @@ class OrderController extends Controller
                     // $totalQuantity = (float)($orderItem['quantity'] ?? 0);
                     $orderItem['product_details'] = null;
                 }
-                $totalQuantity = (float)($orderItem['quantity'] ?? 0);  
+                $totalQuantity = (float)($orderItem['total_quantity'] ?? 0);  
                 $orderItem['total_quantity'] = round($totalQuantity, 6);
                 unset($orderItem['quantity_type']);
 
