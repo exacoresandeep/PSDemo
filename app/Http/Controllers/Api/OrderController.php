@@ -139,7 +139,7 @@ class OrderController extends Controller
                 'driver_phone' => 'nullable|string',
                 'order_items' => 'required|array',
                 'order_items.*.product_id' => 'required|exists:products,id',
-                'order_items.*.total_quantity' => 'nullable',
+                'order_items.*.total_quantity' => 'nullable',  //push
                 'order_items.*.product_details' => 'nullable|array',
                 'attachment' => 'nullable|array',
                 'attachment.*' => 'nullable|string',
@@ -182,7 +182,7 @@ class OrderController extends Controller
                 $totalQuantity = 0;
                 if (!empty($orderItem['product_details'])) {
                     foreach ($orderItem['product_details'] as $productDetail) {
-                        
+                        //push
                         // if (isset($productDetail['pieces'])) {
                         //     $totalQuantity += (float)$productDetail['pieces'];
                         // }
@@ -199,12 +199,13 @@ class OrderController extends Controller
                     }
 
                 } else {
+                    //push
                     // $totalQuantity = (float)($orderItem['quantity'] ?? 0);
                     $orderItem['product_details'] = null;
                 }
-                $totalQuantity = (float)($orderItem['total_quantity'] ?? 0);  
-                
-                $orderItem['total_quantity'] = round($totalQuantity, 6);
+                $totalQuantity = (float)($orderItem['total_quantity'] ?? 0);  //push
+
+                $orderItem['total_quantity'] = round($totalQuantity, 6);//push
                 unset($orderItem['quantity_type']);
 
                 $order->orderItems()->create($orderItem);
@@ -289,7 +290,7 @@ class OrderController extends Controller
                         foreach ($item->product_details as $pd) {
                             $totalPieces += $pd['pieces'] ?? 0;
                     
-                            $totalTon += $pd['tonnage'] ?? 0;
+                            $totalTon += $pd['tonnage'] ? ($pd['tonnage']*$pd['pieces']): 0;
                         }
                     }
                     
@@ -335,6 +336,8 @@ class OrderController extends Controller
                 ], 401);
             }
             $searchKey = $request->input('search_key', '');
+            $product_id = $request->input('product_id', ''); //push
+            // dd($product_id);
             $isDate = false; 
             $parsedDate = null;
 
@@ -351,7 +354,10 @@ class OrderController extends Controller
             ])
             ->where('created_by', $employeeId)
             ->select('id', 'created_at', 'status', 'total_amount', 'dealer_id');
-            
+            //push
+            if (!empty($product_id)) {
+                $ordersQuery->where('product_id', $product_id);
+            }
             if ($isDate) {
                 $ordersQuery->whereDate('created_at', $parsedDate);
             } else {
@@ -428,10 +434,10 @@ class OrderController extends Controller
     public function dealerOrderList(Request $request)
     {
         try {
-            if ($request->has('search_key')) {
+            //push
+            if ($request->hasAny(['search_key', 'product_id'])) {
                 return $this->orderFilter($request);
             }
-
             $employee = Auth::user();
 
             if (!$employee) {
