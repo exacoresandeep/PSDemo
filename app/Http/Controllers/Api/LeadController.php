@@ -1585,7 +1585,7 @@ class LeadController extends Controller
                 $status = $lead->status === 'Follow Up' ? 'Follow Up' : 'Opened';
     
                 return [
-                    'id' => $lead->id,
+                    'lead_id' => $lead->id, //push
                     'customer_type' => [
                         'id' => $lead->customerType->id ?? null,
                         'name' => $lead->customerType->name ?? null,
@@ -1676,7 +1676,7 @@ class LeadController extends Controller
 
         $formattedLeads = $leads->map(function ($lead) {
             return [
-                'id' => $lead->id,
+                'lead_id' => $lead->id, //push
                 'customer_type' => [
                     'id' => $lead->customerType->id ?? null,
                     'name' => $lead->customerType->name ?? null,
