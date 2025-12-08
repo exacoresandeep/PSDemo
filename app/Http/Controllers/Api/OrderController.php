@@ -181,12 +181,13 @@ class OrderController extends Controller
 
                 if (!empty($orderItem['product_details'])) {
                     foreach ($orderItem['product_details'] as $productDetail) {
-                        if (isset($productDetail['pieces'])) {
-                            $totalQuantity += (float)$productDetail['pieces'];
-                        }
-                        if (isset($productDetail['tonnage'])) {
-                            $totalQuantity += (float)$productDetail['tonnage'];
-                        }
+                        
+                        // if (isset($productDetail['pieces'])) {
+                        //     $totalQuantity += (float)$productDetail['pieces'];
+                        // }
+                        // if (isset($productDetail['tonnage'])) {
+                        //     $totalQuantity += (float)$productDetail['tonnage'];
+                        // }
                         $typeName = \App\Models\ProductType::where('id', $productDetail['product_type_id'])
                         ->value('type_name');
 
@@ -197,10 +198,10 @@ class OrderController extends Controller
                     }
 
                 } else {
-                    $totalQuantity = (float)($orderItem['quantity'] ?? 0);
+                    // $totalQuantity = (float)($orderItem['quantity'] ?? 0);
                     $orderItem['product_details'] = null;
                 }
-
+                $totalQuantity = (float)($orderItem['quantity'] ?? 0);  
                 $orderItem['total_quantity'] = round($totalQuantity, 6);
                 unset($orderItem['quantity_type']);
 
