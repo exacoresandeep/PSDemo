@@ -18,12 +18,20 @@
                                 <option value="">Select Employee Type</option>
                                 <option value="1">Sales Executive (SE)</option>
                                 <option value="2">Area Sales Officer (ASO)</option>
-                                <option value="3">District Sales Manager (DSM)</option>
-                                <option value="4">Regional Sales Manager (RSM)</option>
+                                
+                                <?php
+                                    if ($productId=="1" || $productId=="4") {
+                                        echo '
+                                              <option value="3">District Sales Manager (DSM)</option>
+                                              <option value="4">Regional Sales Manager (RSM)</option>';
+                                    } else {
+                                        echo '<option value="7">Area Sales Manager (ASM)</option>';
+                                    }
+                                ?>
                                 <option value="5">Sales Manager (SM)</option>
                             </select>
                         </div>
-
+                           
                         <div class="col-md-8">
                             <label for="employee" class="form-label">Employee</label>
                             <select id="employee" name="employee_id" class="form-control select2" required>

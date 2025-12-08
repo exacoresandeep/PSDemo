@@ -1109,7 +1109,8 @@ class RouteController extends Controller
     }
     public function assignedIndex()
     {
-        return view('sales.route.index');
+        $productId = ProductHelper::getSelectedProductId();
+        return view('sales.route.index',compact('productId'));
     }
 
     public function assignedList()
