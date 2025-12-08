@@ -178,8 +178,8 @@ class ActivityController extends Controller
                 ], 404);
             }
 
-        $questionInputs = ActivitiesQuestionDetail::where('activity_id', $activityId)
-            ->select('activity_question_labels_id', 'activity_input')
+        $questionInputs = ActivitiesQuestionDetail::with(["questionLabel"])->where('activity_id', $activityId)
+            // ->select('activity_question_labels_id', 'activity_input')
             ->get();
 	    //......................notification..............
 	    $authController = new AuthController();

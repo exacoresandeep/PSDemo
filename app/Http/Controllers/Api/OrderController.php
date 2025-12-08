@@ -336,73 +336,65 @@ class OrderController extends Controller
                 ], 401);
             }
             $searchKey = $request->input('search_key', '');
-            $product_id = $request->input('product_id', ''); //push
-            // dd($product_id);
-            $isDate = false; 
-            $parsedDate = null;
+            $product_id = $request->input('product_id', '');
 
-            if (preg_match('/^\d{2}\/\d{2}\/\d{4}$/', $searchKey)) {
-                try {
-                    $parsedDate = Carbon::createFromFormat('d/m/Y', $searchKey);
-                    $isDate = true;
-                } catch (\Exception $e) {
-                    $isDate = false;
-                }
-            }
-            $ordersQuery = Order::with([
-                'dealer:id,dealer_name as name'  
-            ])
-            ->where('created_by', $employeeId)
-            ->select('id', 'created_at', 'status', 'total_amount', 'dealer_id');
-            //push
+            // Split first
+            $searchParts = explode('|', $searchKey);
+
+            // Ensure indexes
+            $statusFilter = isset($searchParts[0]) ? $searchParts[0] : '';
+            $dateFilter   = isset($searchParts[1]) ? $searchParts[1] : '';
+
+            // Normalize text
+            $statusFilter = ucfirst(strtolower($statusFilter));
+            $dateFilter   = ucfirst(strtolower($dateFilter));
+
+            // -------------------- QUERY START --------------------
+
+            $ordersQuery = Order::with(['dealer:id,dealer_name as name'])
+                ->where('created_by', $employeeId)
+                ->select('id','created_at','status','total_amount','dealer_id');
+
+            // Apply product filter
             if (!empty($product_id)) {
                 $ordersQuery->where('product_id', $product_id);
             }
-            if ($isDate) {
-                $ordersQuery->whereDate('created_at', $parsedDate);
-            } else {
-           
-                $searchKey = strtolower($searchKey);
-               // dd($searchKey);
-                if (in_array($searchKey, ['all', 'pending', 'accepted', 'rejected'])) {
-                    if ($searchKey !== 'all') {
-                        $ordersQuery->where('status', ucfirst($searchKey));
-                    }
+
+            // Apply status filter
+            if (in_array($statusFilter, ['All','Pending','Accepted','Rejected'])) {
+                if ($statusFilter !== 'All') {
+                    $ordersQuery->where('status', $statusFilter);
                 }
-    
-                if (in_array($searchKey, ['today', 'weekly', 'monthly'])) {
-                    $startDate = null;
-                    $endDate = null;
-                    
-                    if ($searchKey == 'today') {
-                        $startDate = Carbon::today()->startOfDay();
-                        $endDate = Carbon::today()->endOfDay();
-                    } elseif ($searchKey == 'weekly') {
-                        $startDate = Carbon::now()->startOfWeek();
-                        $endDate = Carbon::now()->endOfWeek();
-                    } elseif ($searchKey == 'monthly') {
-                        $startDate = Carbon::now()->startOfMonth();
-                        $endDate = Carbon::now()->endOfMonth();
-                    }
-    
-                    if ($startDate && $endDate) {
-                        $ordersQuery->whereBetween('created_at', [$startDate, $endDate]);
-                    }
-                }
-                $today = Carbon::now();
-                if ($today->month >= 4) {
-                    // Financial year is from current year April to next year March
-                    $financialStartDate = Carbon::create($today->year, 4, 1);
-                    $financialEndDate = Carbon::create($today->year + 1, 3, 31)->endOfDay();
-                } else {
-                    // Financial year is from last year April to current year March
-                    $financialStartDate = Carbon::create($today->year - 1, 4, 1);
-                    $financialEndDate = Carbon::create($today->year, 3, 31)->endOfDay();
-                }
-    
-                $ordersQuery->whereBetween('created_at', [$financialStartDate, $financialEndDate]);
             }
-      
+
+            // Apply date filter
+            if (in_array($dateFilter, ['Today','Weekly','Monthly'])) {
+
+                if ($dateFilter == 'Today') {
+                    $start = Carbon::today()->startOfDay();
+                    $end   = Carbon::today()->endOfDay();
+                } elseif ($dateFilter == 'Weekly') {
+                    $start = Carbon::now()->startOfWeek();
+                    $end   = Carbon::now()->endOfWeek();
+                } else { // Monthly
+                    $start = Carbon::now()->startOfMonth();
+                    $end   = Carbon::now()->endOfMonth();
+                }
+
+                $ordersQuery->whereBetween('created_at', [$start, $end]);
+            }
+
+            // Apply financial year filter
+            $today = Carbon::now();
+            if ($today->month >= 4) {
+                $fyStart = Carbon::create($today->year, 4, 1);
+                $fyEnd   = Carbon::create($today->year + 1, 3, 31)->endOfDay();
+            } else {
+                $fyStart = Carbon::create($today->year - 1, 4, 1);
+                $fyEnd   = Carbon::create($today->year, 3, 31)->endOfDay();
+            }
+
+            $ordersQuery->whereBetween('created_at', [$fyStart, $fyEnd]);
 
            
             $orders = $ordersQuery->get()->map(function ($order) {
