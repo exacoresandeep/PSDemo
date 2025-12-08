@@ -106,6 +106,7 @@ class OrderController extends Controller
     
     public function store(Request $request)
     {
+       
         try {
             $employee = Auth::user();
             if (!$employee) {
@@ -138,6 +139,7 @@ class OrderController extends Controller
                 'driver_phone' => 'nullable|string',
                 'order_items' => 'required|array',
                 'order_items.*.product_id' => 'required|exists:products,id',
+                'order_items.*.total_quantity' => 'nullable',
                 'order_items.*.product_details' => 'nullable|array',
                 'attachment' => 'nullable|array',
                 'attachment.*' => 'nullable|string',
@@ -178,7 +180,6 @@ class OrderController extends Controller
       
             foreach ($validatedData['order_items'] as $orderItem) {
                 $totalQuantity = 0;
-
                 if (!empty($orderItem['product_details'])) {
                     foreach ($orderItem['product_details'] as $productDetail) {
                         
@@ -202,6 +203,7 @@ class OrderController extends Controller
                     $orderItem['product_details'] = null;
                 }
                 $totalQuantity = (float)($orderItem['total_quantity'] ?? 0);  
+                
                 $orderItem['total_quantity'] = round($totalQuantity, 6);
                 unset($orderItem['quantity_type']);
 
