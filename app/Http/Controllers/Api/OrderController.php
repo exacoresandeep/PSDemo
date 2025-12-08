@@ -290,7 +290,7 @@ class OrderController extends Controller
                         foreach ($item->product_details as $pd) {
                             $totalPieces += $pd['pieces'] ?? 0;
                     
-                            $totalTon += $pd['tonnage'] ?? 0;
+                            $totalTon += $pd['tonnage'] ? ($pd['tonnage']*$pd['pieces']): 0;
                         }
                     }
                     
@@ -336,8 +336,8 @@ class OrderController extends Controller
                 ], 401);
             }
             $searchKey = $request->input('search_key', '');
-            $product_id = $request->input('product_id', '');
-            dd($product_id);
+            $product_id = $request->input('product_id', ''); //push
+            // dd($product_id);
             $isDate = false; 
             $parsedDate = null;
 
@@ -354,7 +354,10 @@ class OrderController extends Controller
             ])
             ->where('created_by', $employeeId)
             ->select('id', 'created_at', 'status', 'total_amount', 'dealer_id');
-            
+            //push
+            if (!empty($product_id)) {
+                $ordersQuery->where('product_id', $product_id);
+            }
             if ($isDate) {
                 $ordersQuery->whereDate('created_at', $parsedDate);
             } else {
