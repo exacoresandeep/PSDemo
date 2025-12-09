@@ -12,6 +12,7 @@ use App\Models\Dealer;
 use App\Models\District;
 use App\Models\Regions;
 use App\Models\AssignRoute;
+use App\Helpers\ProductHelper;
 use App\Models\DealerRouteAssignment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -674,8 +675,10 @@ $user = Auth::user();
    
     public function getEmployeesByDistrictType($district_id, $employee_type_id)
     {
-        $query = Employee::select('id', 'name')->orderBy('name', 'asc');
-    
+
+        $productId = ProductHelper::getSelectedProductId(); //push
+        $query = Employee::whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])->select('id', 'name')->orderBy('name', 'asc');
+        //push
         if (in_array($employee_type_id, [1, 2, 3])) {
             $query->where('district_id', $district_id)
                   ->where('employee_type_id', $employee_type_id);
