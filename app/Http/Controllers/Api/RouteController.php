@@ -1355,7 +1355,9 @@ class RouteController extends Controller
 
     public function getEmployeesByType(Request $request)
     {
+        $productId = ProductHelper::getSelectedProductId(); //push
         return Employee::where('employee_type_id', $request->employee_type_id)
+            ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])//push
             ->select('id', 'name')
             ->get();
     }

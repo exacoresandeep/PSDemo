@@ -289,8 +289,9 @@ class OrderController extends Controller
                     if (isset($item->product_details) && is_array($item->product_details)) {
                         foreach ($item->product_details as $pd) {
                             $totalPieces += $pd['pieces'] ?? 0;
-                    
-                            $totalTon += $pd['tonnage'] ? ($pd['tonnage']*$pd['pieces']): 0;
+                            $tonnage = $pd['tonnage'] ?? 0;
+                            $pieces  = $pd['pieces'] ?? 0;
+                            $totalTon += $tonnage * $pieces;
                         }
                     }
                     
@@ -425,6 +426,7 @@ class OrderController extends Controller
 
     public function dealerOrderList(Request $request)
     {
+        dd("Awd");
         try {
             //push
             if ($request->hasAny(['search_key', 'product_id'])) {

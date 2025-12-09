@@ -368,9 +368,10 @@ class EmployeeController extends Controller
                 'employee_type_id' => 'required|integer|in:1,2,3,4',
                 'search_key' => 'nullable|string|max:255'
             ]);
-
+            $productId = ProductHelper::getSelectedProductId(); //push
             $employees = Employee::with('district:id,name')
                 ->where('employee_type_id', $request->employee_type_id)
+                 ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])//push
                 ->when($request->search_key, function ($query) use ($request) {
                     $query->where(function ($q) use ($request) {
                         $q->where('name', 'LIKE', '%' . $request->search_key . '%')
@@ -420,9 +421,10 @@ class EmployeeController extends Controller
     public function getEmployeesAjax(Request $request)
     {
         $search = $request->q ?? '';
-
+        $productId = ProductHelper::getSelectedProductId(); //push
         $employees = Employee::where('name', 'like', "%{$search}%")
             ->orderBy('name')
+            ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])//push
             ->get(['id', 'name']);
 
         return response()->json($employees);
