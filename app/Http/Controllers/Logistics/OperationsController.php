@@ -11,6 +11,7 @@ use App\Models\Dealer;
 use App\Models\Product;
 use App\Models\ProductType;
 use Illuminate\Http\Request;
+use App\Helpers\ProductHelper;
 use DB;
 use Yajra\DataTables\Facades\DataTables;
 use Maatwebsite\Excel\Facades\Excel;
@@ -23,27 +24,16 @@ class OperationsController extends Controller
     }
     public function orderList(Request $request)
     {
-        $selectedProductCode = session('selected_product_code');$products=[];
-        if ($selectedProductCode) {
-            $products = Product::where('product_code', $selectedProductCode)->first();
-        }else{
-            $user = auth()->user();
-            $productIds = $user->product_ids ?? [];
-
-            $products = Product::whereIn('id', $productIds)
-                ->select('id', 'product_name', 'product_code')
-                ->first();       
-        }
-        // dd($products );
-
+        $productID = ProductHelper::getSelectedProductId();
+        
 	    $statusFilter = $request->get('status');  
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');
         $vehicleStatus = $request->get('vehicle_status');       
 	    $search = $request->input('search.value');
         $orders = Order::with(['dealer', 'dealers', 'createdBy.employeeType', 'orderItems', 'sendForApprovalBy'])
-            ->whereHas('orderItems', function ($q) use ($products) {
-                $q->where('product_id', $products->id);
+            ->whereHas('orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
             })
             ->where(function ($query) {
         
@@ -96,32 +86,31 @@ class OperationsController extends Controller
 
          if (!empty($vehicleStatus)) {
             $orders->where('vehicle_status', $vehicleStatus);
-        }     
-	    if (!empty($search)) {
-            $orders->where(function ($query) use ($search) {
-                $query->where('id', 'like', "%{$search}%")
-                    ->orWhere('total_amount', 'like', "%{$search}%")
-                    ->orWhere('vehicle_status', 'like', "%{$search}%")
-                    ->orWhereHas('dealer', function ($q) use ($search) {
-                        $q->where('district', 'like', "%{$search}%")
-                            ->orWhere('district', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('dealers', function ($q) use ($search) {
-                        $q->where('dealer_name', 'like', "%{$search}%")
-                            ->orWhere('dealer_code', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('createdBy', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%")
-                            ->orWhere('employee_code', 'like', "%{$search}%")
-                            ->orWhereHas('employeeType', function ($tq) use ($search) {
-                                $tq->where('type_name', 'like', "%{$search}%");
-                            });
-                    });
-            });
-        }
-
+        }  
         // $orders->latest();
             return DataTables::of($orders)
+                ->filter(function ($query) use ($request) {
+                    if ($search = $request->get('search')['value'] ?? false) {
+
+                        $query->where(function ($q) use ($search) {
+                            $q->where('orders.id', 'LIKE', "%{$search}%")
+                            ->orWhere('orders.total_amount', 'LIKE', "%{$search}%")
+                            ->orWhere('orders.created_at', 'LIKE', "%{$search}%")
+                            ->orWhereHas('dealer', function ($d) use ($search) {
+                                $d->where('dealer_name', 'LIKE', "%{$search}%")
+                                    ->orWhere('dealer_code', 'LIKE', "%{$search}%");
+                            })
+                            ->orWhereHas('dealers', function ($d) use ($search) {
+                                $d->where('dealer_name', 'LIKE', "%{$search}%")
+                                    ->orWhere('dealer_code', 'LIKE', "%{$search}%");
+                            })
+                            ->orWhereHas('createdBy', function ($u) use ($search) {
+                                $u->where('name', 'LIKE', "%{$search}%")
+                                    ->orWhere('employee_code', 'LIKE', "%{$search}%");
+                            });
+                        });
+                    }
+                })
                 ->addIndexColumn()
                 ->addColumn('order_date', function ($order) {
                     return $order->created_at ? $order->created_at->format('d/m/Y h:i A') : '-';
@@ -238,26 +227,15 @@ class OperationsController extends Controller
     public function orderListNew(Request $request)
     {
        
-        $selectedProductCode = session('selected_product_code');$products=[];
-        if ($selectedProductCode) {
-            $products = Product::where('product_code', $selectedProductCode)->first();
-        }else{
-            $user = auth()->user();
-            $productIds = $user->product_ids ?? [];
-
-            $products = Product::whereIn('id', $productIds)
-                ->select('id', 'product_name', 'product_code')
-                ->first();       
-        }
-        // dd($products );
+        $productID = ProductHelper::getSelectedProductId();
 
 	    $statusFilter = $request->get('status');  
         $fromDate = $request->get('from_date');
         $toDate = $request->get('to_date');     
 	    $search = $request->input('search.value');
         $orders = Order::with(['dealer', 'dealers', 'createdBy.employeeType', 'orderItems'])
-             ->whereHas('orderItems', function ($q) use ($products) {
-                $q->where('product_id', $products->id);
+             ->whereHas('orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
             })
             ->where(function ($query) {
                 
@@ -322,31 +300,31 @@ class OperationsController extends Controller
             $orders->whereDate('created_at', '<=', $toDate);
         }
 
-	    if (!empty($search)) {
-            $orders->where(function ($query) use ($search) {
-                $query->where('id', 'like', "%{$search}%")
-                    ->orWhere('total_amount', 'like', "%{$search}%")
-                    ->orWhere('vehicle_status', 'like', "%{$search}%")
-                    ->orWhereHas('dealer', function ($q) use ($search) {
-                        $q->where('district', 'like', "%{$search}%")
-                            ->orWhere('district', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('dealers', function ($q) use ($search) {
-                        $q->where('dealer_name', 'like', "%{$search}%")
-                            ->orWhere('dealer_code', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('createdBy', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%")
-                            ->orWhere('employee_code', 'like', "%{$search}%")
-                            ->orWhereHas('employeeType', function ($tq) use ($search) {
-                                $tq->where('type_name', 'like', "%{$search}%");
-                            });
-                    });
-            });
-        }
-
+	    
         // $orders->latest();
             return DataTables::of($orders)
+                ->filter(function ($query) use ($request) {
+                    if ($search = $request->get('search')['value'] ?? false) {
+
+                        $query->where(function ($q) use ($search) {
+                            $q->where('orders.id', 'LIKE', "%{$search}%")
+                            ->orWhere('orders.total_amount', 'LIKE', "%{$search}%")
+                            ->orWhere('orders.created_at', 'LIKE', "%{$search}%")
+                            ->orWhereHas('dealer', function ($d) use ($search) {
+                                $d->where('dealer_name', 'LIKE', "%{$search}%")
+                                    ->orWhere('dealer_code', 'LIKE', "%{$search}%");
+                            })
+                            ->orWhereHas('dealers', function ($d) use ($search) {
+                                $d->where('dealer_name', 'LIKE', "%{$search}%")
+                                    ->orWhere('dealer_code', 'LIKE', "%{$search}%");
+                            })
+                            ->orWhereHas('createdBy', function ($u) use ($search) {
+                                $u->where('name', 'LIKE', "%{$search}%")
+                                    ->orWhere('employee_code', 'LIKE', "%{$search}%");
+                            });
+                        });
+                    }
+                })
                 ->addIndexColumn()
                 ->addColumn('order_date', function ($order) {
                     return $order->created_at ? $order->created_at->format('d/m/Y h:i A') : '-';

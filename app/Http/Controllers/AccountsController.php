@@ -299,12 +299,10 @@ class AccountsController extends Controller
 
         try {
             // Log payload for debugging
-        
-    
         $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
             ])->post('http://192.168.0.3:8081/api/SalesOrderDetails', $sapPayload);
-dd($sapPayload);
+
             $responseBody = trim($response->body(), "\" \n\r\t");
 
             if ($response->successful() && strtolower($responseBody) === 'success') {

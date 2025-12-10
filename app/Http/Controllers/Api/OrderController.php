@@ -339,65 +339,68 @@ class OrderController extends Controller
             $searchKey = $request->input('search_key', '');
             $product_id = $request->input('product_id', '');
 
-            // Split first
             $searchParts = explode('|', $searchKey);
-
-            // Ensure indexes
             $statusFilter = isset($searchParts[0]) ? $searchParts[0] : '';
             $dateFilter   = isset($searchParts[1]) ? $searchParts[1] : '';
-
-            // Normalize text
-            $statusFilter = ucfirst(strtolower($statusFilter));
-            $dateFilter   = ucfirst(strtolower($dateFilter));
-
-            // -------------------- QUERY START --------------------
-
+            
+            // $statusFilter = ucfirst(strtolower($statusFilter));
+            
             $ordersQuery = Order::with(['dealer:id,dealer_name as name'])
                 ->where('created_by', $employeeId)
                 ->select('id','created_at','status','total_amount','dealer_id');
-
-            // Apply product filter
+                
             if (!empty($product_id)) {
                 $ordersQuery->where('product_id', $product_id);
             }
-
-            // Apply status filter
-            if (in_array($statusFilter, ['All','Pending','Accepted','Rejected'])) {
-                if ($statusFilter !== 'All') {
+            
+            if (in_array($statusFilter, ['All','Pending','Accepted','Rejected','Accounts Approved','Accounts Rejected'])) {
+                if ($statusFilter != 'All') {
                     $ordersQuery->where('status', $statusFilter);
                 }
             }
-
-            // Apply date filter
-            if (in_array($dateFilter, ['Today','Weekly','Monthly'])) {
-
+            
+            if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $dateFilter)) {
+                try {
+                    $parsedDate = Carbon::createFromFormat('d-m-Y', $dateFilter);
+                    $start = (clone $parsedDate)->startOfDay(); 
+                    $end   = (clone $parsedDate)->endOfDay();
+                    $ordersQuery->whereBetween('created_at', [$start, $end]);
+                } catch (\Exception $e) {
+                }
+            }
+            elseif (in_array($dateFilter, ['Today','Weekly','Monthly', 'By financial year'])) {
+                $dateFilter   = ucfirst(strtolower($dateFilter));
                 if ($dateFilter == 'Today') {
                     $start = Carbon::today()->startOfDay();
                     $end   = Carbon::today()->endOfDay();
+                    $ordersQuery->whereBetween('created_at', [$start, $end]);
+
                 } elseif ($dateFilter == 'Weekly') {
                     $start = Carbon::now()->startOfWeek();
                     $end   = Carbon::now()->endOfWeek();
-                } else { // Monthly
+                    $ordersQuery->whereBetween('created_at', [$start, $end]);
+
+                } elseif ($dateFilter == 'Monthly') {
                     $start = Carbon::now()->startOfMonth();
                     $end   = Carbon::now()->endOfMonth();
+                    $ordersQuery->whereBetween('created_at', [$start, $end]);
+
+                } elseif ($dateFilter == 'By financial year') {
+                    $today = Carbon::now();
+                    if ($today->month >= 4) {
+                        $fyStart = Carbon::create($today->year, 4, 1)->startOfDay();
+                        $fyEnd   = Carbon::create($today->year + 1, 3, 31)->endOfDay();
+                    } else {
+                        $fyStart = Carbon::create($today->year - 1, 4, 1)->startOfDay();
+                        $fyEnd   = Carbon::create($today->year, 3, 31)->endOfDay();
+                    }
+
+                    $ordersQuery->whereBetween('created_at', [$fyStart, $fyEnd]);
+                }else{
                 }
-
-                $ordersQuery->whereBetween('created_at', [$start, $end]);
             }
+            // dd($ordersQuery->toRawSql());
 
-            // Apply financial year filter
-            $today = Carbon::now();
-            if ($today->month >= 4) {
-                $fyStart = Carbon::create($today->year, 4, 1);
-                $fyEnd   = Carbon::create($today->year + 1, 3, 31)->endOfDay();
-            } else {
-                $fyStart = Carbon::create($today->year - 1, 4, 1);
-                $fyEnd   = Carbon::create($today->year, 3, 31)->endOfDay();
-            }
-
-            $ordersQuery->whereBetween('created_at', [$fyStart, $fyEnd]);
-
-           
             $orders = $ordersQuery->get()->map(function ($order) {
                 return [
                     'id' => $order->id,
@@ -426,7 +429,6 @@ class OrderController extends Controller
 
     public function dealerOrderList(Request $request)
     {
-        dd("Awd");
         try {
             //push
             if ($request->hasAny(['search_key', 'product_id'])) {
