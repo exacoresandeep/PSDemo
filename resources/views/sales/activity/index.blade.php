@@ -234,6 +234,7 @@
                     }).modal('show');
 
                 } else if (action === 'view') {
+            // console.log(response);
 
                     $('#view_activity_type').text(response.activity.activity_type && response.activity.activity_type.name ? response.activity.activity_type.name : '-');
                     $('#view_dealer').text(response.activity.dealer ? response.activity.dealer.dealer_name + ' (' + response.activity.dealer.dealer_code + ')' : '-');
@@ -374,7 +375,7 @@
                     success: function (response) {
                         $('#dealer_id').html('<option value="">-Select Dealer-</option>');
                         $.each(response, function (key, dealer) {
-                            $('#dealer_id').append(`<option value="${dealer.dealer_id}">${dealer.dealer_name}</option>`);
+                            $('#dealer_id').append(`<option value="${dealer.id}">${dealer.dealer_name}</option>`);
                         });
                     }
                 });

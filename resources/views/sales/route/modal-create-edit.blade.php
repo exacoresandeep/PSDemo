@@ -1,5 +1,5 @@
 <div class="modal fade" id="createEditAssignRouteModal" tabindex="-1" aria-labelledby="createEditAssignedRouteModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl" style="--bs-modal-width: 90%;font-size: 10px;">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Create Assigned Route</h5>
@@ -48,7 +48,7 @@
 
                     @foreach(range(1, 6) as $i)
                         <div class="row mt-2 route-row">
-                            <div class="col-md-3">
+                            <div class="col-md-1">
                                 <select name="routes[{{ $i }}][route_name]" class="form-control route-select" required>
                                     <option value="">Select Route</option>
                                     <option value="R1">R1</option>
@@ -60,11 +60,11 @@
                                 </select>
                             </div>
 
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <select class="form-control select2-multi location-select" name="routes[{{ $i }}][locations][]" multiple="multiple" required></select>
                             </div>
 
-                            <div class="col-md-5">
+                            <div class="col-md-8">
                                 <select class="form-control select2-multi dealer-select" name="routes[{{ $i }}][dealers][]" multiple="multiple"></select>
                             </div>
                         </div>
