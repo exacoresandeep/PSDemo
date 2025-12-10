@@ -44,6 +44,9 @@ class ActivityController extends Controller
                 ->get();
             // dd($activities);
             $activitiesData = $activities->map(function ($activity) {
+                $activity->assigned_date =\Carbon\Carbon::parse($activity->assigned_date)->format('d/m/Y');
+                $activity->completed_date = \Carbon\Carbon::parse($activity->completed_date)->format('d/m/Y');
+                
                 return [
                     'id' => $activity->id,
                     'assigned_date' => $activity->assigned_date,
@@ -628,6 +631,9 @@ $user = Auth::user();
         if (!$activity) {
             return response()->json(['error' => 'Activity not found'], 404);
         }
+        $activity->assigned_date =\Carbon\Carbon::parse($activity->assigned_date)->format('d/m/Y');
+                $activity->completed_date = \Carbon\Carbon::parse($activity->completed_date)->format('d/m/Y');
+                
     
         return response()->json(['activity' => $activity]);
     }
