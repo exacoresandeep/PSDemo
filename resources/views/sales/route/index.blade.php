@@ -23,7 +23,7 @@
     </div>
 </div>
 
-@include('sales.route.modal-create-edit')
+@include('sales.route.modal-create-edit', ['productId' => $productId])
 
 @endsection
 

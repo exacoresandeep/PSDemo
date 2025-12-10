@@ -20,7 +20,7 @@ use Carbon\Carbon;
 
 class LeadController extends Controller
 {
-//
+
     public function index(Request $request)
     {
         try {
@@ -408,8 +408,13 @@ class LeadController extends Controller
                 return $relatedLead->orders->flatMap(function ($order) {
                     return $order->orderItems;
                 });
+<<<<<<< HEAD
 		    })->sum('total_quantity'); 
 
+=======
+		        })->sum('total_quantity'); 
+               
+>>>>>>> 55a3e89b34076384cc416b6f500841e4295e3a43
             $lostVolume = $relatedLeads->sum(function ($relatedLead) {
                     return $relatedLead->lost_volume ?? 0;
             });
@@ -537,7 +542,36 @@ class LeadController extends Controller
                                 ];
                             })->values(),
 
+<<<<<<< HEAD
                         ];
+=======
+                            if (is_array($details)) {
+                                foreach ($details as $d) {
+                                    $pieces = isset($d['pieces']) ? (float) $d['pieces'] : 0;
+                                    $tonnage = isset($d['tonnage']) ? (float) $d['tonnage'] : 0;
+
+                                    $totalPieces += $pieces;
+                                    $totalTon += ($pieces * $tonnage); 
+                                }
+                            }
+                        
+                            return [
+                                'id' => $item->id,
+                                'product_id' => $item->product_id,
+                                'product_name' => $item->product ? $item->product->product_name : null,
+                                'product_code' => $item->product ? $item->product->product_code : null,
+                                'total_quantity' => $item->total_quantity,
+                                'balance_quantity' => (float) $item->balance_quantity,
+                                'product_details' => $details,
+                                'total_pieces' => $totalPieces,
+                                'total_ton' => $totalTon,
+                            ];
+                        })->values(),
+                    ];
+                })->values(),
+
+            ];
+>>>>>>> 55a3e89b34076384cc416b6f500841e4295e3a43
 
             return response()->json([
                 'success' => true,
@@ -554,7 +588,7 @@ class LeadController extends Controller
         }
     }
 
-    public function searchLead(Request $request)
+    public function searchLeadOld(Request $request)
     {
       
         try {
@@ -632,6 +666,7 @@ class LeadController extends Controller
         }
     }
 
+<<<<<<< HEAD
     // public function updateLead(Request $request, $leadId)
     // {
     //     try {
@@ -1219,6 +1254,9 @@ class LeadController extends Controller
     //     }
     // }
     public function updateLead(Request $request, $leadId)
+=======
+    public function updateLeadOld(Request $request, $leadId)
+>>>>>>> 55a3e89b34076384cc416b6f500841e4295e3a43
     {
         try {
     
@@ -1651,6 +1689,10 @@ class LeadController extends Controller
             
                         'created_by'        => Auth::id(),
                     ]);
+
+
+
+                   
                 }
             }
 
@@ -1674,6 +1716,521 @@ class LeadController extends Controller
                 'errors' => $e->errors(),
             ], 422);
     
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+   public function show($leadId)
+    {
+        try {
+            $employee = Auth::user();
+            $allowedEmployeeTypes = [];
+
+            switch ($employee->employee_type_id) {
+                case 1: 
+                    $allowedEmployeeTypes = [1]; 
+                    break;
+                case 2: 
+                    $allowedEmployeeTypes = [2]; 
+                    break;
+                case 3: 
+                    $allowedEmployeeTypes = [1,2, 3]; 
+                    break;
+                case 4: 
+                    $allowedEmployeeTypes = [1, 2, 3, 4]; 
+                    break;
+                case 5:
+                    $allowedEmployeeTypes = [1, 2, 3, 4, 5]; 
+                    break;
+                default:
+                    return response()->json([
+                        'success' => false,
+                        'statusCode' => 403,
+                        'message' => "Unauthorized access.",
+                    ], 403);
+            }
+
+            $lead = Lead::with(['customerType', 'district', 'assignRoute', 'dealer', 'orders.orderItems.product', 'orders.paymentTerm', 'orders.dealer', 'followUps'])
+                ->whereHas('createdBy', function ($query) use ($allowedEmployeeTypes) {
+                    $query->whereIn('employee_type_id', $allowedEmployeeTypes);
+                })
+                ->findOrFail($leadId);
+               
+            if (!$lead) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => 'Lead not found!',
+                ], 404);
+            }
+
+            $leadWonOrders = $lead->orders->where('source', 'lead_won');
+	
+            $relatedLeads = Lead::with('orders.orderItems')
+                ->where('lead_chain_id', $lead->lead_chain_id)
+                ->get();
+            $wonVolume = $relatedLeads->flatMap(function ($relatedLead) {
+                return $relatedLead->orders->flatMap(function ($order) {
+                    return $order->orderItems;
+                });
+		    })->sum('total_quantity'); 
+
+            $lostVolume = $relatedLeads->sum(function ($relatedLead) {
+                    return $relatedLead->lost_volume ?? 0;
+            });
+            //dd($wonVolume);
+            if ((float) $lead->total_quantity === 0.0) {
+                $wonVolume = 0;
+                $lostVolume = 0;
+            }
+            $paymentTerms = $leadWonOrders
+                ->pluck('paymentTerm')
+                ->unique('id')
+                ->filter()
+                ->map(function ($paymentTerm) {
+                    return [
+                        'id' => $paymentTerm->id,
+                        'name' => $paymentTerm->name,
+                    ];
+                })
+                ->values();
+            $paymentTerms = $paymentTerms->count() === 1 ? $paymentTerms->first() : ($paymentTerms->isEmpty() ? null : $paymentTerms);
+            
+            $dealers = $leadWonOrders
+                ->pluck('dealer')
+                ->unique('id')
+                ->filter()
+                ->map(function ($dealer) {
+                    return [
+                        'id' => $dealer->id,
+                        'name' => $dealer->dealer_name,
+                    ];
+                })
+                ->values();
+            $dealers = $dealers->count() === 1 ? $dealers->first() : ($dealers->isEmpty() ? null : $dealers);
+            $latestOrder = $leadWonOrders->last();
+            $attachments = [
+                'attachment' => $latestOrder && $latestOrder->attachment ? $latestOrder->attachment : null,
+            ];
+            $leadData = [
+                'id' => $lead->id,
+                'customer_type' => $lead->customerType ? [
+                    'id' => $lead->customerType->id,
+                    'name' => $lead->customerType->name,
+                ] : null,
+                'customer_name' => $lead->customer_name,
+                'city' => $lead->city,
+                'location' => $lead->location,
+                'phone' => $lead->phone,
+                'address' => $lead->address,
+                'district' => $lead->district ? [
+                    'id' => $lead->district->id,
+                    'name' => $lead->district->name,
+                ] : null,
+                'trip_route' => $lead->assignRoute ? [
+                    'id' => $lead->assignRoute->id,
+                    'route_name' => $lead->assignRoute->route_name,
+                    'location_name' => $lead->assignRoute->location_name,
+                ] : null,
+                'type_of_visit' => $lead->type_of_visit,
+                'construction_type' => $lead->construction_type,
+                'construction_type_name' => $lead->construction_type_name,
+                'stage_of_construction' => $lead->stage_of_construction,
+                'follow_up_date' => $lead->follow_up_date,
+                'lead_score' => $lead->lead_score,
+                'lead_source' => $lead->lead_source,
+                'source_name' => $lead->source_name,
+                'total_volume' => (float) $lead->total_volume,
+                'total_quantity' => (float) $lead->total_quantity,
+		        'current_deal_volume' => (float) $lead->current_deal_volume,
+                'won_volume' => (float) $wonVolume,
+                'lost_v' => (float) $lostVolume,
+                'total_deal_volume' => (float) $wonVolume + $lostVolume + $lead->current_deal_volume,
+                'volume' => (float) $lead->previous_quantity,
+                'previous_brand' => $lead->previous_brand,
+                'brand_name' => $lead->brand_name,
+                'previous_brand_quantity' => (float) $lead->previous_brand_quantity,
+                'customer_meet' => $lead->customer_meet,
+                'ring_test' => $lead->ring_test,
+                'further_requirement' => $lead->further_requirement,
+                'further_volume' => (float) $lead->further_volume,
+                'lost_volume' => (float) $lead->lost_volume,
+                'lost_to_competitor' => $lead->lost_to_competitor,
+                'reason_for_lost' => $lead->reason_for_lost,
+                'status' => $lead->status,
+                'dealer' => $lead->dealer ? [
+                    'id' => $lead->dealer->id,
+                    'name' => $lead->dealer->dealer_name,
+                ] : null,
+                'created_by' => $lead->created_by,
+                'created_at' => $lead->created_at->format('d/M/Y'),
+		        'updated_at' => $lead->updated_at,
+                'follow_ups' => $lead->followUps->map(function ($followUp) {
+                    return [
+                        'id' => $followUp->id,
+                        'follow_up_date' => $followUp->follow_up_date,
+                        'follow_up_reason' => $followUp->reason,
+                        
+                    ];
+                })->values(),
+                
+                'payment_terms' => $paymentTerms,
+                'dealers' => $dealers,
+                'attachment' => $attachments['attachment'],
+                'orders' => $leadWonOrders->map(function ($order) {
+                    return [
+                        'id' => $order->id,
+                        'total_amount' => $order->total_amount,
+                        'status' => $order->status,
+                        'billing_date' => $order->billing_date,
+                        'credit_days'  => $order->credit_days,    
+                        'order_items' => $order->orderItems->map(function ($item) {
+                                        return [
+                                            'id' => $item->id,
+                                            'product_id' => $item->product_id,
+                                            'product_name' => $item->product ? $item->product->product_name : null,
+                                            'total_quantity' => $item->total_quantity,
+                                            'balance_quantity' => (float) $item->balance_quantity,
+                                            'product_details' => $item->product_details,
+                                        ];
+                                    })->values(),
+                                ];
+                            })->values(),
+
+                        ];
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Lead retrieved successfully!',
+                'data' => $leadData,
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+    public function searchLead(Request $request)
+    {
+      
+        try {
+            $user = Auth::user();
+    
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => 'Unauthorized access.',
+                ], 401);
+            }
+    
+            $query = Lead::with(['customerType', 'district', 'tripRoute'])
+                        ->where('created_by', $user->id);
+                        
+            if ($request->has('status')) {
+                $status = $request->input('status');
+
+                if (is_string($status)) {
+                    $status = explode(',', $status);
+                }
+    
+                $query->whereIn('status', $status);
+            }
+    
+            if ($request->has('customer_name')) {
+                $query->where('customer_name', 'like', '%' . $request->input('customer_name') . '%');
+            }
+    
+            $leads = $query->orderBy('customer_name', 'asc')->get();
+    
+            if ($leads->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'No leads found.',
+                    'data' => [],
+                ], 200);
+            }
+    
+            $formattedLeads = $leads->map(function ($lead) {
+                return[
+                    'id' => $lead->id,
+                    'status' => $lead->status,
+                    'customer_name' => $lead->customer_name,
+                    'customer_type' => $lead->customerType ? [
+                        'id' => $lead->customerType->id,
+                        'name' => $lead->customerType->name,
+                    ] : null,
+                    'district' => $lead->district ? [
+                        'id' => $lead->district->id,
+                        'name' => $lead->district->name,
+                    ] : null,
+                    'route_name' => $lead->tripRoute->route_name ?? null,
+                    'location' => $lead->location,
+                    'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+		            'updated_at' => $lead->updated_at,
+                ];
+            });
+    
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Filtered leads retrieved successfully!',
+                'data' => $formattedLeads,
+            ], 200);
+    
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+    public function updateLead(Request $request, $leadId)
+    {
+        try {
+            $validatedData = $request->validate([
+                'type_of_visit' => 'required|string',
+                'construction_type' => 'required|string',
+                'construction_type_name' => 'nullable|string',
+                'stage_of_construction' => 'required|string',
+                'follow_up_date' => 'nullable|date',
+                'follow_up_reason' => 'nullable|string',
+                'lead_score' => 'required|string',
+                'lead_source' => 'required|string',
+                'source_name' => 'nullable|string',
+                'total_volume' => 'required|numeric',
+                'total_quantity' => 'required|numeric',
+                'status' => 'required|in:Opened,Follow Up,Won,Lost',
+                'dealer_id' => 'nullable|numeric',
+    
+                // Lost details
+                'lost_details.lost_volume' => 'required_if:status,Lost|nullable|numeric',
+                'lost_details.lost_to_competitor' => 'required_if:status,Lost|nullable|string',
+                'lost_details.reason_for_lost' => 'required_if:status,Lost|nullable|string',
+                'previous_brand' => 'required_if:status,Lost|nullable|string',
+		        'brand_name' => 'nullable|string',
+                'previous_brand_quantity' => 'required_if:status,Lost|nullable|numeric',
+                'customer_meet' => 'required_if:status,Lost|nullable|in:Yes,No',
+                'ring_test' => 'required_if:status,Lost|nullable|in:Yes,No',
+                'further_requirement' => 'required_if:status,Lost|nullable|in:Yes,No',
+                'further_volume' => 'required_if:status,Lost|nullable|numeric',
+    
+                // Won order details
+                'order_details.customer_type_id' => 'required_if:status,Won|nullable|exists:customer_types,id',
+                'order_details.dealer_id' => 'nullable|exists:dealers,id',
+                'order_details.dealer_flag_order' => 'nullable|numeric',
+                'order_details.payment_terms_id' => 'required_if:status,Won|nullable|exists:payment_terms,id',
+                'order_details.total_amount' => 'required_if:status,Won|nullable|numeric',
+                'order_details.order_items' => 'required_if:status,Won|nullable|array',
+                'order_details.order_items.*.product_id' => 'required_with:order_details.order_items|exists:products,id',
+                'order_details.order_items.*.total_quantity' => 'required_with:order_details.order_items|numeric',
+                'order_details.order_items.*.balance_quantity' => 'required_with:order_details.order_items|numeric',
+                'order_details.order_items.*.product_details' => 'nullable|array',
+		        'order_details.attachment' => 'nullable|array',
+                'order_details.attachment.*' => 'nullable|string',   
+	    ]);
+    
+            $lead = Lead::where('id', $leadId)
+                ->where('created_by', Auth::id())
+                ->firstOrFail();
+	   	if (!$lead->lead_chain_id) {
+ 		   $lead->update(['lead_chain_id' => (string) Str::uuid()]);
+		} 
+            DB::beginTransaction();
+    
+            $notification_status = $request->status === 'Follow Up' ? 'approved' : 'pending';
+    
+            // Insert follow up details
+            if ($request->status === 'Follow Up') {
+                LeadFollowUp::create([
+                    'lead_id' => $lead->id,
+                    'follow_up_date' => $request->follow_up_date,
+                    'reason' => $request->follow_up_reason,
+                    'created_by' => Auth::id(),
+		]);
+		$lead->update([
+                    'follow_up_date' => $request->follow_up_date,
+                ]);
+            }
+   	        $leadData = [
+                'type_of_visit' => $request->type_of_visit,
+                'construction_type' => $request->construction_type,
+                'construction_type_name' => $request->construction_type_name,
+                'stage_of_construction' => $request->stage_of_construction,
+                'follow_up_date' => $request->follow_up_date,
+                'lead_score' => $request->lead_score,
+                'lead_source' => $request->lead_source,
+                'source_name' => $request->source_name,
+                'total_quantity' => $request->total_quantity,
+                'status' => $request->status,
+                'notification_status' => $notification_status,
+            ];
+            
+           
+            if (!empty($request->dealer_id)) {
+                $leadData['dealer_id'] = $request->dealer_id;
+            }
+            
+            $lead->update($leadData);
+    
+            $order = null;
+    
+            // Handle WON lead - create order
+            if ($request->status === 'Won' && !empty($request->order_details)) {
+                $orderDetails = $request->order_details;
+    
+                $order = Order::create([
+                    'customer_type_id' => $orderDetails['customer_type_id'],
+                    'lead_id' => $lead->id,
+                    'dealer_id' => $orderDetails['dealer_id'] ?? null,
+                    'dealer_flag_order' => $orderDetails['dealer_flag_order'] ?? 0,
+                    'payment_terms_id' => $orderDetails['payment_terms_id'],
+                    'credit_days' => $orderDetails['credit_days'] ?? null,
+                    'total_amount' => (float)$orderDetails['total_amount'],
+                    'billing_date' => now()->format('Y-m-d'),
+                    'status' => 'Pending',
+                    'source' => 'lead_won',
+                    'created_by' => Auth::id(),
+                    'attachment' => $orderDetails['attachment'] ?? $request->attachment ?? [],
+                ]);
+    
+                if (!empty($orderDetails['order_items'])) {
+                    $orderItems = array_map(function ($item) use ($order) {
+                        return [
+                            'order_id' => $order->id,
+                            'product_id' => $item['product_id'],
+                            'total_quantity' => $item['total_quantity'],
+                            'balance_quantity' => $item['balance_quantity'],
+                            'product_details' => json_encode($item['product_details']),
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }, $orderDetails['order_items']);
+    
+                    OrderItem::insert($orderItems);
+                    foreach ($orderDetails['order_items'] as $item) {
+			    if ($item['balance_quantity'] > 0) {
+				    //dd($item);
+
+				    $totalQuantity = $item['total_quantity'];       // e.g., 50
+				    $balanceQuantity = $item['balance_quantity'];
+				    $sum = $totalQuantity + $balanceQuantity;
+				    //dd($sum);
+                            Lead::create([
+                                'customer_type' => $lead->customer_type,
+                                'customer_name' => $lead->customer_name,
+                                'city' => $lead->city,
+                                'location' => $lead->location,
+                                'phone' => $lead->phone,
+                                'address' => $lead->address,
+                                'district_id' => $lead->district_id,
+                                'assigned_route_id' => $lead->assigned_route_id,
+                                'type_of_visit' => $request->type_of_visit,
+                                'construction_type' => $request->construction_type,
+                                'construction_type_name' => $request->construction_type_name,
+                                'stage_of_construction' => $request->stage_of_construction,
+                                'follow_up_date' => $request->follow_up_date,
+                                'lead_score' => $request->lead_score,
+                                'lead_source' => $request->lead_source,
+                                'source_name' => $request->source_name,
+                                'total_volume' => $request->total_volume,
+                                'total_quantity' => $lead->total_quantity,
+                                //'total_quantity' => $lead->total_quantity,
+                                'previous_quantity' => $item['total_quantity'],
+                                'current_deal_volume' => $item['balance_quantity'],
+                                'status' => 'Follow Up',
+                                'lead_chain_id' => $lead->lead_chain_id,
+                                'notification_status' => 'approved',
+                                'created_by' => Auth::id(),
+                            ]);
+                        }
+                    }
+                }
+            }
+    
+            // Handle LOST lead
+            if ($request->status === 'Lost' && !empty($request->lost_details)) {
+                $lead->update([
+                    'lost_volume' => $request->lost_details['lost_volume'],
+                    'lost_to_competitor' => $request->lost_details['lost_to_competitor'],
+                    'competitor_name' => $request->lost_details['competitor_name'],
+                    'reason_for_lost' => $request->lost_details['reason_for_lost'],
+                    'previous_brand' => $request->previous_brand ?? null,
+                    'brand_name' => $request->brand_name ?? null,
+                    'previous_brand_quantity' => $request->previous_brand_quantity ?? null,
+                    'customer_meet' => $request->customer_meet ?? null,
+                    'ring_test' => $request->ring_test ?? null,
+                    'further_requirement' => $request->further_requirement ?? null,
+                    'further_volume' => is_numeric($request->further_volume) ? $request->further_volume : null,
+                ]);
+                 if (!empty($request->lost_details['lost_volume']) && $request->lost_details['lost_volume'] > 0) {
+                    Lead::create([
+                        'customer_type' => $lead->customer_type,
+                        'customer_name' => $lead->customer_name,
+                        'city' => $lead->city,
+                        'location' => $lead->location,
+                        'phone' => $lead->phone,
+                        'address' => $lead->address,
+                        'district_id' => $lead->district_id,
+                        'assigned_route_id' => $lead->assigned_route_id,
+                        'type_of_visit' => $request->type_of_visit,
+                        'construction_type' => $request->construction_type,
+                        'construction_type_name' => $request->construction_type_name,
+                        'stage_of_construction' => $request->stage_of_construction,
+                        'follow_up_date' => $request->follow_up_date,
+                        'lead_score' => $request->lead_score,
+                        'lead_source' => $request->lead_source,
+                        'source_name' => $request->source_name,
+                        'total_volume' => $request->total_volume,
+                        'total_quantity' => $request->lost_details['lost_volume'],
+                        //'total_quantity' => $lead->total_quantity,
+                        'previous_quantity' => $lead->total_quantity,
+                        'current_deal_volume' => $request->lost_details['lost_volume'],
+                        'previous_brand' => $request->previous_brand,
+                        'brand_name' => $request->brand_name,
+                        'previous_brand_quantity' => $request->previous_brand_quantity,
+                        'customer_meet' => $request->customer_meet,
+                        'ring_test' => $request->ring_test,
+                        'further_requirement' => $request->further_requirement,
+                        'further_volume' => $request->further_volume,
+                        'status' => 'Follow Up',
+                        'lead_chain_id' => $lead->lead_chain_id,
+                        'notification_status' => 'approved',
+                        'created_by' => Auth::id(),
+                    ]);
+                }
+            }
+    
+            DB::commit();
+    
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Lead updated successfully!',
+                'data' => $lead,
+                'order_details' => $order,
+            ], 200);
+    
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 422,
+                'message' => 'Validation error',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -2538,7 +3095,7 @@ class LeadController extends Controller
                 $status = $lead->status === 'Follow Up' ? 'Follow Up' : 'Opened';
     
                 return [
-                    'id' => $lead->id,
+                    'lead_id' => $lead->id, //push
                     'customer_type' => [
                         'id' => $lead->customerType->id ?? null,
                         'name' => $lead->customerType->name ?? null,
@@ -2629,7 +3186,7 @@ class LeadController extends Controller
 
         $formattedLeads = $leads->map(function ($lead) {
             return [
-                'id' => $lead->id,
+                'lead_id' => $lead->id, //push
                 'customer_type' => [
                     'id' => $lead->customerType->id ?? null,
                     'name' => $lead->customerType->name ?? null,

@@ -12,6 +12,7 @@ use App\Models\Dealer;
 use App\Models\District;
 use App\Models\Regions;
 use App\Models\AssignRoute;
+use App\Helpers\ProductHelper;
 use App\Models\DealerRouteAssignment;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -43,6 +44,9 @@ class ActivityController extends Controller
                 ->get();
             // dd($activities);
             $activitiesData = $activities->map(function ($activity) {
+                $activity->assigned_date =\Carbon\Carbon::parse($activity->assigned_date)->format('d/m/Y');
+                $activity->completed_date = \Carbon\Carbon::parse($activity->completed_date)->format('d/m/Y');
+                
                 return [
                     'id' => $activity->id,
                     'assigned_date' => $activity->assigned_date,
@@ -178,8 +182,8 @@ class ActivityController extends Controller
                 ], 404);
             }
 
-        $questionInputs = ActivitiesQuestionDetail::where('activity_id', $activityId)
-            ->select('activity_question_labels_id', 'activity_input')
+        $questionInputs = ActivitiesQuestionDetail::with(["questionLabel"])->where('activity_id', $activityId)
+            // ->select('activity_question_labels_id', 'activity_input')
             ->get();
 	    //......................notification..............
 	    $authController = new AuthController();
@@ -627,6 +631,9 @@ $user = Auth::user();
         if (!$activity) {
             return response()->json(['error' => 'Activity not found'], 404);
         }
+        $activity->assigned_date =\Carbon\Carbon::parse($activity->assigned_date)->format('d/m/Y');
+                $activity->completed_date = \Carbon\Carbon::parse($activity->completed_date)->format('d/m/Y');
+                
     
         return response()->json(['activity' => $activity]);
     }
@@ -674,8 +681,10 @@ $user = Auth::user();
    
     public function getEmployeesByDistrictType($district_id, $employee_type_id)
     {
-        $query = Employee::select('id', 'name')->orderBy('name', 'asc');
-    
+
+        $productId = ProductHelper::getSelectedProductId(); //push
+        $query = Employee::whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])->select('id', 'name')->orderBy('name', 'asc');
+        //push
         if (in_array($employee_type_id, [1, 2, 3])) {
             $query->where('district_id', $district_id)
                   ->where('employee_type_id', $employee_type_id);

@@ -16,7 +16,6 @@ protected $sapApiUrl;
     {
         try {
 		$response = Http::timeout(60)->post("{$this->sapApiUrl}/api/SalesOrderDetails", $orderData);
-
             if ($response->successful()) {
                 return [
                     'success' => true,

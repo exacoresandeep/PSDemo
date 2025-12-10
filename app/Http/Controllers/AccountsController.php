@@ -14,6 +14,7 @@ use App\Models\Price;
 use App\Models\OutstandingPayment;
 use App\Models\OutstandingNew;
 use App\Models\DealerRouteAssignment;
+use App\Helpers\ProductHelper;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -32,18 +33,7 @@ class AccountsController extends Controller
     
     public function orderList(Request $request)
     {
-        $selectedProductCode = session('selected_product_code');$products=[];
-        if ($selectedProductCode) {
-            $products = Product::where('product_code', $selectedProductCode)->first();
-        }else{
-            $user = auth()->user();
-            $productIds = $user->product_ids ?? [];
-
-            $products = Product::whereIn('id', $productIds)
-                ->select('id', 'product_name', 'product_code')
-                ->first();       
-        }
-        $productID=$products->id;
+        $productID = ProductHelper::getSelectedProductId();
         $statusFilter = $request->get('status');       
 
         $orders = Order::with(['orderItems','dealer', 'dealers', 'createdBy.employeeType', 'sendForApprovalBy'])
@@ -166,11 +156,17 @@ class AccountsController extends Controller
             })
             ->addColumn('amount', fn($order) => (float) ($order->total_amount))
             ->addColumn('status', function ($order) {
-                return match ($order->order_approved) {
-                    1 => '<span class="badge bg-success">Approved</span>',
-                    2 => '<span class="badge bg-danger">Rejected</span>',
-                    default => '<span class="badge bg-warning">Pending</span>'
-                };
+                // return match ($order->order_approved) {
+                //     1 => '<span class="badge bg-success">Approved</span>',
+                //     2 => '<span class="badge bg-danger">Rejected</span>',
+                //     default => '<span class="badge bg-warning">Pending</span>'
+                // };
+                if ($order->order_approved == 1) {
+                    return '<span class="badge bg-success">Approved</span>';
+                } elseif ($order->order_approved == 2) {
+                    return '<span class="badge bg-danger">Rejected</span>';
+                }
+                return '<span class="badge bg-warning">Pending</span>';
             })
             ->addColumn('action', fn($order) =>
                 '<button class="btn btn-info btn-sm view-order" data-id="' . $order->id . '" title="View">
@@ -303,8 +299,6 @@ class AccountsController extends Controller
 
         try {
             // Log payload for debugging
-        
-    
         $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
             ])->post('http://192.168.0.3:8081/api/SalesOrderDetails', $sapPayload);
