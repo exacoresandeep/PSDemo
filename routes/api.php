@@ -215,6 +215,7 @@ use App\Http\Controllers\ExpenseController;
             });
             Route::get('lost-to-competitor', [AuthController::class, 'getLostToCompetitor']);
             Route::get('customer-types', [AuthController::class, 'getCustomerTypes']);
+            Route::get('dealer-visit-customer-types', [AuthController::class, 'getDealerVisitCustomerTypes']);
             Route::get('order-types', [AuthController::class, 'getOrderTypes']);
             Route::get('dealers', [AuthController::class, 'getDealers']);
             Route::get('products', [AuthController::class, 'getProducts']);
@@ -244,6 +245,7 @@ use App\Http\Controllers\ExpenseController;
             Route::get('/influencer/open-list', [LeadController::class, 'influencerOpenList']);
             Route::get('/influencer/won-list', [LeadController::class, 'influencerWonList']);
             Route::get('/influencer/lost-list', [LeadController::class, 'influencerLostList']);
+            Route::get('/influencer/search', [LeadController::class, 'influencerSearch']);
             Route::get('districts', [AuthController::class, 'getDistricts']);
             Route::get('employee/products', [EmployeeController::class, 'getEmployeeProducts']);
     
