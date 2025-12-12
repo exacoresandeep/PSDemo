@@ -1188,6 +1188,36 @@ public function updateFcmToken(Request $request)
             ], 500);
         }
     }
+    public function getDealerVisitCustomerTypes()
+    {
+        try {
+            $user = Auth::user();
+            if ($user !== null) {
+                $query = CustomerType::select('id as customer_type_id', 'name as customer_type_name');
+
+                // if ($user->employee_type_id == 1) {
+                    $query->where('name', '!=', 'Dealer');
+                // }
+
+                $data = $query->orderBy('name', 'asc')->get();
+            } else {
+                $data = [];
+            }
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Customer types fetched successfully',
+                'data' => $data,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
     public function getOrderTypes()
     {

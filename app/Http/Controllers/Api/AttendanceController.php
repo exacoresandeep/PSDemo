@@ -407,7 +407,6 @@ class AttendanceController extends Controller
                 'leave_date'   => 'required|date',
                 'remarks' => 'required|string|max:1000',
                 'leave_type' => 'required|string'
-
             ]);
 
             $leaveDate = Carbon::parse($request->leave_date)->format('Y-m-d');

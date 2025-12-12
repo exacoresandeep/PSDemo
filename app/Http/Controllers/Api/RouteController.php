@@ -333,9 +333,10 @@ class RouteController extends Controller
                 $assignedRouteId = $rescheduledRoute->assigned_route_id;
                 $locations = json_decode($rescheduledRoute->locations, true);
 
-                $scheduledCustomers = collect(json_decode($rescheduledRoute->customers ?? '[]', true) ?? [])->map(function ($customer) {
-                    return collect($customer)->merge(['scheduled' => true]);
-                });
+                // $scheduledCustomers = collect(json_decode($rescheduledRoute->customers ?? '[]', true) ?? [])->map(function ($customer) {
+                //     return collect($customer)->merge(['scheduled' => true]);
+                // });
+                $scheduledCustomers = collect(json_decode($rescheduledRoute->customers ?? '[]', true));
 
             } else {
                 $trip = AssignRoute::where('employee_id', $employeeId)
