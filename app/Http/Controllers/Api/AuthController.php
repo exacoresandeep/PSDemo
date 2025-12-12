@@ -710,7 +710,9 @@ public function updateFcmToken(Request $request)
                         CASE
                             WHEN status = 'Accepted' THEN CONCAT('Your order request is accepted by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
                             WHEN status = 'Rejected' THEN CONCAT('Your order request is rejected by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
-                            ELSE ''
+                            WHEN status = 'Accounts Approved' THEN CONCAT('Your order request is approved by Accounts Team ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
+                            WHEN status = 'Accounts Rejected' THEN CONCAT('Your order request is rejected by Accounts Team ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
+                            ELSE 'Status of your order request is changed. Check now.'
                         END as notification_message,
                         notification_status,
                         IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
