@@ -18,6 +18,7 @@ class Attendance extends Model
         'punch_out',
         'latitude',
         'longitude',
+        'leave_type',
         'total_active_hours',
         'starting_remarks',
         'ending_remarks',
