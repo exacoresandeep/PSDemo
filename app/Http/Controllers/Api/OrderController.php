@@ -273,6 +273,10 @@ class OrderController extends Controller
                 'vehicleCategory:id,vehicle_category_name' 
             ])->findOrFail($orderId);
       
+            if($user->id==$order->created_by && $order->notification_status=="pending"){
+                $order->update(['notification_status' => 'opened']);      
+            }
+
             $order->vehicle_category_name = $order->vehicleCategory->vehicle_category_name ?? null;
             
             $order->total_amount = round((float) $order->total_amount, 6);

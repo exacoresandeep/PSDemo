@@ -433,6 +433,8 @@ class DealerOrderController extends Controller
                 ], 400);
             }
 
+            
+
             $order = Order::with([
                 'orderType:id,name',
                 'dealers:id,dealer_name,dealer_code',
@@ -441,6 +443,9 @@ class DealerOrderController extends Controller
                 'vehicleCategory:id,vehicle_category_name',
             ])->findOrFail($orderId); 
 
+            if($user->id==$order->dealer_id && $order->notification_status=="pending"){
+                $order->update(['notification_status' => 'opened']);      
+            }
             // --- Process Order Items ---
             // --- Process Order Items ---
             if ($order->orderItems && count($order->orderItems)) {
