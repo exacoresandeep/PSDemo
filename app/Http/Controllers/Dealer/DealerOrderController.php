@@ -507,8 +507,14 @@ class DealerOrderController extends Controller
                 ],
 
                 'credit_days' => $order->credit_days,
-                'billing_date' => $order->billing_date->format('d/M/Y'),
-                'delivery_date' => $order->delivery_date->format('d/M/Y'),
+                'billing_date' => $order->billing_date
+                    ? Carbon::createFromFormat('d/m/Y', $order->billing_date)->format('d/M/Y')
+                    : null,
+
+                    'delivery_date' => $order->delivery_date
+                    ? Carbon::createFromFormat('d/m/Y', $order->delivery_date)->format('d/M/Y')
+                    : null,
+
                 'total_amount' => round((float)$order->total_amount, 6),
                 'additional_information' => $order->additional_information,
                 'status' => $order->status,
