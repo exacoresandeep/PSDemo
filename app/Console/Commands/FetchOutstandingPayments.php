@@ -10,6 +10,7 @@ use App\Models\OrderItem;
 use App\Models\ProductType;
 use App\Models\OutstandingPayment;
 use App\Models\Payment;
+use App\Models\Product;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Log;
@@ -44,6 +45,13 @@ class FetchOutstandingPayments extends Command
         try {
             $start = Carbon::createFromFormat('Ymd', '20210101');
             $end = Carbon::now();
+            
+            $products = Product::whereNotNull('sap_id')->get();
+
+            if ($products->isEmpty()) {
+                $this->error('No products with sap_id found.');
+                return 1;
+            }
 
             $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
             if (!$conn) {
