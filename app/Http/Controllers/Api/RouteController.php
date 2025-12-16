@@ -573,6 +573,10 @@ class RouteController extends Controller
                     $assignedRouteId = $rescheduledRoute->assigned_route_id;
                     $locations = json_decode($rescheduledRoute->locations, true) ?? [];
 
+                    if($rescheduledRoute->notification_status=='pending'){
+                        $rescheduledRoute->update(['notification_status'=>'opened']);
+                    }
+
                     $rescheduledCustomers = collect(
                         is_string($rescheduledRoute->customers)
                             ? json_decode($rescheduledRoute->customers, true)
@@ -588,7 +592,9 @@ class RouteController extends Controller
                     if (!$trip) {
                         continue;
                     }
-
+                    if($trip->notification_status=='pending'){
+                        $trip->update(['notification_status'=>'opened']);
+                    }
                     $locations = explode(', ', $trip->locations);
                     $assignedRouteId = $trip->id;
                     $rescheduledCustomers = collect([]);

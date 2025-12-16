@@ -182,7 +182,9 @@ class LeadController extends Controller
                     'message' => 'Lead not found!',
                 ], 404);
             }
-
+            if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
+                $lead->update(['notification_status'=>'opened']);
+            }
             $leadWonOrders = $lead->orders->where('source', 'lead_won');
             $relatedLeads = Lead::with('orders.orderItems')
                 ->where('lead_chain_id', $lead->lead_chain_id)

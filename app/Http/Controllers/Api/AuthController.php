@@ -1827,6 +1827,7 @@ public function updateFcmToken(Request $request)
                 ->where('type_id', $product_type_id)
                 ->first();
             $tonnage = $productDetails ? ($productDetails->weight / 1000) : null;
+            
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
