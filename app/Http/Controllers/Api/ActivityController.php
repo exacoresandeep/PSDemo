@@ -792,7 +792,7 @@ $user = Auth::user();
             ->toArray();
 
         $dealers = Dealer::select(
-            'id as dealer_id',
+            'id',
             'dealer_code',
             'dealer_name',
             'phone',

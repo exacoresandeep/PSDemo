@@ -139,6 +139,7 @@ class TargetController extends Controller
         ]);
         $existingTarget = Target::where('employee_id', $request->employee_id)
             ->where('year', $request->year)
+            ->where('product_id', $request->product_id) //push
             ->where('month', $request->month)
             ->first();
 
@@ -250,11 +251,15 @@ class TargetController extends Controller
                     'message' => "Employee not found.",
                 ], 404);
             }
-            if($request->product_code){
-                $productId = Product::where('product_code', $request->product_code)->value('id');
-            }else{
-                $productId = 1;
+            $productId = Product::where('product_code', $request->product_code)->value('id'); //push
+            if(!$productId){
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 400,
+                    'message' => "Invalid product code.",
+                ], 404);
             }
+
             $target = Target::where('employee_id', $employeeId)
                             ->where('month', $month)
                             ->where('product_id', $productId)
@@ -265,6 +270,9 @@ class TargetController extends Controller
             $uniqueLeads = Lead::where('created_by', $employeeId)
                                 ->whereYear('created_at', $year)
                                 ->whereMonth('created_at', $monthNumber)
+                                ->whereHas('orders', function ($query) use ($productId) { 
+                                    $query->where('product_id', $productId);
+                                })
                                 ->count();
     
             // $customerVisitCount = RescheduledRoute::where('employee_id', $employeeId)
@@ -283,17 +291,22 @@ class TargetController extends Controller
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNumber)
                 ->distinct('phone')   
+                ->whereHas('order', function ($query) use ($productId) { //push
+                    $query->where('product_id', $productId);
+                })
                 ->count('phone');
     
             $aashiyanaCount = Order::where('created_by', $employeeId)
                                 ->whereYear('created_at', $year)
                                 ->whereMonth('created_at', $monthNumber)
+                                ->where('product_id', $productId) //push
                                 ->where('payment_terms_id', 3)
                                 ->count();
     
             $orders = Order::where('created_by', $employeeId)
                             ->whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber)
+                            ->where('product_id', $productId)//push
                             ->where('order_approved', '1')
                             ->pluck('id');
     

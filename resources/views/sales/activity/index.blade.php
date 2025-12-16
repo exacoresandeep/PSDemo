@@ -373,6 +373,7 @@
                     url: `/sales/activity/dealers-by-employee/${employee_id}`,
                     type: 'GET',
                     success: function (response) {
+                        console.log(response);
                         $('#dealer_id').html('<option value="">-Select Dealer-</option>');
                         $.each(response, function (key, dealer) {
                             $('#dealer_id').append(`<option value="${dealer.id}">${dealer.dealer_name}</option>`);

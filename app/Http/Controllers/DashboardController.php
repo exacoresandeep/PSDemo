@@ -239,10 +239,10 @@ class DashboardController extends Controller
         ];
 
         // Sum achievements
-        $uniqueLeads = Lead::with(["createdBy"])->whereYear('created_at', $year)
+        $uniqueLeads = Lead::whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber+1)
-                            ->whereHas('createdBy', function($q) use ($productID) {
-                                $q->whereJsonContains('products', (string)$productID);
+                            ->whereHas('orders', function ($query) use ($productID) {  //push
+                                $query->where('product_id', $productID);
                             })
                             ->count();
 
@@ -253,26 +253,23 @@ class DashboardController extends Controller
         //                         $customers = collect(json_decode($route->customers ?? '[]', true));
         //                         return $customers->where('scheduled', true)->where('status', 'Completed')->count();
         //                     });
-        $customerVisitCount = InfluencerVisit::with(["createdBy"])
-            ->whereYear('created_at', $year)
+        $customerVisitCount = InfluencerVisit::whereYear('created_at', $year)
             ->whereMonth('created_at', $monthNumber + 1)
             
-            ->whereHas('createdBy', function ($q) use ($productID) {
-                $q->whereJsonContains('products', (string)$productID);
-            })
+            ->whereHas('order', function ($query) use ($productID) {  //push
+                                $query->where('product_id', $productID);
+                            })
             ->distinct('phone') 
             ->count('phone');
 
 
-        $aashiyanaCount = Order::with(["orderItems"])->whereYear('created_at', $year)
+        $aashiyanaCount = Order::whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber+1)
-                            ->whereHas('orderItems', function ($q) use ($productID) {
-                                $q->where('product_id', $productID);
-                            })
+                             ->where('product_id', $productID)
                             ->where('payment_terms_id', 3)
                             ->count();
 
-        $orders = Order::with(["orderItems"])->whereYear('created_at', $year)
+        $orders = Order::whereYear('created_at', $year)
                         ->whereMonth('created_at', $monthNumber+1)
                         ->where('product_id', $productID)
                         ->where('order_approved', '1')
