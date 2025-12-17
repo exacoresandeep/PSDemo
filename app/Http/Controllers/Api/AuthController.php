@@ -291,267 +291,6 @@ public function updateFcmToken(Request $request)
         ], 500);
     }
 }
-//     public function notificationList(){
-//         try{
-//             $user = Auth::user();
-//             if (!$user) {
-//                 return response()->json([
-//                     'status' => 'error',
-//                     'success' => false,
-//                     'statusCode' => 401,
-//                     'message' => 'User not authenticated.'
-//                 ], 401);
-//             }
-    
-//         $notifications = collect();
-//         $today = now()->toDateString();
-// 	    if ($user->dealer_code && !$user->employee_code) {
-	       
-//             $dealerId = DB::table('dealers')->where('dealer_code', $user->dealer_code)->value('id');
-
-//             $orders = DB::table('orders')
-//                 ->where('dealer_id', $dealerId)
-//                 ->selectRaw("
-//                     'orders' as type, id,
-//                     CASE
-//                         // WHEN dealer_flag_order = '0' THEN CONCAT('Order request has been created by ', (SELECT name FROM employees WHERE id = created_by))
-//                         WHEN dealer_flag_order = '0' THEN 
-//                         CASE 
-//                             WHEN created_by IS NOT NULL THEN 
-//                                 CONCAT('Order request has been created by ', (SELECT name FROM employees WHERE id = created_by))
-//                             ELSE 
-//                                 'Order request has been created'
-//                         END
-//                         WHEN dealer_flag_order = '1' AND status = 'Approved' THEN 'Your Order request is approved by ASO'
-//                         WHEN dealer_flag_order = '1' AND status = 'Rejected' THEN 'Your Order request is rejected by ASO'
-//                         ELSE 'SE assigned an Order'
-//                     END as notification_message,
-//                     notification_status,
-//                     IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
-//                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
-//                     DATE_FORMAT(created_at, '%d-%m-%Y') as date,
-//                     DATE_FORMAT(created_at, '%h:%i %p') as time
-//                 ")
-//                 ->get()
-//                 ->map(function ($item) {
-//                     $item->is_read = (bool)$item->is_read;
-//                     return $item;
-//                 });
-                
-                
-//             $payments = DB::table('outstanding_payments')
-//                 ->where('dealer_id', $dealerId)
-//                 ->where('outstanding_amount', '>', 0)
-//                 ->whereDate('due_date', '<=', now())
-//                 ->selectRaw("
-//                     'outstanding_payments' as type, id,
-//                     'Outstanding payment is due' as notification_message,
-//                     notification_status,
-//                     IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
-//                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
-//                     DATE_FORMAT(due_date, '%d-%m-%Y') as date
-//                 ")
-//                 ->get()
-//                 ->map(function ($item) {
-//                     $item->is_read = (bool) $item->is_read;
-//                     return $item;
-//                 });
-
-//             $notifications = $notifications->merge($orders)->merge($payments);
-          
-//         }
-
-// 	    if ($user->employee_code && !$user->dealer_code) {
-
-//             $employeeId = $user->id;
-
-//             $today = now()->toDateString();
-
-//             // Rescheduled routes for today
-//             $routes = DB::table('rescheduled_routes')
-//                 ->where('employee_id', $employeeId)
-//                 ->whereDate('assign_date', $today)
-//                 ->selectRaw("'rescheduled_routes' as type, id, 
-//                     CONCAT('Today\'s rescheduled route is ', route_name) as notification_message, 
-//                     notification_status,
-//                     IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
-//                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
-//                     DATE_FORMAT(assign_date, '%d-%m-%Y') as date,
-//                     DATE_FORMAT(assign_date, '%h:%i %p') as time")
-//                 ->get()
-//                 ->map(function ($item) {
-//                     $item->is_read = (bool) $item->is_read;
-//                     return $item;
-//                 });
-
-//             $activities = DB::table('activities')
-//                 ->where('employee_id', $employeeId)
-//                 ->where(function($query) use ($today) {
-//                     $query->whereDate('assigned_date', $today)
-//                           ->orWhereDate('due_date', $today);
-//                 })
-//                 ->selectRaw("
-//                     'activities' as type,
-//                     id,
-//                     CASE 
-//                         WHEN DATE(assigned_date) = ? THEN 'New Activity is assigned to you'
-//                         WHEN DATE(due_date) = ? THEN 'Activity is due today'
-//                         ELSE ''
-//                     END as notification_message,
-//                     notification_status,
-//                     IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
-//                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
-//                     DATE_FORMAT(created_at, '%d-%m-%Y') as date,
-//                     DATE_FORMAT(created_at, '%h:%i %p') as time
-//                 ", [$today, $today])
-//                 ->get()
-//                 ->map(function ($item) {
-//                     $item->is_read = (bool) $item->is_read;
-//                     return $item;
-//                 });
-
-//              $employeeOrders = DB::table('orders')
-//                 ->where('created_by', $employeeId)
-//                 ->where('dealer_flag_order', '0')
-//                 ->where('status', '!=', 'Pending')
-//                 ->selectRaw("
-//                     'orders' as type, id,
-//                     CASE
-//                         WHEN status = 'Accepted' THEN CONCAT('Your order request is accepted by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
-//                         WHEN status = 'Rejected' THEN CONCAT('Your order request is rejected by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
-//                         ELSE ''
-//                     END as notification_message,
-//                     notification_status,
-//                     IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
-//                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
-//                     DATE_FORMAT(created_at, '%d-%m-%Y') as date,
-//                     DATE_FORMAT(created_at, '%h:%i %p') as time
-//                 ")
-//                 ->get()
-//                 ->map(function ($item) {
-//                     $item->is_read = (bool)$item->is_read;
-//                     return $item;
-//                 });
-
-//             $dealerOrders = DB::table('orders')
-//                 ->where('dealer_flag_order', '1')
-//                 ->where(function ($q) use ($employeeId) {
-//                     $q->whereIn('dealer_id', function ($sub) use ($employeeId) {
-//                         $sub->select('dealer_id')->from('assigned_routes')->where('employee_id', $employeeId);
-//                     });
-//                 })
-//                 ->selectRaw("
-//                     'orders' as type, id,
-//                     CASE
-//                         WHEN status = 'Pending' AND send_for_approval = '0' THEN CONCAT('You have received an order request from Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
-//                         WHEN status = 'Pending' AND send_for_approval = '1' THEN CONCAT('You have received an order request from ASO ', (SELECT name FROM employees WHERE id = created_by))
-//                         WHEN status = 'Accepted' AND send_for_approval = '1' THEN CONCAT('Order from Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id), ' is approved by ASO ', (SELECT name FROM employees WHERE id = created_by))
-//                         ELSE ''
-//                     END as notification_message,
-//                     notification_status,
-//                     IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
-//                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
-//                     DATE_FORMAT(created_at, '%d-%m-%Y') as date,
-//                     DATE_FORMAT(created_at, '%h:%i %p') as time
-//                 ")
-//                 ->get()
-//                 ->map(function ($item) {
-//                     $item->is_read = (bool)$item->is_read;
-//                     return $item;
-//                 });
-
-//             $accountApprovals = DB::table('orders')
-//                 ->where('created_by', $employeeId)
-//                 ->where('dealer_flag_order', '0')
-//                 ->whereIn('created_by', function ($sub) {
-//                     $sub->select('id')->from('employees')->whereIn('employee_type_id', [2, 3, 4, 5]);
-//                 })
-//                 ->whereIn('order_approved', ['1', '2'])
-//                 ->selectRaw("
-//                     'orders' as type, id,
-//                     CASE
-//                         WHEN order_approved = '1' THEN 'Your order is approved by Accounts.'
-//                         WHEN order_approved = '2' THEN 'Your order is rejected by Accounts.'
-//                         ELSE ''
-//                     END as notification_message,
-//                     notification_status,
-//                     IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
-//                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
-//                     DATE_FORMAT(created_at, '%d-%m-%Y') as date,
-//                     DATE_FORMAT(created_at, '%h:%i %p') as time
-//                 ")
-//                 ->get()
-//                 ->map(function ($item) {
-//                     $item->is_read = (bool)$item->is_read;
-//                     return $item;
-//                 });
-
-                
-//             $targets = DB::table('targets')
-//                 ->where('employee_id', $employeeId)
-//                 ->selectRaw("'targets' as type, id, 
-//                              'New Target is assigned to you' as notification_message, 
-//                              notification_status,
-//                     IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
-//                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
-//                              DATE_FORMAT(created_at, '%d-%m-%Y') as date,
-//                              DATE_FORMAT(created_at, '%h:%i %p') as time")
-//                 ->get()
-//                 ->map(function ($item) {
-//                     $item->is_read = (bool) $item->is_read;
-//                     return $item;
-//                 });
-                
-
-
-//             $leads = DB::table('lead_follow_ups')
-//                 ->whereDate('follow_up_date', $today)
-//                 ->where('created_by', $employeeId)
-//                 ->selectRaw("
-//                     'leads' as type,
-//                     lead_id as id,
-//                     'You have a lead to follow up' as notification_message,
-//                     notification_status,
-//                     IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
-//                     IF(notification_status IN ('opened', 'approved'), 'read', 'unread') as read_class,
-//                     DATE_FORMAT(follow_up_date, '%d-%m-%Y') as date,
-//                     DATE_FORMAT(follow_up_date, '%h:%i %p') as time
-//                 ")
-//                 ->get()
-//                 ->map(function ($item) {
-//                     $item->is_read = (bool) $item->is_read;
-//                     return $item;
-//                 });
-
-//             $notifications = collect()
-//                 ->merge($routes)
-//                 ->merge($activities)
-//                 ->merge($employeeOrders)
-//                 ->merge($dealerOrders)
-//                 ->merge($accountApprovals)
-//                 ->merge($targets)
-//                 ->merge($leads);
-//         }
-
-//           $unreadCount = $notifications->where('is_read', false)->count();
-// // dd($unreadCount);
-//             return response()->json([
-//                 'success' => true,
-//                 'statusCode' => 200,
-//                 'data' => [
-//                     'notifications' => $notifications,
-//                     'unread_count' => $unreadCount
-//                 ],
-//                 'message' => 'Notification list.'
-//             ]);
-//         } catch (\Exception $e) {
-//             return response()->json([
-//                 'success' => false,
-//                 'statusCode' => 500,
-//                 'message' => $e->getMessage(),
-//             ], 500);
-//         }
-//     }
     public function notificationList()
     {
         try {
@@ -704,13 +443,14 @@ public function updateFcmToken(Request $request)
                 $employeeOrders = DB::table('orders')
                     ->where('created_by', $employeeId)
                     ->where('dealer_flag_order', '0')
-                    ->whereIn('status', ['Accepted', 'Rejected'])
+		 //   ->where('status', '!=', 'Pending')
+	    ->whereIn('status', ['Accepted', 'Rejected'])
                     ->selectRaw("
-                        'orders' as type, id,
+                        'Eorders' as type, id,
                         CASE
                             WHEN status = 'Accepted' THEN CONCAT('Your order request is accepted by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
                             WHEN status = 'Rejected' THEN CONCAT('Your order request is rejected by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
-                            ELSE ''
+                            ELSE 'Status of your order request is changed. Check now.'
                         END as notification_message,
                         notification_status,
                         IF(notification_status IN ('opened', 'approved'), 1, 0) as is_read,
@@ -732,7 +472,7 @@ public function updateFcmToken(Request $request)
                         });
                     })
                     ->selectRaw("
-                        'orders' as type, id,
+                        'Dorders' as type, id,
                         CASE
                             WHEN status = 'Pending' AND send_for_approval = '0' THEN CONCAT('You have received an order request from Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
                             WHEN status = 'Pending' AND send_for_approval = '1' THEN CONCAT('You have received an order request from ASO ', (SELECT name FROM employees WHERE id = created_by))
@@ -759,7 +499,7 @@ public function updateFcmToken(Request $request)
                     })
                     ->whereIn('order_approved', ['1', '2'])
                     ->selectRaw("
-                        'orders' as type, id,
+                        'Aorders' as type, id,
                         CASE
                             WHEN order_approved = '1' THEN 'Your order is approved by Accounts.'
                             WHEN order_approved = '2' THEN 'Your order is rejected by Accounts.'
@@ -848,7 +588,7 @@ public function updateFcmToken(Request $request)
                             lead_follow_ups.notification_status,
                             IF(lead_follow_ups.notification_status = 'opened', 1, 0) as is_read,
                             IF(lead_follow_ups.notification_status = 'opened', 'read', 'unread') as read_class,
-                            DATE_FORMAT(lead_follow_ups.follow_up_date, '%d-%m-%Y') as date
+                            DATE_FORMAT(lead_follow_ups.follow_up_date, '%d-%m-%Y') as date ,'09:00 AM' as time
                         ")
                         ->get()
                         ->map(function($item){
@@ -869,7 +609,7 @@ public function updateFcmToken(Request $request)
                             influencer_visit_follow_ups.notification_status,
                             IF(influencer_visit_follow_ups.notification_status = 'opened', 1, 0) as is_read,
                             IF(influencer_visit_follow_ups.notification_status = 'opened', 'read', 'unread') as read_class,
-                            DATE_FORMAT(influencer_visit_follow_ups.follow_up_date, '%d-%m-%Y') as date
+                            DATE_FORMAT(influencer_visit_follow_ups.follow_up_date, '%d-%m-%Y') as date,'09:00 AM' as time
                         ")
                         ->get()
                         ->map(function ($item) {
@@ -1113,10 +853,9 @@ public function updateFcmToken(Request $request)
 
                 $notifications = $notifications->merge($maintenanceNotifications)->merge($tripNotifications);
             }
-
-            $notifications = $notifications->sortByDesc(function ($item) {
-                return strtotime($item->date . ' ' . $item->time);
-            })->values();
+        $notifications = $notifications->sortByDesc(function ($item) {
+        return strtotime($item->date . ' ' . $item->time);
+        })->values();
             $unreadCount = $notifications->where('is_read', false)->count();
 
             return response()->json([
