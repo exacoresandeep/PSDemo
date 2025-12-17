@@ -12,6 +12,7 @@ class CreditNote extends Model
     protected $fillable = [
         'order_id',
         'dealer_id',
+        'product_id',
         'credit_note_number',
         'invoice_number',
         'date',
@@ -35,5 +36,9 @@ class CreditNote extends Model
     public function dealer()
     {
         return $this->belongsTo(Dealer::class, 'dealer_id');
+    }
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
     }
 }
