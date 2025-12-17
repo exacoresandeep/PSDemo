@@ -415,7 +415,7 @@ public function updateFcmToken(Request $request)
 //                 ->where('dealer_flag_order', '0')
 //                 ->where('status', '!=', 'Pending')
 //                 ->selectRaw("
-//                     'Eorders' as type, id,
+//                     'orders' as type, id,
 //                     CASE
 //                         WHEN status = 'Accepted' THEN CONCAT('Your order request is accepted by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
 //                         WHEN status = 'Rejected' THEN CONCAT('Your order request is rejected by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
@@ -441,7 +441,7 @@ public function updateFcmToken(Request $request)
 //                     });
 //                 })
 //                 ->selectRaw("
-//                     'Dorders' as type, id,
+//                     'orders' as type, id,
 //                     CASE
 //                         WHEN status = 'Pending' AND send_for_approval = '0' THEN CONCAT('You have received an order request from Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
 //                         WHEN status = 'Pending' AND send_for_approval = '1' THEN CONCAT('You have received an order request from ASO ', (SELECT name FROM employees WHERE id = created_by))
@@ -468,7 +468,7 @@ public function updateFcmToken(Request $request)
 //                 })
 //                 ->whereIn('order_approved', ['1', '2'])
 //                 ->selectRaw("
-//                     'Aorders' as type, id,
+//                     'orders' as type, id,
 //                     CASE
 //                         WHEN order_approved = '1' THEN 'Your order is approved by Accounts.'
 //                         WHEN order_approved = '2' THEN 'Your order is rejected by Accounts.'
@@ -706,7 +706,7 @@ public function updateFcmToken(Request $request)
                     ->where('dealer_flag_order', '0')
                     ->whereIn('status', ['Accepted', 'Rejected'])
                     ->selectRaw("
-                        'Eorders' as type, id,
+                        'orders' as type, id,
                         CASE
                             WHEN status = 'Accepted' THEN CONCAT('Your order request is accepted by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
                             WHEN status = 'Rejected' THEN CONCAT('Your order request is rejected by Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
@@ -732,7 +732,7 @@ public function updateFcmToken(Request $request)
                         });
                     })
                     ->selectRaw("
-                        'Dorders' as type, id,
+                        'orders' as type, id,
                         CASE
                             WHEN status = 'Pending' AND send_for_approval = '0' THEN CONCAT('You have received an order request from Dealer ', (SELECT dealer_name FROM dealers WHERE id = dealer_id))
                             WHEN status = 'Pending' AND send_for_approval = '1' THEN CONCAT('You have received an order request from ASO ', (SELECT name FROM employees WHERE id = created_by))
@@ -759,7 +759,7 @@ public function updateFcmToken(Request $request)
                     })
                     ->whereIn('order_approved', ['1', '2'])
                     ->selectRaw("
-                        'Aorders' as type, id,
+                        'orders' as type, id,
                         CASE
                             WHEN order_approved = '1' THEN 'Your order is approved by Accounts.'
                             WHEN order_approved = '2' THEN 'Your order is rejected by Accounts.'

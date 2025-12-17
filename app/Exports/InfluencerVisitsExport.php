@@ -26,11 +26,15 @@ class InfluencerVisitsExport implements FromCollection, WithMapping, WithHeading
 
     public function collection()
     {
-        $this->employees = Employee::select('id', 'name', 'employee_code')->get();
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID(); //push
+        $this->employees = Employee::select('id', 'name', 'employee_code') 
+        ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productID . '"]']) //push
+        ->get();
 
         $this->targetsByEmployee = Target::where('month', $this->month)
             ->where('year', $this->year)
             ->pluck('customer_visit', 'employee_id')
+             ->where('product_id', $productID)//push
             ->toArray();
 
         $this->achievedByEmployee = InfluencerVisit::whereYear('created_at', $this->year)
@@ -38,6 +42,9 @@ class InfluencerVisitsExport implements FromCollection, WithMapping, WithHeading
             ->whereNotNull('phone')
             ->select('created_by', DB::raw('COUNT(DISTINCT phone) as count'))
             ->groupBy('created_by')
+            ->whereHas('order', function ($query) use ($productID) {  //push
+                $query->where('product_id', $productID);
+            })
             ->pluck('count', 'created_by')
             ->toArray();
 
