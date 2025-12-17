@@ -23,16 +23,18 @@ class AashiyanaOrdersExport implements FromCollection, WithMapping, WithHeadings
 
     public function collection()
     {
-        
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID(); 
         $orders = Order::with(['lead', 'dealer', 'createdBy'])
             ->whereYear('created_at', $this->year)
             ->whereMonth('created_at', $this->month)
+            ->where('product_id', $productID) //push
             ->where('payment_terms_id', 3)
             ->get();
 
         $this->targetsByEmployee = Target::where('month', $this->month)
             ->where('year', $this->year)
             ->pluck('aashiyana', 'employee_id')
+            ->where('product_id', $productID)//push
             ->toArray(); 
         foreach ($orders as $order) {
             $empId = $order->created_by;

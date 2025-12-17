@@ -25,11 +25,12 @@ class TisconOrdersExport implements FromCollection, WithMapping, WithHeadings, S
 
     public function collection()
     {
-        // dd($this->productID);
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID(); //push
         // Get all employees who have target
         $this->targetsByEmployee = Target::where('month', $this->month)
             ->where('year', $this->year)
             ->pluck('order_quantity', 'employee_id')
+            ->where('product_id', $productID)//push
             ->toArray();
 
         $targetedEmployeeIds = array_keys(

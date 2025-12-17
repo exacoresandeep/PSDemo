@@ -26,8 +26,11 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
 
     public function collection()
     {
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID(); //push
+
         $this->targetsByEmployee = Target::where('month', $this->month)
             ->where('year', $this->year)
+            ->where('product_id', $productID)//push
             ->pluck('unique_lead', 'employee_id')
             ->toArray();
 
@@ -35,11 +38,17 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
             ->whereMonth('created_at', $this->month)
             ->selectRaw('created_by, COUNT(*) as total')
             ->groupBy('created_by')
+            ->whereHas('orders', function ($query) use ($productID) {  //push
+                                $query->where('product_id', $productID);
+                            })
             ->pluck('total', 'created_by')
             ->toArray();
 
         return Lead::with("district")->with(['createdBy', 'followUps', 'orders.orderItems','customerType', 'assignRoute'])
             ->whereYear('created_at', $this->year)
+            ->whereHas('orders', function ($query) use ($productID) {  //push
+                                $query->where('product_id', $productID);
+                            })
             ->whereMonth('created_at', $this->month)
             ->get();
     }
