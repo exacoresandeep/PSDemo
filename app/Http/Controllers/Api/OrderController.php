@@ -2602,6 +2602,136 @@ class OrderController extends Controller
             ], 500);
         }
     }
+    public function orderApprovalSearch(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            if ($user->employee_type_id !== 5) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 403,
+                    'message' => 'Access denied. Only Sales Managers can view this list.'
+                ], 403);
+            }
+
+            // ✅ product_id is mandatory
+            $request->validate([
+                'product_id' => 'required|integer'
+            ]);
+
+            $productId = $request->product_id;
+            $search    = $request->input('search');
+            $status    = $request->input('status');
+
+            // Dealers with due balance
+            $dealerIdsWithDue = OutstandingNew::where('due_balance', '>', 0)
+                ->pluck('dealer_id');
+
+            if ($dealerIdsWithDue->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => 'No dealers found with due balance'
+                ], 404);
+            }
+
+            // Sales hierarchy employees
+            $employeeIds = Employee::whereIn('employee_type_id', [2, 3, 4])
+                ->pluck('id');
+
+            $orders = Order::where(function ($query) use (
+                $employeeIds,
+                $dealerIdsWithDue,
+                $productId,
+                $search,
+                $status
+            ) {
+                $query->whereIn('created_by', $employeeIds)
+                    ->whereIn('dealer_id', $dealerIdsWithDue)
+                    ->where('dealer_flag_order', '0')
+                    ->where('product_id', $productId)
+
+                    ->when($status, fn ($q) =>
+                        $q->where('status', $status)
+                    )
+
+                    ->when($search, function ($q) use ($search) {
+                        $q->where('id', $search)
+                        ->orWhereHas('dealer', fn ($d) =>
+                            $d->where('dealer_name', 'like', "%{$search}%")
+                        );
+                    });
+            })
+            ->orWhere(function ($query) use (
+                $dealerIdsWithDue,
+                $productId,
+                $search,
+                $status
+            ) {
+                $query->whereIn('created_by_dealer', $dealerIdsWithDue)
+                    ->where('dealer_flag_order', '1')
+                    ->where('product_id', $productId)
+
+                    ->when($status, fn ($q) =>
+                        $q->where('status', $status)
+                    )
+
+                    ->when($search, function ($q) use ($search) {
+                        $q->where('id', $search)
+                        ->orWhereHas('dealer', fn ($d) =>
+                            $d->where('dealer_name', 'like', "%{$search}%")
+                        );
+                    });
+            })
+            ->with(['dealer'])
+            ->orderByDesc('created_at')
+            ->get();
+
+            if ($orders->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => 'No orders found'
+                ], 404);
+            }
+
+            // ✅ SAME RESPONSE FORMAT
+            $formattedOrders = $orders->map(function ($order) {
+                return [
+                    'id'           => $order->id,
+                    'created_at'   => Carbon::parse($order->created_at)->format('d/m/Y'),
+                    'dealer_name'  => $order->dealer->dealer_name ?? 'N/A',
+                    'product_id'   => $order->product_id,
+                    'order_status' => $order->status,
+                    'total_amount' => (int) $order->total_amount,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Order approval search results',
+                'data' => $formattedOrders
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 422,
+                'message' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 
     public function totalSalesLeadsSummary(Request $request)
     {
