@@ -929,25 +929,46 @@ class RouteController extends Controller
         $employeeId = $request->input('employee_id');
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
+        $productId  = $request->input('product_id');
+
+        $employeeIds = Employee::when($productId, function ($q) use ($productId) {
+            $q->whereRaw('FIND_IN_SET(?, products)', [$productId]);
+        })
+        ->pluck('id')
+        ->toArray();
+
+        if (empty($employeeIds)) {
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'data' => [],
+            ], 200);
+        }
 
         $routes = RescheduledRoute::whereMonth('assign_date', $month)
             ->whereYear('assign_date', $year)
+            ->whereIn('employee_id', $employeeIds)
             ->when($employeeId, function ($query) use ($employeeId) {
                 $query->where('employee_id', $employeeId);
             })
+            ->with('employee:id,name')
             ->get();
 
         $formattedRoutes = $routes->map(function ($route) {
+
             $customers = json_decode($route->customers, true) ?? [];
 
             $status = collect($customers)->contains(function ($customer) {
-                return isset($customer['scheduled']) && $customer['scheduled'] === true &&
-                    isset($customer['status']) && $customer['status'] === 'Pending';
+                return isset($customer['scheduled'], $customer['status']) &&
+                    $customer['scheduled'] === true &&
+                    $customer['status'] === 'Pending';
             }) ? 'Pending' : 'Completed';
 
             return [
                 'id' => $route->id,
                 'route_name' => $route->route_name,
+                'employee_id' => $route->employee_id,
+                'employee_name' => $route->employee?->name ?? 'N/A',
                 'locations' => json_decode($route->locations, true) ?? [],
                 'day' => $route->day,
                 'assign_date' => Carbon::parse($route->assign_date)->format('d/m/Y'),

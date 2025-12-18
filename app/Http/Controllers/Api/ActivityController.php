@@ -344,7 +344,7 @@ class ActivityController extends Controller
             'activity_name' => 'required|string|max:255',
             'status' => 'required|in:1,2',
         ]);
-$user = Auth::user();
+        $user = Auth::user();
         $activity_type = ActivityType::create([
             "id" =>27,
             'name' => $request->activity_name,

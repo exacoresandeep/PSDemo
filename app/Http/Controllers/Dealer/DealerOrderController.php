@@ -2462,11 +2462,11 @@ class DealerOrderController extends Controller
             ], 404);
         }
 
-      //  $order = Order::where('id', $creditNote->order_id)
-        //    ->where('dealer_id', $dealer->id) 
-          //  ->select('order_type', 'payment_terms_id', 'billing_date', 'invoice_number')
-           // ->with('orderType:id,name', 'paymentTerm:id,name')
-	//  ->first();
+            //  $order = Order::where('id', $creditNote->order_id)
+            //    ->where('dealer_id', $dealer->id) 
+            //  ->select('order_type', 'payment_terms_id', 'billing_date', 'invoice_number')
+            // ->with('orderType:id,name', 'paymentTerm:id,name')
+	        //  ->first();
         $order = Order::where('id', $creditNote->order_id)
             ->where(function ($query) use ($dealer) {
             $query->where('dealer_id', $dealer->id)
