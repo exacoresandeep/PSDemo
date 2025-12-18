@@ -985,37 +985,55 @@ class RouteController extends Controller
     public function getRouteDetails(Request $request, $routeId)
     {
         try {
-            $route = RescheduledRoute::findOrFail($routeId);
-    
+            $productId = $request->input('product_id');
+
+            $route = RescheduledRoute::with('employee')
+                ->findOrFail($routeId);
+
+            // 🔐 Optional product validation
+            if ($productId) {
+                $handlesProduct = Employee::where('id', $route->employee_id)
+                    ->whereRaw('FIND_IN_SET(?, products)', [$productId])
+                    ->exists();
+
+                if (!$handlesProduct) {
+                    return response()->json([
+                        'success' => false,
+                        'statusCode' => 403,
+                        'message' => 'This route does not belong to the selected product.',
+                    ], 403);
+                }
+            }
+
             $customers = json_decode($route->customers, true) ?? [];
-    
+
             $routeSummary = collect($customers)->map(function ($customer) {
                 return [
                     'customer_name' => $customer['customer_name'] ?? null,
                     'location' => $customer['location'] ?? null,
                     'customer_type' => $customer['customer_type'] ?? null,
                     'status' => $customer['status'] ?? null,
-                    'completed_at' => ($customer['status'] === 'Completed' && isset($customer['visited_at']))
-                        ? Carbon::parse($customer['visited_at'])->format('d/m/Y H:i:s')
-                        : null,
+                    'completed_at' =>
+                        ($customer['status'] === 'Completed' && isset($customer['visited_at']))
+                            ? Carbon::parse($customer['visited_at'])->format('d/m/Y H:i:s')
+                            : null,
                 ];
             });
-    
-            // Format response
-            $response = [
-                'day' => $route->day,
-                'assign_date' => Carbon::parse($route->assign_date)->format('d/m/Y'),
-                'month' => Carbon::parse($route->assign_date)->format('F'),
-                'year' => Carbon::parse($route->assign_date)->format('Y'),
-                'route_summary' => $routeSummary,
-            ];
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'data' => $response,
+                'data' => [
+                    'route_name' => $route->route_name,
+                    'employee_name' => $route->employee?->name ?? 'N/A',
+                    'day' => $route->day,
+                    'assign_date' => Carbon::parse($route->assign_date)->format('d/m/Y'),
+                    'month' => Carbon::parse($route->assign_date)->format('F'),
+                    'year' => Carbon::parse($route->assign_date)->format('Y'),
+                    'route_summary' => $routeSummary,
+                ],
             ], 200);
-    
+
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1024,7 +1042,7 @@ class RouteController extends Controller
             ], 500);
         }
     }
-    
+
 
     public function routeIndex()
     {

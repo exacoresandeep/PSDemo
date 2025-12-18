@@ -1275,7 +1275,7 @@ class DealerOrderController extends Controller
     {
         try {
             $dealer = Auth::user();
-    
+
             if (!$dealer) {
                 return response()->json([
                     'success' => false,
@@ -1283,88 +1283,61 @@ class DealerOrderController extends Controller
                     'message' => "User not Authenticated",
                 ], 401);
             }
-  
-            $assignedRouteIds = AssignRoute::whereIn('employee_id', function ($query) {
-                    $query->select('id')
-                        ->from('employees')
-                        ->where('employee_type_id', 1); 
-                })->pluck('id')->toArray();
-    
-            if (empty($assignedRouteIds)) {
+
+            $productId = $request->input('product_id');
+
+            if (!$productId) {
                 return response()->json([
                     'success' => false,
-                    'statusCode' => 404,
-                    'message' => "No assigned routes found for Sales Executives.",
-                    'data' => []
-                ], 404);
+                    'statusCode' => 422,
+                    'message' => 'product_id is required',
+                ], 422);
             }
-    
+
+            // 🔹 Sales Executives
+            $assignedRouteIds = AssignRoute::whereIn('employee_id', function ($query) {
+                $query->select('id')
+                    ->from('employees')
+                    ->where('employee_type_id', 1);
+            })->pluck('id')->toArray();
 
             $dealerRouteIds = DB::table('dealer_route_assignments')
                 ->where('dealer_id', $dealer->id)
                 ->pluck('assign_route_id')
                 ->toArray();
-    
-            if (empty($dealerRouteIds)) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => "No route assignments found for this dealer.",
-                    'data' => []
-                ], 404);
-            }
-    
 
             $matchedRouteIds = array_intersect($dealerRouteIds, $assignedRouteIds);
-    
-            if (empty($matchedRouteIds)) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 403,
-                    'message' => "Dealer is not assigned under any Sales Executive's route.",
-                    'data' => []
-                ], 403);
-            }
-    
 
             $salesExecutives = AssignRoute::whereIn('id', $matchedRouteIds)
                 ->pluck('employee_id');
-    
-            if ($salesExecutives->isEmpty()) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => "No Sales Executives found for this dealer's assigned routes.",
-                    'data' => []
-                ], 404);
-            }
-    
 
-            $orders = Order::where('dealer_id', $dealer->id)
+            // ✅ Base order filter
+            $baseOrderQuery = Order::where('dealer_id', $dealer->id)
+                ->whereHas('orderItems', function ($q) use ($productId) {
+                    $q->where('product_id', $productId);
+                });
+
+            // 🔹 Normal Orders
+            $orders = (clone $baseOrderQuery)
                 ->whereIn('created_by', $salesExecutives)
                 ->select('id', 'total_amount', 'status', 'created_at')
-                ->orderBy('id', 'desc')
                 ->get();
-    
 
-            $influencerOrders = Order::where('dealer_id', $dealer->id)
+            // 🔹 Influencer Orders
+            $influencerOrders = (clone $baseOrderQuery)
                 ->whereNotNull('influencer_visit_id')
-                ->whereHas('influencerVisit', function ($query) {
-                    $query->where('status', 'Won');
-                })
+                ->whereHas('influencerVisit', fn ($q) => $q->where('status', 'Won'))
                 ->select('id', 'total_amount', 'status', 'created_at')
-                ->orderBy('id', 'desc')
-                ->get();
-            
-            $leadOrders = Order::where('dealer_id', $dealer->id)
-                ->whereNotNull('lead_id')
-                ->whereHas('lead', function ($query) {
-                    $query->where('status', 'Won');
-                })
-                ->select('id', 'total_amount', 'status', 'created_at')
-                ->orderBy('id', 'desc')
                 ->get();
 
+            // 🔹 Lead Orders
+            $leadOrders = (clone $baseOrderQuery)
+                ->whereNotNull('lead_id')
+                ->whereHas('lead', fn ($q) => $q->where('status', 'Won'))
+                ->select('id', 'total_amount', 'status', 'created_at')
+                ->get();
+
+            // 🔹 Merge all
             $allOrders = $orders
                 ->merge($influencerOrders)
                 ->merge($leadOrders)
@@ -1386,14 +1359,13 @@ class DealerOrderController extends Controller
                     },
                 ];
             });
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'message' => 'Order Request List (including influencer and lead won orders) fetched successfully',
                 'data' => $formattedOrders,
             ], 200);
-    
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1497,22 +1469,44 @@ class DealerOrderController extends Controller
                 'status' => $order->status,
                 'attachments' => $order->attachment ?? [],
                 'order_items' => $order->orderItems->map(function ($item) {
+
+                    $totalPieces = 0;
+                    $totalTon = 0;
+
+                    $productDetails = [];
+
+                    if (isset($item->product_details) && is_array($item->product_details)) {
+                        foreach ($item->product_details as $pd) {
+
+                            $pieces  = $pd['pieces'] ?? 0;
+                            $tonnage = $pd['tonnage'] ?? 0;
+
+                            $totalPieces += $pieces;
+                            $totalTon += ($tonnage * $pieces);
+
+                            $productDetails[] = [
+                                'product_type_id' => $pd['product_type_id'] ?? null,
+                                'pieces' => (float) $pieces,
+                                'tonnage' => (float) $tonnage,
+                                'rate' => $pd['rate'] ?? null,
+                                'product_type' => ProductType::where('id', $pd['product_type_id'] ?? null)
+                                    ->value('type_name') ?? 'N/A',
+                            ];
+                        }
+                    }
+
                     return [
                         'product_id' => $item->product_id,
-                        'product_name' => $item->product->product_name ?? 'N/A',
-                        'product_code' => $item->product->product_code ?? 'N/A',
-                        'total_quantity' => $item->total_quantity,
+                        'product_name' => $item->product->product_name ?? null,
+                        'product_code' => $item->product->product_code ?? null,
+                        'total_quantity' => (float) $item->total_quantity,
                         'balance_quantity' => (float) $item->balance_quantity,
-                        'product_details' => collect($item->product_details)->map(function ($detail) {
-                            return [
-                                'product_type_id' => $detail['product_type_id'],
-                                'quantity' => $detail['quantity'],
-                                'rate' => $detail['rate'],
-                                'product_type' => ProductType::where('id', $detail['product_type_id'])->value('type_name') ?? 'N/A',
-                            ];
-                        }),
+                        'total_pieces' => $totalPieces,
+                        'total_ton' => round($totalTon, 3),
+                        'product_details' => $productDetails,
                     ];
                 }),
+
                 'created_at' => $order->created_at->format('d/m/Y'),
             ];
     
