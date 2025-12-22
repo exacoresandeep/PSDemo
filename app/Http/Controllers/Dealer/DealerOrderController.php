@@ -2283,6 +2283,7 @@ class DealerOrderController extends Controller
             ======================== */
 
             $invoiceNumber = $order->invoice_number;
+            $invoiceDate = $order->Invoice_date;
             $invoiceTotal  = round($order->invoice_total, 2);
 
             $paidAmount = Payment::where('order_id', $orderId)->sum('payment_amount');
@@ -2314,6 +2315,7 @@ class DealerOrderController extends Controller
                 'order_type' => $order->orderType->name ?? null,
                 'additional_information' => $order->additional_information,
                 'invoice_number' => $invoiceNumber,
+                'invoice_date' => $invoiceDate,
                 'invoice_total' => $invoiceTotal,
                 'total_quantity' => (float) $totalQuantity,
                 'paid_amount' => round($paidAmount, 2),
