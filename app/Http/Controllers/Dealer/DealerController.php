@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Dealer;
 use App\Models\District;
+use App\Models\Product;
 use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
@@ -304,6 +305,101 @@ class DealerController extends Controller
             }
 
             $sql = "CALL \"PRABHU_NEW\".\"@DealerStatements\"('$from_date', '$to_date', '$dealerCode',$sap_product_id)";
+            $result = odbc_exec($conn, $sql);
+
+            if (!$result) {
+                odbc_close($conn);
+                return response()->json(['error' => 'SAP Query Failed: ' . odbc_errormsg()], 500);
+            }
+
+            $ledgerData = [];
+            $openingBalance = 0.0;
+            $closingBalance = 0.0;
+
+            while ($row = odbc_fetch_array($result)) {
+                $row = array_map('trim', $row);
+                unset($row['ContraAct']);
+
+                if (!empty($row['RefDate'])) {
+                    $rawDate  = Carbon::parse($row['RefDate']);
+                    $row['RefDate'] = $rawDate->format('d/m/Y');
+                }
+
+                $row['Debit'] = isset($row['Debit']) ? (float) $row['Debit'] : 0.0;
+                $row['Credit'] = isset($row['Credit']) ? (float) $row['Credit'] : 0.0;
+                $row['OB'] = isset($row['OB']) ? (float) $row['OB'] : 0.0;
+
+                // Check TransType and store OB/CL separately
+                if (isset($row['TransType']) && $row['TransType'] === 'OB') {
+                    $openingBalance = $row['OB'];
+                    continue;
+                }
+
+                if (isset($row['TransType']) && $row['TransType'] === 'CL') {
+                    $closingBalance = $row['OB'];
+                    continue;
+                }
+                $row['__rawDate'] = $rawDate ? $rawDate->timestamp : null;
+                $ledgerData[] = $row;
+            }
+
+            odbc_close($conn);
+
+            // Sort by raw date (ascending)
+            usort($ledgerData, function ($a, $b) {
+                return ($a['__rawDate'] <=> $b['__rawDate']);
+            });
+
+            // Remove helper field before returning
+            $ledgerData = array_map(function ($row) {
+                unset($row['__rawDate']);
+                return $row;
+            }, $ledgerData);
+
+            return response()->json([
+                'status' => 'success',
+                'statusCode' => 200,
+                'message' => 'Ledger fetched successfully',
+                'data' => [
+                    'opening_balance' => $openingBalance,
+                    'closing_balance' => $closingBalance,
+                    'ledger' => $ledgerData
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Internal Error: ' . $e->getMessage()], 500);
+        }
+    }
+    public function downloadLedgerF(Request $request)
+    {    
+        
+        try {
+            $dealer = $request->user();
+            if (!$dealer || !$dealer->dealer_code) {
+                return response()->json(['error' => 'Dealer not found or unauthorized.'], 401);
+            }
+            $request->validate([
+                'from_date' => 'required|date_format:d/m/Y',
+                'product_id' => 'required',
+                'to_date'   => 'nullable|date_format:d/m/Y|after_or_equal:from_date',
+            ]);
+            $from_date = Carbon::createFromFormat('d/m/Y', $request->from_date)->format('Y-m-d');
+            $to_date   = $request->to_date 
+            ? Carbon::createFromFormat('d/m/Y', $request->to_date)->format('Y-m-d')
+            : now()->toDateString();
+            $dealerCode = $dealer->dealer_code;
+            $year = (date('m') < 4) ? date('Y') - 1 : date('Y');
+            $fyStart = $year . '0401';
+            $today = Carbon::now()->format('Ymd');
+
+            $sap_id= Product::where("id",$request->product_id)->value("sap_id"); 
+            $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
+            if (!$conn) {
+                return response()->json(['error' => 'SAP Connection Failed: ' . odbc_errormsg()], 500);
+            }
+
+            $sql = "CALL \"PRABHU_NEW\".\"@DealerStatements_F\"('$from_date', '$to_date', '$dealerCode','$sap_id')";  
             $result = odbc_exec($conn, $sql);
 
             if (!$result) {

@@ -266,7 +266,22 @@ class TargetController extends Controller
                             ->where('year', $year)
                             ->first();
             $target = $target ? $target->toArray() : null;
-    
+
+            if (
+                $target &&
+                Auth::id() === (int) $target['employee_id'] &&
+                $target['notification_status'] === 'pending'
+            ) {
+                Target::where('id', $target['id'])
+                    ->update(['notification_status' => 'opened']);
+                    $target = Target::where('employee_id', $employeeId)
+                            ->where('month', $month)
+                            ->where('product_id', $productId)
+                            ->where('year', $year)
+                            ->first();
+                     $target = $target ? $target->toArray() : null;
+            }
+            
             $uniqueLeads = Lead::where('created_by', $employeeId)
                                 ->whereYear('created_at', $year)
                                 ->whereMonth('created_at', $monthNumber)

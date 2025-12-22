@@ -561,7 +561,8 @@ class DashboardController extends Controller
         $month = $request->month; 
         $year = $request->year;
         $productID= \App\Helpers\ProductHelper::getSelectedProductID();
-        $totalInfluencerVisit = \App\Models\InfluencerVisit::with(["createdBy"])->whereYear('created_at', $year)
+        $totalInfluencerVisit = \App\Models\InfluencerVisit::with(["createdBy"])
+            ->whereYear('created_at', $year)
             ->whereMonth('created_at', $month + 1) 
             ->whereHas('createdBy', function($q) use ($productID) {
                 $q->whereJsonContains('products', (string)$productID);

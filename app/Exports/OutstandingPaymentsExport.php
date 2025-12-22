@@ -25,9 +25,13 @@ class OutstandingPaymentsExport implements FromCollection, WithHeadings, ShouldA
     public function collection()
     {
         // Fetch outstanding payments based on month + year
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
         $outstandings = OutstandingPayment::with('dealer')
             ->whereYear('invoice_date', $this->year)
             ->whereMonth('invoice_date', $this->month)
+            ->whereHas('order.orderItems', function ($q) use ($productID) {
+                $q->where('product_id', $productID);
+            })
             ->get();
 
         // Group by Dealer
