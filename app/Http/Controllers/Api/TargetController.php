@@ -401,10 +401,119 @@ class TargetController extends Controller
         $visitCount = Lead::where('created_by', $employee)->count();
         return response()->json(['visit_count' => $visitCount]);
     }
+    // public function getTotalTargetsAchievements(Request $request)
+    // {
+    //     $employee = Auth::user();
+    
+    //     if (!$employee) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 401,
+    //             'message' => "User not authenticated.",
+    //         ], 401);
+    //     }
+    
+    //     if ($employee->employee_type_id !== 5) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 403,
+    //             'message' => "Unauthorized. Only Sales Manager (SM) can access this summary.",
+    //         ], 403);
+    //     }
+    
+    //     $monthNumber = $request->input('month', date('m'));
+    //     $year = $request->input('year', date('Y'));
+    //     $month = Carbon::createFromDate(null, $monthNumber, 1)->format('F');
+   
+    //     $employeeTypeId = $request->input('employee_type_id', 2); 
+   
+       
+    //     $employeeIds = Employee::where('employee_type_id', $employeeTypeId)->pluck('id')->toArray();
+    
+    //     // Initialize totals
+    //     $totalTargets = [
+    //         'unique_leads' => 0,
+    //         'influencer_visits' => 0,
+    //         'aashiyana_orders' => 0,
+    //         'product_quantity' => 0,
+    //     ];
+    
+    //     $totalAchieved = [
+    //         'unique_leads' => 0,
+    //         'influencer_visits' => 0,
+    //         'aashiyana_orders' => 0,
+    //         'product_quantity' => 0,
+    //     ];
+
+    //     foreach ($employeeIds as $empId) {
+      
+    //         $target = Target::where('employee_id', $empId)
+    //                         ->where('month', $month)
+    //                         ->where('year', $year)
+    //                         ->first();
+   
+    //         if ($target) {
+    //             $totalTargets['unique_leads'] += $target->unique_lead ?? 0;
+    //             $totalTargets['influencer_visits'] += $target->customer_visit ?? 0;
+    //             $totalTargets['aashiyana_orders'] += $target->aashiyana ?? 0;
+    //             $totalTargets['product_quantity'] += $target->order_quantity ?? 0;
+    //         }
+    
+    //         // Achievements
+    //         $totalAchieved['unique_leads'] += Lead::where('created_by', $empId)
+    //             ->whereYear('created_at', $year)
+    //             ->whereMonth('created_at', $monthNumber)
+    //             ->count();
+    
+    //         // $customerVisitCount = InfluencerVisit::where('created_by', $empId)
+    //         //     ->whereYear('created_at', $year)
+    //         //     ->whereMonth('created_at', $monthNumber)
+    //         //     ->count();
+    //         $customerVisitCount = InfluencerVisit::where('created_by', $empId)
+    //             ->whereYear('created_at', $year)
+    //             ->whereMonth('created_at', $monthNumber)
+    //             ->distinct('phone')   
+    //             ->count('phone');
+    
+    //         $totalAchieved['influencer_visits'] += $customerVisitCount;
+    
+    //         $totalAchieved['aashiyana_orders'] += Order::where('created_by', $empId)
+    //             ->whereYear('created_at', $year)
+    //             ->whereMonth('created_at', $monthNumber)
+    //             ->where('payment_terms_id', 3)
+    //             ->count();
+    
+    //         $orders = Order::where('created_by', $empId)
+    //             ->whereYear('created_at', $year)
+    //             ->whereMonth('created_at', $monthNumber)
+    //             ->where('order_approved', '1')
+    //             ->get();
+
+    //         $orderQuantity = DB::table('order_items')
+    //                                     ->whereIn('order_id', $orders)
+    //                                     ->sum('total_quantity');
+    //         // $orderQuantity = $orders->sum('invoice_quantity');
+            
+    //         $totalAchieved['product_quantity'] += $orderQuantity;
+    //     }
+  
+    //     return response()->json([
+    //         'success' => true,
+    //         'statusCode' => 200,
+    //         'message' => "Target vs Achievement summary fetched successfully.",
+    //         'data' => [
+    //             'month' => $month,
+    //             'year' => (int) $year,
+    //             'employee_type_id' => (int) $employeeTypeId,
+    //             'targets' => $totalTargets,
+    //             'achievements' => $totalAchieved,
+    //         ]
+    //     ]);
+    // }
     public function getTotalTargetsAchievements(Request $request)
     {
         $employee = Auth::user();
-    
+
         if (!$employee) {
             return response()->json([
                 'success' => false,
@@ -412,7 +521,7 @@ class TargetController extends Controller
                 'message' => "User not authenticated.",
             ], 401);
         }
-    
+
         if ($employee->employee_type_id !== 5) {
             return response()->json([
                 'success' => false,
@@ -420,24 +529,48 @@ class TargetController extends Controller
                 'message' => "Unauthorized. Only Sales Manager (SM) can access this summary.",
             ], 403);
         }
+
+        $request->validate([
+            'month' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer',
+            'employee_type_id' => 'required|integer',
+            'product_id' => 'required|integer',
+        ]);
+
+        $monthNumber = $request->month;
+        $year = $request->year;
+        $productId = $request->product_id;
+        $employeeTypeId = $request->employee_type_id;
+
+        $monthName = Carbon::createFromDate(null, $monthNumber, 1)->format('F');
+
+        $employeeIds = Employee::where('employee_type_id', $employeeTypeId)
+            ->whereRaw('FIND_IN_SET(?, products)', [$productId])
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($employeeIds)) {
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'data' => [
+                    'month' => $monthName,
+                    'year' => (int) $year,
+                    'employee_type_id' => (int) $employeeTypeId,
+                    'targets' => [],
+                    'achievements' => [],
+                ]
+            ]);
+        }
+
     
-        $monthNumber = $request->input('month', date('m'));
-        $year = $request->input('year', date('Y'));
-        $month = Carbon::createFromDate(null, $monthNumber, 1)->format('F');
-   
-        $employeeTypeId = $request->input('employee_type_id', 2); 
-   
-       
-        $employeeIds = Employee::where('employee_type_id', $employeeTypeId)->pluck('id')->toArray();
-    
-        // Initialize totals
         $totalTargets = [
             'unique_leads' => 0,
             'influencer_visits' => 0,
             'aashiyana_orders' => 0,
             'product_quantity' => 0,
         ];
-    
+
         $totalAchieved = [
             'unique_leads' => 0,
             'influencer_visits' => 0,
@@ -445,71 +578,70 @@ class TargetController extends Controller
             'product_quantity' => 0,
         ];
 
-        foreach ($employeeIds as $empId) {
-      
-            $target = Target::where('employee_id', $empId)
-                            ->where('month', $month)
-                            ->where('year', $year)
-                            ->first();
-   
-            if ($target) {
-                $totalTargets['unique_leads'] += $target->unique_lead ?? 0;
-                $totalTargets['influencer_visits'] += $target->customer_visit ?? 0;
-                $totalTargets['aashiyana_orders'] += $target->aashiyana ?? 0;
-                $totalTargets['product_quantity'] += $target->order_quantity ?? 0;
-            }
     
-            // Achievements
+        $targets = Target::whereIn('employee_id', $employeeIds)
+            ->where('month', $monthName)
+            ->where('year', $year)
+            ->where('product_id', $productId)
+            ->get();
+
+        foreach ($targets as $target) {
+            $totalTargets['unique_leads'] += $target->unique_lead ?? 0;
+            $totalTargets['influencer_visits'] += $target->customer_visit ?? 0;
+            $totalTargets['aashiyana_orders'] += $target->aashiyana ?? 0;
+            $totalTargets['product_quantity'] += $target->order_quantity ?? 0;
+        }
+
+    
+        foreach ($employeeIds as $empId) {
+
             $totalAchieved['unique_leads'] += Lead::where('created_by', $empId)
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNumber)
                 ->count();
-    
-            // $customerVisitCount = InfluencerVisit::where('created_by', $empId)
-            //     ->whereYear('created_at', $year)
-            //     ->whereMonth('created_at', $monthNumber)
-            //     ->count();
-            $customerVisitCount = InfluencerVisit::where('created_by', $empId)
+
+            $totalAchieved['influencer_visits'] += InfluencerVisit::where('created_by', $empId)
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNumber)
-                ->distinct('phone')   
+                ->distinct('phone')
                 ->count('phone');
-    
-            $totalAchieved['influencer_visits'] += $customerVisitCount;
-    
+
             $totalAchieved['aashiyana_orders'] += Order::where('created_by', $empId)
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNumber)
                 ->where('payment_terms_id', 3)
+                ->where('order_approved', '1')
                 ->count();
-    
-            $orders = Order::where('created_by', $empId)
+
+            $orderIds = Order::where('created_by', $empId)
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $monthNumber)
                 ->where('order_approved', '1')
-                ->get();
+                ->pluck('id');
 
-            $orderQuantity = DB::table('order_items')
-                                        ->whereIn('order_id', $orders)
-                                        ->sum('total_quantity');
-            // $orderQuantity = $orders->sum('invoice_quantity');
-            
-            $totalAchieved['product_quantity'] += $orderQuantity;
+            $productQty = DB::table('order_items')
+                ->whereIn('order_id', $orderIds)
+                ->where('product_id', $productId)
+                ->sum('total_quantity');
+
+            $totalAchieved['product_quantity'] += (float) $productQty;
         }
-  
+
         return response()->json([
             'success' => true,
             'statusCode' => 200,
             'message' => "Target vs Achievement summary fetched successfully.",
             'data' => [
-                'month' => $month,
+                'month' => $monthName,
                 'year' => (int) $year,
                 'employee_type_id' => (int) $employeeTypeId,
+                'product_id' => (int) $productId,
                 'targets' => $totalTargets,
                 'achievements' => $totalAchieved,
             ]
         ]);
     }
+
 
 
 }

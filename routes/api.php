@@ -117,6 +117,7 @@ use App\Http\Controllers\ExpenseController;
 
                 Route::post('/send-for-approval/{orderId}', [OrderController::class, 'sendForApproval']);
                 Route::post('/order-approval-list', [OrderController::class, 'orderApprovalList']);
+                Route::get('/order-approval/search', [OrderController::class, 'orderApprovalSearch']);
                 Route::get('/order-approval/{orderId}', [OrderController::class, 'orderApprovalDetails']);
                 Route::post('getTotalCreditNotes', [OrderController::class, 'getTotalCreditNotes']);
              

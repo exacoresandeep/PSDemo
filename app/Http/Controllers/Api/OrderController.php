@@ -33,13 +33,13 @@ use App\Http\Controllers\Api\AuthController;
 
 class OrderController extends Controller
 {
-    
+
 
     public function index(Request $request)
     {
         try {
             if ($request->has('search_key')) {
-                return $this->orderFilter($request); 
+                return $this->orderFilter($request);
             }
 
             $employee = Auth::user();
@@ -93,7 +93,6 @@ class OrderController extends Controller
                     ];
                 }),
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -103,10 +102,8 @@ class OrderController extends Controller
         }
     }
 
-    
     public function store(Request $request)
     {
-       
         try {
             $employee = Auth::user();
             if (!$employee) {
@@ -116,7 +113,7 @@ class OrderController extends Controller
                     'message' => "User not Authenticated",
                 ], 401);
             }
-              $rules = [
+            $rules = [
                 'order_type' => 'nullable|exists:order_types,id',
                 'customer_type_id' => 'nullable|exists:customer_types,id',
                 'order_category' => 'nullable|string',
@@ -139,107 +136,102 @@ class OrderController extends Controller
                 'driver_phone' => 'nullable|string',
                 'order_items' => 'required|array',
                 'order_items.*.product_id' => 'required|exists:products,id',
-                'order_items.*.total_quantity' => 'nullable',  //push
                 'order_items.*.product_details' => 'nullable|array',
+                'order_items.*.total_quantity' => 'nullable',
                 'attachment' => 'nullable|array',
                 'attachment.*' => 'nullable|string',
-                
+
             ];
- 
+
             if ($employee->employee_type_id != 1) {
                 $rules['delivery_date'] = 'required|string';
             } else {
                 $rules['delivery_date'] = 'nullable|string';
             }
-   
+
             $validatedData = $request->validate($rules);
-     
+
             foreach (['billing_date', 'delivery_date', 'payment_date'] as $dateField) {
                 if (!empty($validatedData[$dateField])) {
                     // $dateValue = trim($validatedData[$dateField]);
                     // $dateValue = str_replace('/', '-', $dateValue);
-                    $dateValue = trim(str_replace('\\', '', $validatedData[$dateField])); 
+                    $dateValue = trim(str_replace('\\', '', $validatedData[$dateField]));
                     $dateValue = str_replace('/', '-', $dateValue);
 
                     try {
                         $validatedData[$dateField] = Carbon::createFromFormat('d-m-Y', $dateValue)->format('Y-m-d');
                     } catch (\Exception $e) {
-                   
+
                         $validatedData[$dateField] = Carbon::parse($dateValue)->format('Y-m-d');
                     }
                 }
             }
- 
+
             $validatedData['created_by'] = $employee->id;
             if (in_array($employee->employee_type_id, [2, 3, 4, 5])) {
                 $validatedData['order_approved'] = '0';
             }
             $validatedData['product_id'] = $validatedData['order_items'][0]['product_id'] ?? null;
             $order = Order::create($validatedData);
-           
-      
+
+
             foreach ($validatedData['order_items'] as $orderItem) {
                 $totalQuantity = 0;
+
                 if (!empty($orderItem['product_details'])) {
                     foreach ($orderItem['product_details'] as $productDetail) {
-                        //push
-                        // if (isset($productDetail['pieces'])) {
-                        //     $totalQuantity += (float)$productDetail['pieces'];
+                        //if (isset($productDetail['pieces'])) {
+                        //  $totalQuantity += (float)$productDetail['pieces'];
                         // }
                         // if (isset($productDetail['tonnage'])) {
-                        //     $totalQuantity += (float)$productDetail['tonnage'];
+                        //   $totalQuantity += (float)$productDetail['tonnage'];
                         // }
                         $typeName = \App\Models\ProductType::where('id', $productDetail['product_type_id'])
-                        ->value('type_name');
+                            ->value('type_name');
 
                         $productDetail['quantity_type'] = $orderItem['quantity_type'] ?? null;
                         $productDetail['type_name'] = $typeName ?? null;
 
                         $productDetails[] = $productDetail;
                     }
-
                 } else {
-                    //push
-                    // $totalQuantity = (float)($orderItem['quantity'] ?? 0);
+                    //$totalQuantity = (float)($orderItem['quantity'] ?? 0);
                     $orderItem['product_details'] = null;
                 }
-                $totalQuantity = (float)($orderItem['total_quantity'] ?? 0);  //push
-
-                $orderItem['total_quantity'] = round($totalQuantity, 6);//push
+                $totalQuantity = (float)($orderItem['total_quantity'] ?? 0);
+                $orderItem['total_quantity'] = round($totalQuantity, 6);
                 unset($orderItem['quantity_type']);
 
                 $order->orderItems()->create($orderItem);
             }
 
-     
+
 
             $responseData = [
-                    'order_type' => $order->order_type,
-                    'customer_type_id' => $order->customerType, 
-                    'lead_id' => $order->lead_id,
-                    'dealer_id' => $order->dealer_id,
-                    'payment_terms_id' => $order->payment_terms_id,
-                    'credit_days' => $order->credit_days,
-                    'billing_date' => $order->billing_date,
-                    'total_amount' => round((float) $order->total_amount, 6),
-                    'additional_information' => $order->additional_information,
-                    'status' => $order->status,
-                    'created_by' => $order->created_by,
-                    'updated_at' => Carbon::parse($order->updated_at)->format('d-m-Y'),
-                    'created_at' => Carbon::parse($order->created_at)->format('d-m-Y'),
-                    'id' => $order->id,
-                    'product_id' => $order->product_id,
+                'order_type' => $order->order_type,
+                'customer_type_id' => $order->customerType,
+                'lead_id' => $order->lead_id,
+                'dealer_id' => $order->dealer_id,
+                'payment_terms_id' => $order->payment_terms_id,
+                'credit_days' => $order->credit_days,
+                'billing_date' => $order->billing_date,
+                'total_amount' => round((float) $order->total_amount, 6),
+                'additional_information' => $order->additional_information,
+                'status' => $order->status,
+                'created_by' => $order->created_by,
+                'updated_at' => Carbon::parse($order->updated_at)->format('d-m-Y'),
+                'created_at' => Carbon::parse($order->created_at)->format('d-m-Y'),
+                'id' => $order->id,
+                'product_id' => $order->product_id,
 
             ];
-           
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Order created successfully!',
                 'data' => $responseData
             ], 200);
-            
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -262,64 +254,62 @@ class OrderController extends Controller
                     'message' => 'You must be logged in to view this order.'
                 ], 400);
             }
-            
+
             $order = Order::with([
                 'orderType:id,name',
-                'dealer:id,dealer_name,dealer_code', 
+                'dealer:id,dealer_name,dealer_code',
                 'orderItems.product:id,product_name,product_code',
                 'lead:id,customer_type,customer_name,phone,address',
-                'lead.customerType:id,name', 
+                'lead.customerType:id,name',
                 'paymentTerm:id,name',
-                'vehicleCategory:id,vehicle_category_name' 
+                'vehicleCategory:id,vehicle_category_name'
             ])->findOrFail($orderId);
-      
-            if($user->id==$order->created_by && $order->notification_status=="pending"){
-                $order->update(['notification_status' => 'opened']);      
+            if ($user->id == $order->created_by && $order->notification_status == "pending") {
+                $order->update(['notification_status' => 'opened']);
             }
-
             $order->vehicle_category_name = $order->vehicleCategory->vehicle_category_name ?? null;
-            
+
             $order->total_amount = round((float) $order->total_amount, 6);
 
-          
+
             if ($order->orderItems && count($order->orderItems)) {
                 foreach ($order->orderItems as $item) {
                     $item->total_quantity = (float) $item->total_quantity;
                     unset($item->quantity_type);
-            
+
                     $totalPieces = 0;
                     $totalTon = 0;
-                    
+
                     if (isset($item->product_details) && is_array($item->product_details)) {
                         foreach ($item->product_details as $pd) {
                             $totalPieces += $pd['pieces'] ?? 0;
                             $tonnage = $pd['tonnage'] ?? 0;
                             $pieces  = $pd['pieces'] ?? 0;
+
                             $totalTon += $tonnage * $pieces;
                         }
                     }
-                    
+
                     $item->total_pieces = $totalPieces;
                     $item->total_ton = $totalTon;
-            
-            
+
+
                     $item->product_name = $item->product['product_name'] ?? null;
                     $item->product_code = $item->product['product_code'] ?? null;
                 }
             }
-    	    if($order->dealer_flag_order!="0"){
-    	 	    //......................notification..............
-                $authController = new AuthController();
-                $authController->changeNotificationStatus('orders', $orderId,'opened');
-    	    }
+            if ($order->dealer_flag_order != "0") {
 
-	        return response()->json([
+                $authController = new AuthController();
+                $authController->changeNotificationStatus('orders', $orderId, 'opened');
+            }
+
+            return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Orders details fetched successfully',
                 'data' => $order,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -343,53 +333,59 @@ class OrderController extends Controller
             $searchKey = $request->input('search_key', '');
             $product_id = $request->input('product_id', '');
 
+            // Split first
             $searchParts = explode('|', $searchKey);
             $statusFilter = isset($searchParts[0]) ? $searchParts[0] : '';
             $dateFilter   = isset($searchParts[1]) ? $searchParts[1] : '';
-            
-            // $statusFilter = ucfirst(strtolower($statusFilter));
-            
+
+            // Normalize text
+            //$statusFilter = ucfirst(strtolower($statusFilter));
+
+
+            // -------------------- QUERY START --------------------
+
             $ordersQuery = Order::with(['dealer:id,dealer_name as name'])
                 ->where('created_by', $employeeId)
-                ->select('id','created_at','status','total_amount','dealer_id');
-                
+                ->select('id', 'created_at', 'status', 'total_amount', 'dealer_id');
+
+            // Apply product filter
             if (!empty($product_id)) {
                 $ordersQuery->where('product_id', $product_id);
             }
-            
-            if (in_array($statusFilter, ['All','Pending','Accepted','Rejected','Accounts Approved','Accounts Rejected'])) {
-                if ($statusFilter != 'All') {
+            // Apply status filter
+            if (in_array($statusFilter, ['All', 'Pending', 'Accepted', 'Rejected', 'Accounts Approved', 'Accounts Rejected'])) {
+                if ($statusFilter !== 'All') {
                     $ordersQuery->where('status', $statusFilter);
                 }
             }
-            
+
+
             if (preg_match('/^\d{2}-\d{2}-\d{4}$/', $dateFilter)) {
+
                 try {
                     $parsedDate = Carbon::createFromFormat('d-m-Y', $dateFilter);
-                    $start = (clone $parsedDate)->startOfDay(); 
+
+                    $start = (clone $parsedDate)->startOfDay();
                     $end   = (clone $parsedDate)->endOfDay();
                     $ordersQuery->whereBetween('created_at', [$start, $end]);
                 } catch (\Exception $e) {
                 }
-            }
-            elseif (in_array($dateFilter, ['Today','Weekly','Monthly', 'By financial year'])) {
+            } elseif (in_array($dateFilter, ['Today', 'Weekly', 'Monthly', 'By financial year'])) {
                 $dateFilter   = ucfirst(strtolower($dateFilter));
                 if ($dateFilter == 'Today') {
                     $start = Carbon::today()->startOfDay();
                     $end   = Carbon::today()->endOfDay();
                     $ordersQuery->whereBetween('created_at', [$start, $end]);
-
                 } elseif ($dateFilter == 'Weekly') {
                     $start = Carbon::now()->startOfWeek();
                     $end   = Carbon::now()->endOfWeek();
                     $ordersQuery->whereBetween('created_at', [$start, $end]);
-
                 } elseif ($dateFilter == 'Monthly') {
                     $start = Carbon::now()->startOfMonth();
                     $end   = Carbon::now()->endOfMonth();
                     $ordersQuery->whereBetween('created_at', [$start, $end]);
-
                 } elseif ($dateFilter == 'By financial year') {
+                    // Apply FY filter only
                     $today = Carbon::now();
                     if ($today->month >= 4) {
                         $fyStart = Carbon::create($today->year, 4, 1)->startOfDay();
@@ -400,10 +396,23 @@ class OrderController extends Controller
                     }
 
                     $ordersQuery->whereBetween('created_at', [$fyStart, $fyEnd]);
-                }else{
+                } else {
                 }
             }
-            // dd($ordersQuery->toRawSql());
+
+
+            // Apply financial year filter
+            // $today = Carbon::now();
+            // if ($today->month >= 4) {
+            //     $fyStart = Carbon::create($today->year, 4, 1);
+            //     $fyEnd   = Carbon::create($today->year + 1, 3, 31)->endOfDay();
+            // } else {
+            //     $fyStart = Carbon::create($today->year - 1, 4, 1);
+            //     $fyEnd   = Carbon::create($today->year, 3, 31)->endOfDay();
+            // }
+
+            // $ordersQuery->whereBetween('created_at', [$fyStart, $fyEnd]);
+
 
             $orders = $ordersQuery->get()->map(function ($order) {
                 return [
@@ -414,14 +423,13 @@ class OrderController extends Controller
                     'dealer' => $order->dealer,
                 ];
             });
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Orders filtered successfully',
                 'data' => $orders,
             ], 200);
-    
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -434,12 +442,12 @@ class OrderController extends Controller
     public function dealerOrderList(Request $request)
     {
         try {
-            //push
-            if ($request->hasAny(['search_key', 'product_id'])) {
+
+            if ($request->has('search_key')) {
                 return $this->orderFilter($request);
             }
-            $employee = Auth::user();
 
+            $employee = Auth::user();
             if (!$employee) {
                 return response()->json([
                     'success' => false,
@@ -448,36 +456,31 @@ class OrderController extends Controller
                 ], 401);
             }
 
+            $productId = $request->query('product_id'); // 👈 NEW
+
             $assignedRouteIds = AssignRoute::where('employee_id', $employee->id)
                 ->pluck('id')
                 ->toArray();
-
-            if (empty($assignedRouteIds)) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => "No assigned routes found for the employee.",
-                    'data' => []
-                ], 404);
-            }
 
             $dealerIds = DealerRouteAssignment::whereIn('assign_route_id', $assignedRouteIds)
                 ->pluck('dealer_id')
                 ->unique()
                 ->toArray();
 
-            if (empty($dealerIds)) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => "No dealers found for the assigned routes.",
-                    'data' => []
-                ], 404);
-            }
-
             $orders = Order::join('dealers', 'orders.created_by_dealer', '=', 'dealers.id')
                 ->where('orders.dealer_flag_order', '1')
                 ->whereIn('orders.created_by_dealer', $dealerIds)
+
+                // 🔥 FILTER BY PRODUCT
+                ->when($productId, function ($q) use ($productId) {
+                    $q->whereExists(function ($sub) use ($productId) {
+                        $sub->select(DB::raw(1))
+                            ->from('order_items')
+                            ->whereColumn('order_items.order_id', 'orders.id')
+                            ->where('order_items.product_id', $productId);
+                    });
+                })
+
                 ->select([
                     'orders.id',
                     'orders.total_amount',
@@ -487,16 +490,8 @@ class OrderController extends Controller
                     'dealers.dealer_name',
                     'dealers.dealer_code'
                 ])
+                ->orderBy('orders.id', 'desc')
                 ->get();
-
-            if ($orders->isEmpty()) {
-                return response()->json([
-                    'success' => true,
-                    'statusCode' => 200,
-                    'message' => "No dealer-created orders found.",
-                    'data' => []
-                ], 200);
-            }
 
             $data = $orders->map(function ($order) {
                 return [
@@ -580,21 +575,40 @@ class OrderController extends Controller
             $createdAt = Carbon::parse($order->created_at)->format('d/m/Y');
 
             $orderItems = $order->orderItems->map(function ($item) {
-                $productDetails = collect($item->product_details)->map(function ($detail) {
-                    $productType = ProductType::find($detail['product_type_id']);
-                    return [
-                        'product_type_id' => $detail['product_type_id'],
-                        'type_name' => $productType->type_name ?? null,
-                        'quantity' => (float) $detail['quantity'],
-                        'rate' => $detail['rate']
-                    ];
-                });
+
+                $totalPieces = 0;
+                $totalTon = 0;
+
+                $productDetails = [];
+
+                if (isset($item->product_details) && is_array($item->product_details)) {
+                    foreach ($item->product_details as $pd) {
+
+                        $pieces  = $pd['pieces'] ?? 0;
+                        $tonnage = $pd['tonnage'] ?? 0;
+
+                        $totalPieces += $pieces;
+                        $totalTon += ($tonnage * $pieces);
+
+                        $productDetails[] = [
+                            'product_type_id' => $pd['product_type_id'] ?? null,
+                            'pieces' => (float) $pieces,
+                            'tonnage' => (float) $tonnage,
+                            'rate' => $pd['rate'] ?? null,
+                            'product_type' => ProductType::where('id', $pd['product_type_id'] ?? null)
+                                ->value('type_name') ?? 'N/A',
+                        ];
+                    }
+                }
 
                 return [
                     'product_id' => $item->product_id,
                     'product_name' => $item->product->product_name ?? null,
                     'product_code' => $item->product->product_code ?? null,
                     'total_quantity' => (float) $item->total_quantity,
+                    'balance_quantity' => (float) $item->balance_quantity,
+                    'total_pieces' => $totalPieces,
+                    'total_ton' => round($totalTon, 3),
                     'product_details' => $productDetails,
                 ];
             });
@@ -612,6 +626,7 @@ class OrderController extends Controller
                 'additional_information' => $order->additional_information,
                 'created_at' => $createdAt,
                 'order_items' => $orderItems,
+
                 'vehicle_category' => $order->vehicleCategory->vehicle_category_name ?? null,
                 'vehicle_number' => $order->vehicle_number,
                 'driver_name' => $order->driver_name,
@@ -628,7 +643,6 @@ class OrderController extends Controller
                 'message' => 'Order details fetched successfully',
                 'data' => $response,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -637,8 +651,6 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
-    
     public function dealerOrderStatusUpdate(Request $request, $orderId)
     {
         try {
@@ -670,22 +682,22 @@ class OrderController extends Controller
             }
 
             if ($user->employee_type_id != 5) {
-            $allowedRoutes = AssignRoute::where('employee_id', $user->id)->pluck('id')->toArray();
+                $allowedRoutes = AssignRoute::where('employee_id', $user->id)->pluck('id')->toArray();
 
-            if (!in_array($dealer->assigned_route_id, $allowedRoutes)) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 403,
-                    'message' => 'You are not authorized to update this order status.',
-                ], 403);
+                if (!in_array($dealer->assigned_route_id, $allowedRoutes)) {
+                    return response()->json([
+                        'success' => false,
+                        'statusCode' => 403,
+                        'message' => 'You are not authorized to update this order status.',
+                    ], 403);
+                }
             }
-        }
 
-        // Update order status and rejection reason if applicable
-        $order->update([
-            'status' => $validatedData['status'],
-            'reason_for_rejection' => $validatedData['status'] === 'Rejected' ? $validatedData['reason_for_rejection'] : null,
-        ]);
+            // Update order status and rejection reason if applicable
+            $order->update([
+                'status' => $validatedData['status'],
+                'reason_for_rejection' => $validatedData['status'] === 'Rejected' ? $validatedData['reason_for_rejection'] : null,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -697,7 +709,6 @@ class OrderController extends Controller
                     'reason_for_rejection' => $order->reason_for_rejection,
                 ],
             ], 200);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -715,7 +726,7 @@ class OrderController extends Controller
     }
 
 
-     public function dealerOrderFilter(Request $request)
+    public function dealerOrderFilter(Request $request)
     {
         try {
             $validatedData = $request->validate([
@@ -797,7 +808,6 @@ class OrderController extends Controller
                 'message' => "Filtered dealer-created orders fetched successfully",
                 'data' => $orders,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -807,7 +817,6 @@ class OrderController extends Controller
         }
     }
 
-    
     public function outstandingPaymentsList($product_id)
     {
         try {
@@ -870,7 +879,6 @@ class OrderController extends Controller
                 'message' => 'Dealer-wise outstanding amounts fetched successfully',
                 'data' => $outstandingSummaries,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -879,7 +887,6 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
 
     public function searchOutstandingPayments(Request $request)
     {
@@ -936,7 +943,7 @@ class OrderController extends Controller
                 ->where('outstanding_amount', '>', 0)
                 ->whereHas('dealer', function ($q) use ($search) {
                     $q->where('dealer_name', 'like', "%{$search}%")
-                      ->orWhere('dealer_code', 'like', "%{$search}%");
+                        ->orWhere('dealer_code', 'like', "%{$search}%");
                 })
                 ->with([
                     'dealer:id,dealer_name,dealer_code',
@@ -959,7 +966,6 @@ class OrderController extends Controller
                 'message' => 'Filtered outstanding payments fetched successfully.',
                 'data' => $outstandingSummaries,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -969,182 +975,6 @@ class OrderController extends Controller
         }
     }
 
-    // public function viewOutstandingPaymentByDealer($dealer_id)
-    // {
-    //     try {
-    //         $employee = Auth::user();
-
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not authenticated",
-    //             ], 401);
-    //         }
-
-    //         $dealer = Dealer::find($dealer_id);
-
-    //         if (!$dealer) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "Dealer not found.",
-    //             ], 404);
-    //         }
-
-    //         $assignedRouteIds = AssignRoute::where('employee_id', $employee->id)
-    //             ->pluck('id')
-    //             ->toArray();
-
-    //         if (empty($assignedRouteIds)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No assigned routes found for this employee.",
-    //             ], 404);
-    //         }
-
-    //         $accessibleDealerIds = DealerRouteAssignment::whereIn('assign_route_id', $assignedRouteIds)
-    //             ->pluck('dealer_id')
-    //             ->unique()
-    //             ->toArray();
-
-    //         if (!in_array($dealer_id, $accessibleDealerIds)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 403,
-    //                 'message' => "You do not have access to this dealer's outstanding payments.",
-    //             ], 403);
-    //         }
-
-    //         $outstandingPayments = OutstandingPayment::where('dealer_id', $dealer_id)
-    //             ->where('outstanding_amount', '>', 0)
-    //             ->orderBy('due_date', 'asc')
-    //             ->get()
-    //             ->map(function ($item) {
-    //                 return [
-    //                     'order_id' => $item->order_id,
-    //                     'invoice_number' => $item->invoice_number,
-    //                     'invoice_date' => $item->invoice_date ? $item->invoice_date->format('d/m/Y') : null,
-    //                     'due_date' => $item->due_date ? $item->due_date->format('d/m/Y') : null,
-    //                     'outstanding_amount' => (float) $item->outstanding_amount,
-    //                 ];
-    //             });
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Outstanding payments fetched successfully.',
-    //             'data' => $outstandingPayments,
-    //         ], 200);
-
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
-    
-    // public function searchOutstandingByInvoice(Request $request)
-    // {
-    //     try {
-    //         $employee = Auth::user();
-
-    //         if (!$employee) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 401,
-    //                 'message' => "User not authenticated",
-    //             ], 401);
-    //         }
-
-    //         $invoiceNumber = $request->input('invoice_number');
-    //         $dealerId = $request->input('dealer_id');
-
-    //         if (!$invoiceNumber || !$dealerId) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 422,
-    //                 'message' => "Both invoice number and dealer ID are required.",
-    //             ], 422);
-    //         }
-
-    //         $dealer = Dealer::find($dealerId);
-    //         if (!$dealer) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "Dealer not found.",
-    //             ], 404);
-    //         }
-
-    //         $assignedRouteIds = AssignRoute::where('employee_id', $employee->id)
-    //             ->pluck('id')
-    //             ->toArray();
-
-    //         if (empty($assignedRouteIds)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No assigned routes found for this employee.",
-    //             ], 404);
-    //         }
-
-    //         $accessibleDealerIds = DealerRouteAssignment::whereIn('assign_route_id', $assignedRouteIds)
-    //             ->pluck('dealer_id')
-    //             ->unique()
-    //             ->toArray();
-
-    //         if (!in_array($dealerId, $accessibleDealerIds)) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 403,
-    //                 'message' => "You do not have access to this dealer's outstanding payments.",
-    //             ], 403);
-    //         }
-
-    //         $outstandingRecords = OutstandingPayment::where('dealer_id', $dealerId)
-    //             ->where('invoice_number', 'like', "%{$invoiceNumber}%")
-    //             ->where('outstanding_amount', '>', 0)
-    //             ->orderBy('due_date', 'asc')
-    //             ->get();
-
-    //         if ($outstandingRecords->isEmpty()) {
-    //             return response()->json([
-    //                 'success' => false,
-    //                 'statusCode' => 404,
-    //                 'message' => "No outstanding payments found for this invoice and dealer.",
-    //                 'data' => [],
-    //             ], 404);
-    //         }
-
-    //         $formattedResults = $outstandingRecords->map(function ($item) {
-    //             return [
-    //                 'order_id' => $item->order_id,
-    //                 'invoice_number' => $item->invoice_number,
-    //                 'invoice_date' => $item->invoice_date ? $item->invoice_date->format('d/m/Y') : null,
-    //                 'due_date' => $item->due_date ? $item->due_date->format('d/m/Y') : null,
-    //                 'outstanding_amount' => (float) $item->outstanding_amount,
-    //             ];
-    //         });
-
-    //         return response()->json([
-    //             'success' => true,
-    //             'statusCode' => 200,
-    //             'message' => 'Outstanding payment details found successfully.',
-    //             'data' => $formattedResults,
-    //         ], 200);
-
-    //     } catch (Exception $e) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'statusCode' => 500,
-    //             'message' => $e->getMessage(),
-    //         ], 500);
-    //     }
-    // }
     public function viewOutstandingPaymentByDealer(Request $request, $dealer_id)
     {
         try {
@@ -1203,7 +1033,6 @@ class OrderController extends Controller
                 'message' => 'Outstanding payments fetched successfully',
                 'data' => $data,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1282,7 +1111,6 @@ class OrderController extends Controller
                 'message' => 'Outstanding payment details fetched successfully',
                 'data' => $records,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1386,40 +1214,40 @@ class OrderController extends Controller
             // });
             $orderItems = $order->orderItems->map(function ($item) {
 
-            // Build product-wise details
-            $productDetails = collect($item->product_details)->map(function ($detail) {
+                // Build product-wise details
+                $productDetails = collect($item->product_details)->map(function ($detail) {
 
-                $productType = \App\Models\ProductType::find($detail['product_type_id']);
+                    $productType = \App\Models\ProductType::find($detail['product_type_id']);
+
+                    return [
+                        'product_type_id' => $detail['product_type_id'],
+                        'type_name' => $productType->type_name ?? null,
+                        'quantity' => isset($detail['quantity']) ? (float) $detail['quantity'] : 0,
+                        'pieces' => isset($detail['pieces']) ? (float) $detail['pieces'] : 0,
+                        'tonnage' => isset($detail['tonnage']) ? (float) $detail['tonnage'] : 0,
+                        'rate' => $detail['rate'] ?? null,
+                        'quantity_type' => $detail['quantity_type'] ?? null,
+                    ];
+                });
+
+                // Totals PER PRODUCT
+                $totalQuantity = $productDetails->sum('quantity');
+                $totalPieces   = $productDetails->sum('pieces');
+
+                $totalTonnage = $productDetails->sum(function ($detail) {
+                    return ($detail['pieces'] ?? 0) * ($detail['tonnage'] ?? 0);
+                });
 
                 return [
-                    'product_type_id' => $detail['product_type_id'],
-                    'type_name' => $productType->type_name ?? null,
-                    'quantity' => isset($detail['quantity']) ? (float) $detail['quantity'] : 0,
-                    'pieces' => isset($detail['pieces']) ? (float) $detail['pieces'] : 0,
-                    'tonnage' => isset($detail['tonnage']) ? (float) $detail['tonnage'] : 0,
-                    'rate' => $detail['rate'] ?? null,
-                    'quantity_type' => $detail['quantity_type'] ?? null,
+                    'product_id' => $item->product_id,
+                    'product_name' => $item->product->product_name ?? null,
+                    'product_code' => $item->product->product_code ?? null,
+                    'total_quantity' => (float) $totalQuantity,
+                    'total_pieces' => (float) $totalPieces,
+                    'total_ton' => $totalTonnage > 0 ? (float) $totalTonnage : null,
+                    'product_details' => $productDetails,
                 ];
             });
-
-            // Totals PER PRODUCT
-            $totalQuantity = $productDetails->sum('quantity');
-            $totalPieces   = $productDetails->sum('pieces');
-
-            $totalTonnage = $productDetails->sum(function ($detail) {
-                return ($detail['pieces'] ?? 0) * ($detail['tonnage'] ?? 0);
-            });
-
-            return [
-                'product_id' => $item->product_id,
-                'product_name' => $item->product->product_name ?? null,
-                'product_code' => $item->product->product_code ?? null,
-                'total_quantity' => (float) $totalQuantity,
-                'total_pieces' => (float) $totalPieces,
-                'total_ton' => $totalTonnage > 0 ? (float) $totalTonnage : null,
-                'product_details' => $productDetails,
-            ];
-        });
 
             $commitment_data = $outstandingPayment->commitments->map(function ($commitment) {
                 return [
@@ -1476,7 +1304,6 @@ class OrderController extends Controller
                 'message' => 'Outstanding Payment Order details fetched successfully',
                 'data' => $response,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1485,7 +1312,6 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
     public function addOutstandingPaymentCommitment(Request $request, $outstandingPaymentId)
     {
         try {
@@ -1571,7 +1397,6 @@ class OrderController extends Controller
                 'message' => 'Commitments added successfully!',
                 'data' => $commitmentsToInsert,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1682,7 +1507,6 @@ class OrderController extends Controller
                     "outstandingPayments" => $outstandingPayments
                 ]
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1695,6 +1519,7 @@ class OrderController extends Controller
     {
         try {
             $employee = Auth::user();
+
             if (!$employee) {
                 return response()->json([
                     'success' => false,
@@ -1702,199 +1527,182 @@ class OrderController extends Controller
                     'message' => "User not authenticated.",
                 ], 401);
             }
-    
+
             $month = $request->input('month', date('m'));
             $year = $request->input('year', date('Y'));
-            $product_id = $request->input('product_id', null);
-    
+            $product_id = $request->input('product_id');
+
             $totalSalesForPeriod = 0;
             $salesReport = collect([]);
-            if ($employee->employee_type_id == 3) {  // DSM
+
+            /**
+             * ======================
+             * DSM (employee_type_id = 3)
+             * ======================
+             */
+            if ($employee->employee_type_id == 3) {
+
                 $salesExecutives = Employee::where('district_id', $employee->district_id)
                     ->whereIn('employee_type_id', [1, 2])
+                    ->when($product_id, function ($q) use ($product_id) {
+                        $q->whereJsonContains('products', (string) $product_id);
+                    })
                     ->get();
-    
-                if ($salesExecutives->isEmpty()) {
-                    return response()->json([
-                        'success' => false,
-                        'statusCode' => 404,
-                        'message' => "No Sales Executives and Area Sales Officers found in this district.",
-                    ], 404);
-                }
 
                 $salesReport = $salesExecutives->map(function ($se) use ($month, $year, $product_id, &$totalSalesForPeriod) {
-                    $orders = Order::where('created_by', $se->id)
-                        // ->where('status', 'Delivered')
-                        ->where('order_approved', '1')
+
+                    $orders = Order::with(['orderItems' => function ($q) use ($product_id) {
+                        if ($product_id) {
+                            $q->where('product_id', $product_id);
+                        }
+                    }])
+                        ->where('created_by', $se->id)
+                        ->where('order_approved', '1') // ✅ STRING CHECK
                         ->whereYear('created_at', $year)
                         ->whereMonth('created_at', $month)
-                        ->where(function ($q) {
-                            $q->whereNull('source')
-                            ->orWhere('source', '')
-                            ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
-                        })
-
-                        ->when($product_id, function ($q) use ($product_id) {
-                            $q->where('product_id', $product_id);
+                        ->whereHas('orderItems', function ($q) use ($product_id) {
+                            if ($product_id) {
+                                $q->where('product_id', $product_id);
+                            }
                         })
                         ->get();
-    
-                    $totalSales = $orders->sum('invoice_total');
+
+                    $totalSales = $orders->flatMap->orderItems->sum('total_quantity');
                     $totalSalesForPeriod += $totalSales;
-    
+
                     return [
                         'employee_id' => $se->id,
                         'employee_name' => $se->name,
                         'employee_code' => $se->employee_code,
-			            'employee_type_id' => $se->employee_type_id,
+                        'employee_type_id' => $se->employee_type_id,
                         'total_sales_report' => (float) $totalSales,
                         'orders' => $orders->map(function ($order) {
                             return [
                                 'order_id' => $order->id,
-                                'created_at' => $order->created_at ? $order->created_at->format('d/m/Y') : null,
-                                'invoice_total' => (float) $order->invoice_total,
+                                'created_at' => optional($order->created_at)->format('d/m/Y'),
+                                'invoice_total' => $order->orderItems->sum('total_quantity'),
                             ];
                         }),
                     ];
                 });
-    
-            } elseif ($employee->employee_type_id == 4) {  //RSM
-                $region = Regions::whereHas('districts', function ($query) use ($employee) {
-                    $query->where('id', $employee->district_id);
+
+                /**
+                 * ======================
+                 * RSM (employee_type_id = 4)
+                 * ======================
+                 */
+            } elseif ($employee->employee_type_id == 4) {
+
+                $region = Regions::whereHas('districts', function ($q) use ($employee) {
+                    $q->where('id', $employee->district_id);
                 })->first();
-    
-                if (!$region) {
-                    return response()->json([
-                        'success' => false,
-                        'statusCode' => 404,
-                        'message' => "Region not found for the employee's district.",
-                    ], 404);
-                }
-    
-                $districtsInRegion = District::where('regions_id', $region->id)->pluck('id')->toArray();
-                $employees = Employee::whereIn('district_id', $districtsInRegion)
+
+                $districtIds = District::where('regions_id', $region->id)->pluck('id');
+
+                $employees = Employee::whereIn('district_id', $districtIds)
                     ->whereIn('employee_type_id', [1, 2, 3])
+                    ->when($product_id, function ($q) use ($product_id) {
+                        $q->whereJsonContains('products', (string) $product_id);
+                    })
                     ->get();
-    
-                if ($employees->isEmpty()) {
-                    return response()->json([
-                        'success' => false,
-                        'statusCode' => 404,
-                        'message' => "No Sales Executives or Area Sales Officers found in this region.",
-                    ], 404);
-                }
-    
+
                 $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod) {
-                    $orders = Order::where('created_by', $emp->id)
-                        // ->where('status', 'Delivered')
+
+                    $orders = Order::with(['orderItems' => function ($q) use ($product_id) {
+                        if ($product_id) {
+                            $q->where('product_id', $product_id);
+                        }
+                    }])
+                        ->where('created_by', $emp->id)
                         ->where('order_approved', '1')
                         ->whereYear('created_at', $year)
                         ->whereMonth('created_at', $month)
-                        ->where(function ($q) {
-                            $q->whereNull('source')
-                            ->orWhere('source', '')
-                            ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
-                        })
-
-                        ->when($product_id, function ($q) use ($product_id) {
-                            $q->where('product_id', $product_id);
+                        ->whereHas('orderItems', function ($q) use ($product_id) {
+                            if ($product_id) {
+                                $q->where('product_id', $product_id);
+                            }
                         })
                         ->get();
-    
-                    $totalSales = $orders->sum('invoice_total');
+
+                    $totalSales = $orders->flatMap->orderItems->sum('total_quantity');
                     $totalSalesForPeriod += $totalSales;
-    
-                    $employeeType = match ($emp->employee_type_id) {
-                        1 => 'Sales Executive',
-                        2 => 'Area Sales Officer',
-                        3 => 'District Sales Manager',
-                        default => 'Unknown',
-                    };
-    
+
                     return [
                         'employee_id' => $emp->id,
                         'employee_name' => $emp->name,
                         'employee_code' => $emp->employee_code,
                         'employee_type_id' => $emp->employee_type_id,
-                        'employee_type' => $employeeType,
                         'total_sales_report' => (float) $totalSales,
                         'orders' => $orders->map(function ($order) {
                             return [
                                 'order_id' => $order->id,
-                                'created_at' => $order->created_at ? $order->created_at->format('d/m/Y') : null,
-                                'invoice_total' => (float) $order->invoice_total,
+                                'created_at' => optional($order->created_at)->format('d/m/Y'),
+                                'invoice_total' => $order->orderItems->sum('total_quantity'),
                             ];
                         }),
                     ];
                 });
-    
-            } elseif ($employee->employee_type_id == 5) {  //SM
-                $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])->get();
-    
-                if ($employees->isEmpty()) {
-                    return response()->json([
-                        'success' => false,
-                        'statusCode' => 404,
-                        'message' => "No Employees found.",
-                    ], 404);
-                }
-    
+
+                /**
+                 * ======================
+                 * SM (employee_type_id = 5)
+                 * ======================
+                 */
+            } elseif ($employee->employee_type_id == 5) {
+
+                $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])
+                    ->when($product_id, function ($q) use ($product_id) {
+                        $q->whereJsonContains('products', (string) $product_id);
+                    })
+                    ->get();
+
                 $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod) {
-                    $orders = Order::where('created_by', $emp->id)
-                        // ->where('status', 'Delivered')
+
+                    $orders = Order::with(['orderItems' => function ($q) use ($product_id) {
+                        if ($product_id) {
+                            $q->where('product_id', $product_id);
+                        }
+                    }])
+                        ->where('created_by', $emp->id)
                         ->where('order_approved', '1')
                         ->whereYear('created_at', $year)
                         ->whereMonth('created_at', $month)
-                        ->where(function ($q) {
-                            $q->whereNull('source')
-                            ->orWhere('source', '')
-                            ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
-                        })
-
-                        ->when($product_id, function ($q) use ($product_id) {
-                            $q->where('product_id', $product_id);
+                        ->whereHas('orderItems', function ($q) use ($product_id) {
+                            if ($product_id) {
+                                $q->where('product_id', $product_id);
+                            }
                         })
                         ->get();
-    
-                    $totalSales = $orders->sum('invoice_total');
+
+                    $totalSales = $orders->flatMap->orderItems->sum('total_quantity');
                     $totalSalesForPeriod += $totalSales;
-    
-                    $employeeType = match ($emp->employee_type_id) {
-                        1 => 'Sales Executive',
-                        2 => 'Area Sales Officer',
-                        3 => 'District Sales Manager',
-                        4 => 'Regional Sales Manager',
-                        default => 'Unknown',
-                    };
-    
+
                     return [
                         'employee_id' => $emp->id,
                         'employee_name' => $emp->name,
                         'employee_code' => $emp->employee_code,
                         'employee_type_id' => $emp->employee_type_id,
-                        'employee_type' => $employeeType,
                         'total_sales_report' => (float) $totalSales,
                         'orders' => $orders->map(function ($order) {
                             return [
                                 'order_id' => $order->id,
-                                'created_at' => $order->created_at ? $order->created_at->format('d/m/Y') : null,
-                                'invoice_total' => (float) $order->invoice_total,
+                                'created_at' => optional($order->created_at)->format('d/m/Y'),
+                                'invoice_total' => $order->orderItems->sum('total_quantity'),
                             ];
                         }),
                     ];
                 });
             }
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'message' => "Sales report fetched successfully for $month/$year.",
+                'message' => "Sales report fetched successfully.",
                 'data' => [
                     'total_sales_for_period' => (float) $totalSalesForPeriod,
                     'sales_report' => $salesReport,
                 ],
             ], 200);
-    
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1903,13 +1711,12 @@ class OrderController extends Controller
             ], 500);
         }
     }
-   
+
     public function salesReportDetails(Request $request, $employee_id)
     {
-       
         try {
             $employee = Auth::user();
-    
+
             if (!$employee) {
                 return response()->json([
                     'success' => false,
@@ -1917,35 +1724,59 @@ class OrderController extends Controller
                     'message' => "User not authenticated.",
                 ], 401);
             }
-            if ($employee->employee_type_id == 3) { 
-                $allowedEmployeeTypes = [1, 2]; 
+
+            $month = $request->input('month', date('m'));
+            $year = $request->input('year', date('Y'));
+            $product_id = $request->input('product_id');
+
+            /**
+             * =====================
+             * EMPLOYEE ACCESS CHECK
+             * =====================
+             */
+            if ($employee->employee_type_id == 3) {
                 $salesEmployee = Employee::where('id', $employee_id)
-                    ->whereIn('employee_type_id', $allowedEmployeeTypes)
+                    ->whereIn('employee_type_id', [1, 2])
+                    ->when(
+                        $product_id,
+                        fn($q) =>
+                        $q->whereJsonContains('products', (string) $product_id)
+                    )
                     ->first();
-            } elseif ($employee->employee_type_id == 4) { 
-                $region = Regions::whereHas('districts', function ($query) use ($employee) {
-                    $query->where('id', $employee->district_id);
+            } elseif ($employee->employee_type_id == 4) {
+
+                $region = Regions::whereHas('districts', function ($q) use ($employee) {
+                    $q->where('id', $employee->district_id);
                 })->first();
-                
-        
+
                 if (!$region) {
                     return response()->json([
                         'success' => false,
                         'statusCode' => 404,
-                        'message' => "Region not found for the RSM.",
+                        'message' => "Region not found.",
                     ], 404);
                 }
-       //..
-                $districtsInRegion = District::where('regions_id', $region->id)->pluck('id')->toArray();
-                $salesEmployee = Employee::where('id', $employee_id)
-                    ->whereIn('district_id', $districtsInRegion)
-                    ->whereIn('employee_type_id', [1, 2, 3])
-                    ->first();
 
-            } elseif ($employee->employee_type_id == 5) { 
-                $allowedEmployeeTypes = [1, 2, 3, 4];
-                 $salesEmployee = Employee::where('id', $employee_id)
-                    ->whereIn('employee_type_id', $allowedEmployeeTypes)
+                $districtIds = District::where('regions_id', $region->id)->pluck('id');
+
+                $salesEmployee = Employee::where('id', $employee_id)
+                    ->whereIn('district_id', $districtIds)
+                    ->whereIn('employee_type_id', [1, 2, 3])
+                    ->when(
+                        $product_id,
+                        fn($q) =>
+                        $q->whereJsonContains('products', (string) $product_id)
+                    )
+                    ->first();
+            } elseif ($employee->employee_type_id == 5) {
+
+                $salesEmployee = Employee::where('id', $employee_id)
+                    ->whereIn('employee_type_id', [1, 2, 3, 4])
+                    ->when(
+                        $product_id,
+                        fn($q) =>
+                        $q->whereJsonContains('products', (string) $product_id)
+                    )
                     ->first();
             } else {
                 return response()->json([
@@ -1959,45 +1790,59 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => false,
                     'statusCode' => 404,
-                    'message' => "Employee not found or access not allowed.",
+                    'message' => "Employee not found or product not handled.",
                 ], 404);
             }
-    
-            $month = $request->input('month', date('m'));
-            $year = $request->input('year', date('Y'));
-            $product_id = $request->input('product_id', null);
-    
-            $orders = Order::where('created_by', $salesEmployee->id)
-                // ->where('status', 'Delivered')
+
+            /**
+             * =====================
+             * ORDERS QUERY
+             * =====================
+             */
+            $orders = Order::with([
+                'dealer:id,dealer_name',
+                'orderItems' => function ($q) use ($product_id) {
+                    if ($product_id) {
+                        $q->where('product_id', $product_id);
+                    }
+                }
+            ])
+                ->where('created_by', $salesEmployee->id)
                 ->where('order_approved', '1')
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $month)
                 ->where(function ($q) {
                     $q->whereNull('source')
-                    ->orWhere('source', '')
-                    ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
+                        ->orWhere('source', '')
+                        ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
                 })
-                 ->when($product_id, function ($q) use ($product_id) {
-                    $q->where('product_id', $product_id);
+                ->whereHas('orderItems', function ($q) use ($product_id) {
+                    if ($product_id) {
+                        $q->where('product_id', $product_id);
+                    }
                 })
-                ->with('dealer:id,dealer_name') 
                 ->get();
-    
-            $totalSalesAmount = $orders->sum('invoice_total');
-    
+
+            /**
+             * =====================
+             * TOTAL CALCULATION
+             * =====================
+             */
+            $totalSalesAmount = $orders->flatMap->orderItems->sum('total_quantity');
+
             $ordersData = $orders->map(function ($order) {
                 return [
                     'order_id' => $order->id,
-                    'created_at' => $order->created_at ? $order->created_at->format('d/m/Y') : null,
-                    'dealer_name' => $order->dealer ? $order->dealer->dealer_name : 'N/A',
-                    'invoice_total' => (float) $order->invoice_total,
+                    'created_at' => optional($order->created_at)->format('d/m/Y'),
+                    'dealer_name' => optional($order->dealer)->dealer_name ?? 'N/A',
+                    'invoice_total' => $order->orderItems->sum('total_quantity'),
                 ];
             });
-  
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'message' => "Sales report details fetched successfully for $month/$year.",
+                'message' => "Sales report details fetched successfully.",
                 'data' => [
                     'employee_details' => [
                         'employee_id' => $salesEmployee->id,
@@ -2010,7 +1855,6 @@ class OrderController extends Controller
                     'orders' => $ordersData,
                 ],
             ], 200);
-    
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2019,11 +1863,12 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
     public function orderReportListing(Request $request)
     {
         try {
             $loggedInEmployee = Auth::user();
-    
+
             if (!$loggedInEmployee) {
                 return response()->json([
                     'success' => false,
@@ -2031,40 +1876,61 @@ class OrderController extends Controller
                     'message' => "User not authenticated.",
                 ], 401);
             }
-    
+
             $month = $request->input('month', date('m'));
             $year = $request->input('year', date('Y'));
-            $product_id = $request->input('product_id', null);
-      
+            $product_id = $request->input('product_id');
+
+            /**
+             * =====================
+             * FETCH EMPLOYEES
+             * =====================
+             */
             if ($loggedInEmployee->employee_type_id == 3) {
 
                 $employees = Employee::where('district_id', $loggedInEmployee->district_id)
                     ->whereIn('employee_type_id', [1, 2])
+                    ->when(
+                        $product_id,
+                        fn($q) =>
+                        $q->whereJsonContains('products', (string) $product_id)
+                    )
                     ->get();
-    
             } elseif ($loggedInEmployee->employee_type_id == 4) {
-                // RSM: fetch ASOs and DSMs in the same region
-                $region = Regions::whereHas('districts', function ($q) use ($loggedInEmployee) {
-                    $q->where('id', $loggedInEmployee->district_id);
-                })->first();
-    
+
+                $region = Regions::whereHas(
+                    'districts',
+                    fn($q) =>
+                    $q->where('id', $loggedInEmployee->district_id)
+                )->first();
+
                 if (!$region) {
                     return response()->json([
                         'success' => false,
                         'statusCode' => 404,
-                        'message' => "Region not found for employee.",
+                        'message' => "Region not found.",
                     ], 404);
                 }
-    
+
                 $districts = District::where('regions_id', $region->id)->pluck('id');
-    
+
                 $employees = Employee::whereIn('district_id', $districts)
                     ->whereIn('employee_type_id', [1, 2, 3])
+                    ->when(
+                        $product_id,
+                        fn($q) =>
+                        $q->whereJsonContains('products', (string) $product_id)
+                    )
                     ->get();
-    
             } elseif ($loggedInEmployee->employee_type_id == 5) {
-                // SM: fetch DSMs and RSMs
-                $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])->get();
+
+                $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])
+                    ->when(
+                        $product_id,
+                        fn($q) =>
+                        $q->whereJsonContains('products', (string) $product_id)
+                    )
+                    ->get();
             } else {
                 return response()->json([
                     'success' => false,
@@ -2072,62 +1938,49 @@ class OrderController extends Controller
                     'message' => "Unauthorized access.",
                 ], 403);
             }
-    
+
             if ($employees->isEmpty()) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 404,
-                    'message' => "No employees found under your hierarchy.",
+                    'message' => "No employees found for this product.",
                 ], 404);
             }
-    
+
             $totalOrdersForPeriod = 0;
-    
+
             $reportData = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalOrdersForPeriod) {
+
                 $orderCount = Order::where('created_by', $emp->id)
                     ->where('status', '!=', 'Pending')
                     ->whereYear('created_at', $year)
                     ->whereMonth('created_at', $month)
-                    ->where(function ($q) {
-                        $q->whereNull('source')
-                        ->orWhere('source', '')
-                        ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
-                    })
-                    ->when($product_id, function ($q) use ($product_id) {
-                        $q->where('product_id', $product_id);
+                    ->whereHas('orderItems', function ($q) use ($product_id) {
+                        if ($product_id) {
+                            $q->where('product_id', $product_id);
+                        }
                     })
                     ->count();
-    
+
                 $totalOrdersForPeriod += $orderCount;
-    
-                $employeeType = match ($emp->employee_type_id) {
-                    1 => 'Sales Executive',
-                    2 => 'Area Sales Officer',
-                    3 => 'District Sales Manager',
-                    4 => 'Regional Sales Manager',
-                    default => 'Unknown',
-                };
-    
+
                 return [
                     'employee_id' => $emp->id,
                     'employee_name' => $emp->name,
                     'employee_code' => $emp->employee_code,
                     'employee_type_id' => $emp->employee_type_id,
-                    'employee_type' => $employeeType,
                     'total_orders' => $orderCount,
                 ];
             });
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'message' => "Order report listing fetched successfully for $month/$year.",
                 'data' => [
                     'total_orders_for_period' => $totalOrdersForPeriod,
                     'order_report' => $reportData,
                 ],
-            ], 200);
-    
+            ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2150,13 +2003,18 @@ class OrderController extends Controller
                 ], 401);
             }
 
-            if ($loggedInEmployee->employee_type_id == 3) { 
-                $allowedEmployeeTypes = [1,2]; 
-            } elseif ($loggedInEmployee->employee_type_id == 4) { 
-                $allowedEmployeeTypes = [1, 2, 3]; 
-            } elseif ($loggedInEmployee->employee_type_id == 5) { 
-                $allowedEmployeeTypes = [1, 2, 3, 4]; 
-            } else {
+            $month = $request->input('month', date('m'));
+            $year = $request->input('year', date('Y'));
+            $product_id = $request->input('product_id');
+
+            $allowedTypes = match ($loggedInEmployee->employee_type_id) {
+                3 => [1, 2],
+                4 => [1, 2, 3],
+                5 => [1, 2, 3, 4],
+                default => []
+            };
+
+            if (empty($allowedTypes)) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 403,
@@ -2164,78 +2022,61 @@ class OrderController extends Controller
                 ], 403);
             }
 
-            $employee = Employee::whereIn('employee_type_id', $allowedEmployeeTypes)
-                ->where('id', $employee_id)
+            $employee = Employee::where('id', $employee_id)
+                ->whereIn('employee_type_id', $allowedTypes)
+                ->when(
+                    $product_id,
+                    fn($q) =>
+                    $q->whereJsonContains('products', (string) $product_id)
+                )
                 ->first();
 
             if (!$employee) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 404,
-                    'message' => "Employee not found or access denied.",
+                    'message' => "Employee not found or product not handled.",
                 ], 404);
             }
 
-            $month = $request->input('month', date('m'));
-            $year = $request->input('year', date('Y'));
-            $product_id = $request->input('product_id', null);
-
-            $totalOrders = Order::where('created_by', $employee->id)
+            $orders = Order::with([
+                'dealer:id,dealer_name',
+                'orderItems' => function ($q) use ($product_id) {
+                    if ($product_id) {
+                        $q->where('product_id', $product_id);
+                    }
+                }
+            ])
+                ->where('created_by', $employee->id)
                 ->where('status', '!=', 'Pending')
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $month)
-                ->where(function ($q) {
-                    $q->whereNull('source')
-                    ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
+                ->whereHas('orderItems', function ($q) use ($product_id) {
+                    if ($product_id) {
+                        $q->where('product_id', $product_id);
+                    }
                 })
-                ->when($product_id, function ($q) use ($product_id) {
-                    $q->where('product_id', $product_id);
-                })
-                ->count();
-
-            $orders = Order::where('created_by', $employee->id)
-                ->where('status', '!=', 'Pending')
-                ->whereYear('created_at', $year)
-                ->whereMonth('created_at', $month)
-                ->where(function ($q) {
-                    $q->whereNull('source')
-                    ->orWhereNotIn('source', ['lead_won', 'dealer_visit', 'influencer_visit']);
-                })
-                ->when($product_id, function ($q) use ($product_id) {
-                    $q->where('product_id', $product_id);
-                })
-                ->with('dealer:id,dealer_name') 
-                ->orderBy('created_at', 'desc')
+                ->orderByDesc('created_at')
                 ->get();
-
-            $orderData = $orders->map(function ($order) {
-                return [
-                    'order_id' => $order->id,
-                    'dealer_name' => optional($order->dealer)->dealer_name,
-                    'created_at' => \Carbon\Carbon::parse($order->created_at)->format('d/m/Y'), 
-                    'status' => $order->status,
-                    'amount' => ($order->order_approved === '1') ? (float) $order->total_amount : (float) $order->total_amount,
-                    // 'amount' => ($order->status === 'Delivered') ? (float) $order->invoice_total : (float) $order->total_amount,
-                ];
-            });
 
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'message' => "Order details fetched successfully for $month/$year.",
                 'data' => [
                     'employee' => [
                         'id' => $employee->id,
                         'name' => $employee->name,
                         'employee_code' => $employee->employee_code,
-                        'email' => $employee->email,
-                        'phone' => $employee->phone,
-                        'total_orders' => $totalOrders,
+                        'total_orders' => $orders->count(),
                     ],
-                    'orders' => $orderData,
+                    'orders' => $orders->map(fn($order) => [
+                        'order_id' => $order->id,
+                        'dealer_name' => optional($order->dealer)->dealer_name,
+                        'created_at' => optional($order->created_at)->format('d/m/Y'),
+                        'quantity' => $order->orderItems->sum('total_quantity'),
+                    ]),
                 ],
-            ], 200);
-
+            ]);
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2244,12 +2085,12 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+
     public function leadReportListing(Request $request)
     {
         try {
             $loggedInEmployee = Auth::user();
-    
+
             if (!$loggedInEmployee) {
                 return response()->json([
                     'success' => false,
@@ -2257,23 +2098,24 @@ class OrderController extends Controller
                     'message' => "User not authenticated.",
                 ], 401);
             }
-    
+
             $month = $request->input('month', date('m'));
             $year = $request->input('year', date('Y'));
-    
+            $product_id = $request->input('product_id', null);
+
             // Determine employees based on role
             if ($loggedInEmployee->employee_type_id == 3) {
                 // DSM: fetch SEs in same district
                 $employees = Employee::where('district_id', $loggedInEmployee->district_id)
                     ->whereIn('employee_type_id', [1, 2])
+                    ->when($product_id, fn($q) => $q->whereJsonContains('products', (string)$product_id))
                     ->get();
-    
             } elseif ($loggedInEmployee->employee_type_id == 4) {
                 // RSM: fetch ASOs, DSMs, and SEs in the same region
                 $region = Regions::whereHas('districts', function ($q) use ($loggedInEmployee) {
                     $q->where('id', $loggedInEmployee->district_id);
                 })->first();
-    
+
                 if (!$region) {
                     return response()->json([
                         'success' => false,
@@ -2281,17 +2123,18 @@ class OrderController extends Controller
                         'message' => "Region not found for employee.",
                     ], 404);
                 }
-    
+
                 $districts = District::where('regions_id', $region->id)->pluck('id');
-    
+
                 $employees = Employee::whereIn('district_id', $districts)
                     ->whereIn('employee_type_id', [1, 2, 3])
+                    ->when($product_id, fn($q) => $q->whereJsonContains('products', (string)$product_id))
                     ->get();
-    
             } elseif ($loggedInEmployee->employee_type_id == 5) {
                 // SM: fetch RSMs and DSMs
-                $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])->get();
-    
+                $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])
+                    ->when($product_id, fn($q) => $q->whereJsonContains('products', (string)$product_id))
+                    ->get();
             } else {
                 return response()->json([
                     'success' => false,
@@ -2299,7 +2142,7 @@ class OrderController extends Controller
                     'message' => "Unauthorized access.",
                 ], 403);
             }
-    
+
             if ($employees->isEmpty()) {
                 return response()->json([
                     'success' => false,
@@ -2307,36 +2150,36 @@ class OrderController extends Controller
                     'message' => "No employees found under your hierarchy.",
                 ], 404);
             }
-    
+
             $totalOpenedLeads = 0;
             $totalWonLeads = 0;
             $totalLostLeads = 0;
-    
+
             $reportData = $employees->map(function ($employee) use ($month, $year, &$totalOpenedLeads, &$totalWonLeads, &$totalLostLeads) {
                 $openedLeads = Lead::where('created_by', $employee->id)
                     ->whereIn('status', ['Opened', 'Follow Up'])
                     ->whereYear('created_at', $year)
                     ->whereMonth('created_at', $month)
                     ->count();
-    
+
                 $wonLeads = Lead::where('created_by', $employee->id)
                     ->where('status', 'Won')
                     ->whereYear('created_at', $year)
                     ->whereMonth('created_at', $month)
                     ->count();
-    
+
                 $lostLeads = Lead::where('created_by', $employee->id)
                     ->where('status', 'Lost')
                     ->whereYear('created_at', $year)
                     ->whereMonth('created_at', $month)
                     ->count();
-    
+
                 $totalOpenedLeads += $openedLeads;
                 $totalWonLeads += $wonLeads;
                 $totalLostLeads += $lostLeads;
-    
+
                 $totalLeads = $openedLeads + $wonLeads + $lostLeads;
-    
+
                 $employeeType = match ($employee->employee_type_id) {
                     1 => 'Sales Executive',
                     2 => 'Area Sales Officer',
@@ -2344,7 +2187,7 @@ class OrderController extends Controller
                     4 => 'Regional Sales Manager',
                     default => 'Unknown',
                 };
-    
+
                 return [
                     'employee_id' => $employee->id,
                     'employee_name' => $employee->name,
@@ -2354,7 +2197,7 @@ class OrderController extends Controller
                     'total_leads' => $totalLeads,
                 ];
             });
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
@@ -2368,7 +2211,6 @@ class OrderController extends Controller
                     'lead_report' => $reportData,
                 ],
             ], 200);
-    
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2377,7 +2219,6 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
 
     public function leadReportDetails(Request $request, $employee_id)
     {
@@ -2392,12 +2233,14 @@ class OrderController extends Controller
                 ], 401);
             }
 
-            if ($loggedInEmployee->employee_type_id == 3) { 
-                $allowedEmployeeTypes = [1,2]; 
-            } elseif ($loggedInEmployee->employee_type_id == 4) { 
-                $allowedEmployeeTypes = [1, 2, 3]; 
-            } elseif ($loggedInEmployee->employee_type_id == 5) { 
-                $allowedEmployeeTypes = [1, 2, 3, 4]; 
+            $product_id = $request->input('product_id', null);
+
+            if ($loggedInEmployee->employee_type_id == 3) {
+                $allowedEmployeeTypes = [1, 2];
+            } elseif ($loggedInEmployee->employee_type_id == 4) {
+                $allowedEmployeeTypes = [1, 2, 3];
+            } elseif ($loggedInEmployee->employee_type_id == 5) {
+                $allowedEmployeeTypes = [1, 2, 3, 4];
             } else {
                 return response()->json([
                     'success' => false,
@@ -2408,6 +2251,7 @@ class OrderController extends Controller
 
             $salesEmployee = Employee::where('id', $employee_id)
                 ->whereIn('employee_type_id', $allowedEmployeeTypes)
+                ->when($product_id, fn($q) => $q->whereJsonContains('products', (string)$product_id))
                 ->first();
 
             if (!$salesEmployee) {
@@ -2434,7 +2278,7 @@ class OrderController extends Controller
             $leadDetails = Lead::where('created_by', $salesEmployee->id)
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $month)
-                ->with('customerType') 
+                ->with('customerType')
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($lead) {
@@ -2468,7 +2312,6 @@ class OrderController extends Controller
                     'leads' => $leadDetails,
                 ],
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2491,7 +2334,7 @@ class OrderController extends Controller
                 ], 404);
             }
 
-            if (Auth::user()->employee_type_id !== 2) { 
+            if (Auth::user()->employee_type_id !== 2) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 403,
@@ -2521,12 +2364,11 @@ class OrderController extends Controller
         }
     }
 
-    public function orderApprovalList()
+    public function orderApprovalList(Request $request)
     {
         try {
             $user = Auth::user();
 
-            // Check if the logged-in user is Sales Manager
             if ($user->employee_type_id !== 5) {
                 return response()->json([
                     'success' => false,
@@ -2535,8 +2377,10 @@ class OrderController extends Controller
                 ], 403);
             }
 
-            // Step 1: Get dealer IDs with due_balance > 0
-            $dealerIdsWithDue = OutstandingNew::where('due_balance', '>', 0)->pluck('dealer_id');
+            $productId = $request->input('product_id');
+
+            $dealerIdsWithDue = OutstandingNew::where('due_balance', '>', 0)
+                ->pluck('dealer_id');
 
             if ($dealerIdsWithDue->isEmpty()) {
                 return response()->json([
@@ -2546,20 +2390,25 @@ class OrderController extends Controller
                 ], 404);
             }
 
-            // Step 2: Get employee IDs (ASO, DSM, RSM)
-            $employeeIds = Employee::whereIn('employee_type_id', [2, 3, 4])->pluck('id');
+            $employeeIds = Employee::whereIn('employee_type_id', [2, 3, 4])
+                ->pluck('id');
 
-            // Step 3: Fetch orders created by employees for those dealers or created by those dealers
-            $orders = Order::where(function ($query) use ($employeeIds, $dealerIdsWithDue) {
-                    $query->whereIn('created_by', $employeeIds)
-                        ->whereIn('dealer_id', $dealerIdsWithDue)
-                        ->where('dealer_flag_order', '0');
-                })
-                ->orWhere(function ($query) use ($dealerIdsWithDue) {
+            $orders = Order::where(function ($query) use ($employeeIds, $dealerIdsWithDue, $productId) {
+                $query->whereIn('created_by', $employeeIds)
+                    ->whereIn('dealer_id', $dealerIdsWithDue)
+                    ->where('dealer_flag_order', '0')
+                    ->when($productId, function ($q) use ($productId) {
+                        $q->where('product_id', $productId);
+                    });
+            })
+                ->orWhere(function ($query) use ($dealerIdsWithDue, $productId) {
                     $query->whereIn('created_by_dealer', $dealerIdsWithDue)
-                        ->where('dealer_flag_order', '1');
+                        ->where('dealer_flag_order', '1')
+                        ->when($productId, function ($q) use ($productId) {
+                            $q->where('product_id', $productId);
+                        });
                 })
-                ->with(['createdBy', 'dealer', 'orderType', 'paymentTerm']) 
+                ->with(['createdBy', 'dealer', 'orderType', 'paymentTerm'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -2571,16 +2420,14 @@ class OrderController extends Controller
                 ], 404);
             }
 
-            // Format the orders
             $formattedOrders = $orders->map(function ($order) {
-                $dealerName = $order->dealer->dealer_name ?? 'N/A';
-
                 return [
-                    'id'            => $order->id,
-                    'created_at'    => Carbon::parse($order->created_at)->format('d/m/Y'),
-                    'dealer_name'   => $dealerName,
-                    'order_status'  => $order->status,
-                    'total_amount'  => (int) $order->total_amount,
+                    'id'           => $order->id,
+                    'created_at'   => Carbon::parse($order->created_at)->format('d/m/Y'),
+                    'dealer_name'  => $order->dealer->dealer_name ?? 'N/A',
+                    'product_id'   => $order->product_id,
+                    'order_status' => $order->status,
+                    'total_amount' => (int) $order->total_amount,
                 ];
             });
 
@@ -2590,7 +2437,6 @@ class OrderController extends Controller
                 'message' => 'Order approval list retrieved successfully',
                 'data' => $formattedOrders
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -2600,13 +2446,11 @@ class OrderController extends Controller
             ], 500);
         }
     }
-   
     public function orderApprovalDetails($orderId)
     {
         try {
             $user = Auth::user();
-    
-            // Only Sales Manager can access
+
             if ($user->employee_type_id !== 5) {
                 return response()->json([
                     'success' => false,
@@ -2614,10 +2458,9 @@ class OrderController extends Controller
                     'message' => 'Access denied. Only Sales Managers can view order details.'
                 ], 403);
             }
-    
-            // Get dealers with due_balance > 0
+
             $dealerIdsWithDue = OutstandingNew::where('due_balance', '>', 0)->pluck('dealer_id');
-    
+
             if ($dealerIdsWithDue->isEmpty()) {
                 return response()->json([
                     'success' => false,
@@ -2625,9 +2468,9 @@ class OrderController extends Controller
                     'message' => 'No dealers with due balance found.'
                 ], 404);
             }
-    
+
             $employeeIds = Employee::whereIn('employee_type_id', [2, 3, 4])->pluck('id');
-    
+
             $order = Order::where('id', $orderId)
                 ->where(function ($query) use ($employeeIds, $dealerIdsWithDue) {
                     $query->where(function ($subQuery) use ($employeeIds, $dealerIdsWithDue) {
@@ -2640,9 +2483,16 @@ class OrderController extends Controller
                             ->where('send_for_approval', '1');
                     });
                 })
-                ->with(['createdBy', 'dealer', 'orderType', 'paymentTerm', 'orderItems.product', 'vehicleCategory'])
+                ->with([
+                    'createdBy',
+                    'dealer',
+                    'orderType',
+                    'paymentTerm',
+                    'orderItems.product',
+                    'vehicleCategory'
+                ])
                 ->first();
-    
+
             if (!$order) {
                 return response()->json([
                     'success' => false,
@@ -2650,18 +2500,18 @@ class OrderController extends Controller
                     'message' => 'Order not found or not eligible for approval.'
                 ], 404);
             }
-    
-            // Employee & Dealer details
+
             $employee = $order->dealer_flag_order == 1
                 ? Employee::find($order->send_for_approval_by)
                 : $order->createdBy;
-    
+
             $dealer = $order->dealer_flag_order == 1
                 ? Dealer::find($order->created_by_dealer)
                 : $order->dealer;
-    
-            $totalOutstandingAmount = OutstandingPayment::where('dealer_id', $dealer?->id)->sum('outstanding_amount');
-    
+
+            $totalOutstandingAmount = OutstandingPayment::where('dealer_id', $dealer?->id)
+                ->sum('outstanding_amount');
+
             $dealerDetails = $dealer ? [
                 'dealer_code' => $dealer->dealer_code ?? 'N/A',
                 'dealer_name' => $dealer->dealer_name ?? 'N/A',
@@ -2669,31 +2519,48 @@ class OrderController extends Controller
                 'email'       => $dealer->email ?? 'N/A',
                 'address'     => $dealer->address ?? 'N/A',
             ] : null;
-    
+
             $employeeDetails = $employee ? [
                 'employee_id' => $employee->employee_code ?? 'N/A',
                 'name'        => $employee->name ?? 'N/A',
                 'phone'       => $employee->phone ?? 'N/A',
                 'designation' => $employee->designation ?? 'N/A',
             ] : null;
-    
+
             $orderItems = $order->orderItems->map(function ($item) {
+
+                $productDetails = collect($item->product_details)->map(function ($detail) {
+                    $productType = ProductType::find($detail['product_type_id']);
+
+                    return [
+                        'product_type_id' => $detail['product_type_id'],
+                        'type_name'       => $productType->type_name ?? null,
+                        'quantity'        => isset($detail['quantity']) ? (float) $detail['quantity'] : null,
+                        'pieces'          => isset($detail['pieces']) ? (float) $detail['pieces'] : null,
+                        'tonnage'         => isset($detail['tonnage']) ? (float) $detail['tonnage'] : null,
+                        'rate'            => $detail['rate'] ?? null,
+                        'quantity_type'   => $detail['quantity_type'] ?? null,
+                    ];
+                });
+
+                $totalPieces = $productDetails->sum('pieces');
+                $totalQty    = $productDetails->sum('quantity');
+
+                $totalTonnage = $productDetails->sum(function ($detail) {
+                    return ($detail['pieces'] ?? 0) * ($detail['tonnage'] ?? 0);
+                });
+
                 return [
-                    'product_id'     => $item->product_id,
-                    'product_name'   => optional($item->product)->product_name ?? 'N/A',
-                    'product_code'   => optional($item->product)->product_code ?? 'N/A',
-                    'total_quantity' => (int) $item->total_quantity,
-                    'product_details' => collect($item->product_details)->map(function ($detail) {
-                        return [
-                            'product_type_id' => $detail['product_type_id'],
-                            'type_name'       => optional(ProductType::find($detail['product_type_id']))->type_name ?? 'N/A',
-                            'quantity'        => (int) $detail['quantity'],
-                            'rate'            => $detail['rate']
-                        ];
-                    })
+                    'product_id'      => $item->product_id,
+                    'product_name'    => $item->product->product_name ?? null,
+                    'product_code'    => $item->product->product_code ?? null,
+                    'total_quantity'  => (float) $totalQty,
+                    'total_pieces'    => (float) $totalPieces,
+                    'total_ton'       => $totalTonnage > 0 ? (float) $totalTonnage : null,
+                    'product_details' => $productDetails,
                 ];
             });
-    
+
             $vehicleDetails = [
                 'vehicle_category_id'   => $order->vehicleCategory->id ?? null,
                 'vehicle_category_name' => $order->vehicleCategory->vehicle_category_name ?? 'N/A',
@@ -2701,30 +2568,31 @@ class OrderController extends Controller
                 'driver_name'           => $order->driver_name ?? null,
                 'driver_phone'          => $order->driver_phone ?? null,
             ];
-    
+
             $orderDetails = [
                 'order_id'       => (int) $orderId,
                 'employee_details' => $employeeDetails,
                 'order_type'     => optional($order->orderType)->name ?? 'N/A',
                 'payment_term'   => optional($order->paymentTerm)->name ?? 'N/A',
-                'billing_date'   => $order->billing_date ? Carbon::parse($order->billing_date)->format('d/m/Y') : 'N/A',
-                'created_at'     => Carbon::parse($order->created_at)->format('d/m/Y'),
+                'billing_date'   => $order->billing_date,
+                'created_at'     => $order->created_at ? $order->created_at->format('d/m/Y') : null,
                 'dealer_details' => $dealerDetails,
                 'additional_information' => $order->additional_information,
                 'order_status'   => $order->status ?? 'N/A',
                 'total_amount'   => (int) $order->total_amount,
-                'order_items'    => $orderItems->isEmpty() ? null : ($orderItems->count() === 1 ? $orderItems->first() : $orderItems),
+                'order_items'    => $orderItems->isEmpty()
+                    ? null
+                    : ($orderItems->count() === 1 ? $orderItems->first() : $orderItems),
                 'total_outstanding_amount' => (float) $totalOutstandingAmount,
                 'vehicle_category' => $vehicleDetails,
             ];
-    
+
             return response()->json([
                 'success'    => true,
                 'statusCode' => 200,
                 'message'    => 'Order details retrieved successfully.',
                 'data'       => $orderDetails
             ], 200);
-    
         } catch (\Exception $e) {
             return response()->json([
                 'success'    => false,
@@ -2734,64 +2602,202 @@ class OrderController extends Controller
             ], 500);
         }
     }
-    
+    public function orderApprovalSearch(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            if ($user->employee_type_id !== 5) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 403,
+                    'message' => 'Access denied. Only Sales Managers can view this list.'
+                ], 403);
+            }
+
+            // ✅ product_id is mandatory
+            $request->validate([
+                'product_id' => 'required|integer'
+            ]);
+
+            $productId = $request->product_id;
+            $search    = $request->input('search');
+            $status    = $request->input('status');
+
+            // Dealers with due balance
+            $dealerIdsWithDue = OutstandingNew::where('due_balance', '>', 0)
+                ->pluck('dealer_id');
+
+            if ($dealerIdsWithDue->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => 'No dealers found with due balance'
+                ], 404);
+            }
+
+            // Sales hierarchy employees
+            $employeeIds = Employee::whereIn('employee_type_id', [2, 3, 4])
+                ->pluck('id');
+
+            $orders = Order::where(function ($query) use (
+                $employeeIds,
+                $dealerIdsWithDue,
+                $productId,
+                $search,
+                $status
+            ) {
+                $query->whereIn('created_by', $employeeIds)
+                    ->whereIn('dealer_id', $dealerIdsWithDue)
+                    ->where('dealer_flag_order', '0')
+                    ->where('product_id', $productId)
+
+                    ->when($status, fn ($q) =>
+                        $q->where('status', $status)
+                    )
+
+                    ->when($search, function ($q) use ($search) {
+                        $q->where('id', $search)
+                        ->orWhereHas('dealer', fn ($d) =>
+                            $d->where('dealer_name', 'like', "%{$search}%")
+                        );
+                    });
+            })
+            ->orWhere(function ($query) use (
+                $dealerIdsWithDue,
+                $productId,
+                $search,
+                $status
+            ) {
+                $query->whereIn('created_by_dealer', $dealerIdsWithDue)
+                    ->where('dealer_flag_order', '1')
+                    ->where('product_id', $productId)
+
+                    ->when($status, fn ($q) =>
+                        $q->where('status', $status)
+                    )
+
+                    ->when($search, function ($q) use ($search) {
+                        $q->where('id', $search)
+                        ->orWhereHas('dealer', fn ($d) =>
+                            $d->where('dealer_name', 'like', "%{$search}%")
+                        );
+                    });
+            })
+            ->with(['dealer'])
+            ->orderByDesc('created_at')
+            ->get();
+
+            if ($orders->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => 'No orders found'
+                ], 404);
+            }
+
+            // ✅ SAME RESPONSE FORMAT
+            $formattedOrders = $orders->map(function ($order) {
+                return [
+                    'id'           => $order->id,
+                    'created_at'   => Carbon::parse($order->created_at)->format('d/m/Y'),
+                    'dealer_name'  => $order->dealer->dealer_name ?? 'N/A',
+                    'product_id'   => $order->product_id,
+                    'order_status' => $order->status,
+                    'total_amount' => (int) $order->total_amount,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Order approval search results',
+                'data' => $formattedOrders
+            ], 200);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 422,
+                'message' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => 'Something went wrong',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+
     public function totalSalesLeadsSummary(Request $request)
     {
         $employee = Auth::user();
-    
+
         if (!$employee) {
             return response()->json([
                 'success' => false,
                 'statusCode' => 401,
-                'message' => "User not authenticated.",
+                'message' => 'User not authenticated.',
             ], 401);
         }
-    
+
         if ($employee->employee_type_id !== 5) {
             return response()->json([
                 'success' => false,
                 'statusCode' => 403,
-                'message' => "Unauthorized. Only Sales Manager (SM) can access this summary.",
+                'message' => 'Unauthorized. Only Sales Manager can access this summary.',
             ], 403);
         }
-    
+
         $month = $request->input('month', date('m'));
-        $year = $request->input('year', date('Y'));
-        
-        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4, 5])->pluck('id')->toArray();
-        
-        $orders = Order::whereIn('created_by', $employees)
-            // ->where('status', 'Delivered')
+        $year  = $request->input('year', date('Y'));
+        $productId = $request->input('product_id');
+
+        // Get employees handling the product
+        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])
+            ->when($productId, fn($q) => $q->whereRaw('FIND_IN_SET(?, products)', [$productId]))
+            ->pluck('id')
+            ->toArray();
+
+        // Sum total_quantity from order_items where order is approved
+        $totalSalesQuantity = OrderItem::whereHas('order', function ($q) use ($employees) {
+            $q->whereIn('created_by', $employees)
+                ->where('order_approved', '1'); // approved as string
+        })
+            ->when($productId, fn($q) => $q->where('product_id', $productId))
+            ->sum('total_quantity');
+
+        $totalSalesOrders = Order::whereIn('created_by', $employees)
+            ->when($productId, fn($q) => $q->where('product_id', $productId))
             ->where('order_approved', '1')
             ->whereYear('created_at', $year)
             ->whereMonth('created_at', $month)
-            ->get();
-    
-        $totalSalesQuantityTon = $orders->sum('invoice_quantity');
-        $totalSalesOrderCount = $orders->count();
-    
-     
-        $leads = Lead::whereIn('created_by', $employees)
+            ->count();
+
+        $totalLeads = Lead::whereIn('created_by', $employees)
             ->whereYear('created_at', $year)
             ->whereMonth('created_at', $month)
-            ->get();
-    
-        $totalLeadsGenerated = $leads->count();
-    
+            ->count();
+
         return response()->json([
             'success' => true,
             'statusCode' => 200,
             'data' => [
-                'total_sales_quantity_ton' => (float) $totalSalesQuantityTon,
-                'total_sales_order_count' => $totalSalesOrderCount,
-                'total_leads_generated' => $totalLeadsGenerated,
+                'total_sales_quantity_ton' => (float) $totalSalesQuantity,
+                'total_sales_order_count' => $totalSalesOrders,
+                'total_leads_generated' => $totalLeads,
             ]
         ]);
     }
+
     public function filteredLeadsSummary(Request $request)
     {
         $employee = Auth::user();
-    
+
         if (!$employee) {
             return response()->json([
                 'success' => false,
@@ -2799,7 +2805,7 @@ class OrderController extends Controller
                 'message' => "User not authenticated.",
             ], 401);
         }
-    
+
         if ($employee->employee_type_id !== 5) {
             return response()->json([
                 'success' => false,
@@ -2807,28 +2813,37 @@ class OrderController extends Controller
                 'message' => "Unauthorized. Only Sales Manager (SM) can access this summary.",
             ], 403);
         }
-    
+
         $month = $request->input('month', date('m'));
         $year = $request->input('year', date('Y'));
         $leadStatus = $request->input('lead_status', 'All');
         $customerType = $request->input('customer_type', 'All');
-    
-        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4, 5])->pluck('id')->toArray();
-    
+        $productId = $request->input('product_id', null);
+
+        // Get employees handling the product
+        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])
+            ->when($productId, fn($q) => $q->whereRaw('FIND_IN_SET(?, products)', [$productId]))
+            ->pluck('id')
+            ->toArray();
+
         $leadsQuery = Lead::whereIn('created_by', $employees)
             ->whereYear('created_at', $year)
             ->whereMonth('created_at', $month);
-    
+
         if (strtolower($leadStatus) !== 'all') {
             $leadsQuery->where('status', $leadStatus);
         }
-    
+
         if (strtolower($customerType) !== 'all') {
             $leadsQuery->where('customer_type', intval($customerType));
         }
-    
+
+        if ($productId) {
+            $leadsQuery->where('product_id', $productId);
+        }
+
         $totalLeadsGenerated = $leadsQuery->count();
-    
+
         return response()->json([
             'success' => true,
             'statusCode' => 200,
@@ -2837,13 +2852,14 @@ class OrderController extends Controller
             ]
         ]);
     }
+
     public function totalOPCollection(Request $request)
     {
-       $outstanding = OutstandingNew::all(); // or use ->get() if needed
+        $outstanding = OutstandingNew::all(); // or use ->get() if needed
         $totalOutstandingAmount = $outstanding->sum('outstanding_amount');
         $payments = Payment::all();
         $totalCollectionAmount = $payments->sum('payment_amount');
-    
+
         return response()->json([
             'success' => true,
             'statusCode' => 200,
@@ -2851,17 +2867,17 @@ class OrderController extends Controller
                 'total_outstanding_amount' => (float) $totalOutstandingAmount,
                 'total_collection_amount' => (float) $totalCollectionAmount,
             ]
-           
+
         ]);
     }
     public function getTotalCreditNotes(Request $request)
     {
         $creditNotes = CreditNote::all();
-    
+
         $totalAmount = $creditNotes->sum('total_row_amount');
         $totalCreditNotes = $creditNotes->count();
         $totalOrders = $creditNotes->pluck('order_id')->unique()->count();
-    
+
         return response()->json([
             'success' => true,
             'statusCode' => 200,
@@ -2876,7 +2892,7 @@ class OrderController extends Controller
     public function getTotalSalesPerformance(Request $request)
     {
         $employee = Auth::user();
-    
+
         if (!$employee) {
             return response()->json([
                 'success' => false,
@@ -2898,12 +2914,12 @@ class OrderController extends Controller
             'region_id' => 'required|integer',
             'employee_type_id' => 'required|integer',
         ]);
-      
+
         $districtIds = District::where('regions_id', $request->region_id)->pluck('id');
 
         $employees = Employee::where('employee_type_id', $request->employee_type_id)
             ->whereIn('district_id', $districtIds)
-            ->with(['employeeType', 'district.region']) 
+            ->with(['employeeType', 'district.region'])
             ->get();
 
         $fromDate = Carbon::createFromDate($request->year, $request->month, 1)->startOfMonth();
@@ -2936,11 +2952,11 @@ class OrderController extends Controller
             'year' => 'required|integer',
             'month' => 'required|integer|min:1|max:12',
         ]);
-    
-      
+
+
         $fromDate = Carbon::createFromDate($request->year, $request->month, 1)->startOfMonth()->format('Y-m-d H:i:s');
         $toDate = Carbon::createFromDate($request->year, $request->month, 1)->endOfMonth()->format('Y-m-d H:i:s');
-  
+
         $finalTotals = Order::selectRaw("
             CASE 
                 WHEN dealer_flag_order = '1' THEN created_by_dealer 
@@ -2948,27 +2964,27 @@ class OrderController extends Controller
             END as dealer_id,
             SUM(invoice_quantity) as total_quantity
         ")
-        ->where('status', '!=', 'Rejected')
-        ->whereBetween('created_at', [$fromDate, $toDate])
-        ->where(function ($query) {
-            $query->where(function ($q) {
-                $q->where('dealer_flag_order', '1')
-                    ->whereNotNull('created_by_dealer');
-            })->orWhere(function ($q) {
-                $q->where('dealer_flag_order', '0')
-                    ->whereNotNull('dealer_id')
-                    ->whereHas('createdBy', function ($empQuery) {
-                        $empQuery->where('employee_type_id', '!=', 1); // Not SE
-                    });
-            });
-        })
-        ->groupBy(DB::raw("CASE 
+            ->where('status', '!=', 'Rejected')
+            ->whereBetween('created_at', [$fromDate, $toDate])
+            ->where(function ($query) {
+                $query->where(function ($q) {
+                    $q->where('dealer_flag_order', '1')
+                        ->whereNotNull('created_by_dealer');
+                })->orWhere(function ($q) {
+                    $q->where('dealer_flag_order', '0')
+                        ->whereNotNull('dealer_id')
+                        ->whereHas('createdBy', function ($empQuery) {
+                            $empQuery->where('employee_type_id', '!=', 1); // Not SE
+                        });
+                });
+            })
+            ->groupBy(DB::raw("CASE 
                 WHEN dealer_flag_order = '1' THEN created_by_dealer 
                 ELSE dealer_id 
             END"))
-        ->having('total_quantity', '>', 0)
-        ->orderByDesc('total_quantity')
-        ->get();
+            ->having('total_quantity', '>', 0)
+            ->orderByDesc('total_quantity')
+            ->get();
 
         if ($finalTotals->isEmpty()) {
             return response()->json([
@@ -2980,9 +2996,9 @@ class OrderController extends Controller
         }
 
 
-        $most = $finalTotals->first();        
-        $least = $finalTotals->last();       
-    
+        $most = $finalTotals->first();
+        $least = $finalTotals->last();
+
         $mostDealer = Dealer::find($most->dealer_id);
         $leastDealer = Dealer::find($least->dealer_id);
         return response()->json([
@@ -3006,7 +3022,7 @@ class OrderController extends Controller
     {
         $month = $request->input('month');
         $year = $request->input('year');
-    
+
         if (!$month || !$year) {
             return response()->json([
                 'status' => false,
@@ -3014,7 +3030,7 @@ class OrderController extends Controller
                 'message' => 'Month and Year are required.'
             ], 422);
         }
-    
+
         // Step 1: Get approved order IDs within the month & year
         $orderIds = \App\Models\Order::where('order_approved', '1')
             ->whereYear('created_at', $year)
@@ -3028,49 +3044,49 @@ class OrderController extends Controller
                 })->orWhere('dealer_flag_order', '1');
             })
             ->pluck('id');
-    
+
         // Step 2: Accumulate total quantity by product_type_id
         $productSales = [];
-    
+
         $orderItems = \App\Models\OrderItem::whereIn('order_id', $orderIds)->get();
-    
+
         foreach ($orderItems as $item) {
             foreach ($item->product_details as $detail) {
                 $typeId = $detail['product_type_id'];
                 $qty = $detail['quantity'];
-    
+
                 if (!isset($productSales[$typeId])) {
                     $productSales[$typeId] = 0;
                 }
-    
+
                 $productSales[$typeId] += $qty;
             }
         }
-    
+
         // Step 3: Determine highest and lowest selling items
         $highestSelling = null;
         $lowestSelling = null;
-    
+
         if (!empty($productSales)) {
             $maxTypeId = array_keys($productSales, max($productSales))[0];
             $minTypeId = array_keys($productSales, min($productSales))[0];
-    
+
             $highest = \App\Models\ProductType::find($maxTypeId);
             $lowest = \App\Models\ProductType::find($minTypeId);
-    
+
             $highestSelling = [
                 'product_type_id' => $highest->id ?? null,
                 'product_type_name' => $highest->type_name ?? 'Unknown',
                 'total_quantity' => $productSales[$maxTypeId],
             ];
-    
+
             $lowestSelling = [
                 'product_type_id' => $lowest->id ?? null,
                 'product_type_name' => $lowest->type_name ?? 'Unknown',
                 'total_quantity' => $productSales[$minTypeId],
             ];
         }
-    
+
         return response()->json([
             'status' => true,
             'statusCode' => 200,
@@ -3147,8 +3163,8 @@ class OrderController extends Controller
                 'item_type' => $validatedData['item_type'] ?? null,
                 'remarks' => $validatedData['remarks'] ?? null,
                 'attachments' => !empty($uploadedAttachments)
-                ? $uploadedAttachments
-                : ($validatedData['attachments'] ?? []),
+                    ? $uploadedAttachments
+                    : ($validatedData['attachments'] ?? []),
                 'stock_details' => $validatedData['stocks'] ?? null,
                 'new_order' => $validatedData['new_order'] ?? null,
                 'created_by' => $employee->id,
@@ -3161,11 +3177,30 @@ class OrderController extends Controller
                 ($purpose === 'Casual Visit' && $request->input('new_order') === 'Yes')
             ) {
                 $orderData = $request->only([
-                    'order_type', 'customer_type_id', 'order_category', 'lead_id', 'dealer_id','product_id',
-                    'payment_terms_id', 'credit_days', 'advance_amount', 'payment_date', 'utr_number',
-                    'billing_date', 'delivery_date', 'total_amount', 'additional_information', 'status', 'source',
-                    'vehicle_category_id', 'vehicle_type', 'vehicle_number', 'driver_name', 'driver_phone',
-                    'scheme', 'order_items'
+                    'order_type',
+                    'customer_type_id',
+                    'order_category',
+                    'lead_id',
+                    'dealer_id',
+                    'product_id',
+                    'payment_terms_id',
+                    'credit_days',
+                    'advance_amount',
+                    'payment_date',
+                    'utr_number',
+                    'billing_date',
+                    'delivery_date',
+                    'total_amount',
+                    'additional_information',
+                    'status',
+                    'source',
+                    'vehicle_category_id',
+                    'vehicle_type',
+                    'vehicle_number',
+                    'driver_name',
+                    'driver_phone',
+                    'scheme',
+                    'order_items'
                 ]);
 
                 $orderData['created_by'] = $employee->id;
@@ -3283,7 +3318,7 @@ class OrderController extends Controller
             }
 
             $visits = DealerVisit::with('dealer:id,dealer_name')
-            ->where('created_by', $employee->id)
+                ->where('created_by', $employee->id)
                 ->orderBy('created_at', 'desc')
                 ->get()
                 ->map(function ($visit) {
@@ -3309,7 +3344,7 @@ class OrderController extends Controller
             ]);
         }
     }
-     
+
     public function dealerVisitDetails($id)
     {
         try {
@@ -3324,61 +3359,61 @@ class OrderController extends Controller
             }
 
             $dealerVisit = DealerVisit::with([
-            'dealer:id,dealer_name,dealer_code,address,district',
-            'aso:id,employee_code,name',
-            'creator:id,name',
-            'order.orderItems.product:id,product_name,product_code',
-            'order.orderType:id,name',
-            'order.customerType:id,name',
-            'order.paymentTerm:id,name',
-            'order.vehicleCategory:id,vehicle_category_name'
-        ])->findOrFail($id);
+                'dealer:id,dealer_name,dealer_code,address,district',
+                'aso:id,employee_code,name',
+                'creator:id,name',
+                'order.orderItems.product:id,product_name,product_code',
+                'order.orderType:id,name',
+                'order.customerType:id,name',
+                'order.paymentTerm:id,name',
+                'order.vehicleCategory:id,vehicle_category_name'
+            ])->findOrFail($id);
 
-        $data = [
-            'dealer_visit_id' => $dealerVisit->id,
-            'dealer_name' => $dealerVisit->dealer->dealer_name,
-            'dealer_code' => $dealerVisit->dealer->dealer_code,
-            'district'    => $dealerVisit->dealer->district,
-            'aso'         => $dealerVisit->aso ? $dealerVisit->aso->name : null,
-            'purpose_of_visit' => $dealerVisit->purpose_of_visit,
-        ];
+            $data = [
+                'dealer_visit_id' => $dealerVisit->id,
+                'dealer_name' => $dealerVisit->dealer->dealer_name,
+                'dealer_code' => $dealerVisit->dealer->dealer_code,
+                'district'    => $dealerVisit->dealer->district,
+                'aso'         => $dealerVisit->aso ? $dealerVisit->aso->name : null,
+                'purpose_of_visit' => $dealerVisit->purpose_of_visit,
+            ];
 
-        // Add details based on purpose of visit
-        switch ($dealerVisit->purpose_of_visit) {
-            case 'Gift/Marketing Activity':
-                $data['item_type'] = $dealerVisit->item_type;
-                $data['remarks'] = $dealerVisit->remarks;
-                $data['attachments'] = $dealerVisit->attachments ?? [];
-                break;
-
-            case 'Stock Taking':
-                $data['stock_details'] = $dealerVisit->stock_details ?? [];
-                $data['remarks'] = $dealerVisit->remarks;
-                $data['attachments'] = $dealerVisit->attachments ?? [];
-                break;
-
-            case 'Casual Visit':
-                $data['new_order'] = $dealerVisit->new_order;
-                if ($dealerVisit->new_order === 'Yes' && $dealerVisit->order) {
-                    $data['order'] = $this->formatOrderDetails($dealerVisit->order);
+            // Add details based on purpose of visit
+            switch ($dealerVisit->purpose_of_visit) {
+                case 'Gift/Marketing Activity':
+                    $data['item_type'] = $dealerVisit->item_type;
+                    $data['remarks'] = $dealerVisit->remarks;
                     $data['attachments'] = $dealerVisit->attachments ?? [];
-                }
-                break;
+                    break;
 
-            case 'Order Taking':
-                if ($dealerVisit->order) {
-                    $data['order'] = $this->formatOrderDetails($dealerVisit->order);
+                case 'Stock Taking':
+                    $data['stock_details'] = $dealerVisit->stock_details ?? [];
+                    $data['remarks'] = $dealerVisit->remarks;
                     $data['attachments'] = $dealerVisit->attachments ?? [];
-                }
-                break;
-        }
+                    break;
 
-        return response()->json([
-            'success' => true,
-            'statusCode' => 200,
-            'message' => 'Dealer Visit details fetched successfully.',
-            'data' => $data
-        ]);
+                case 'Casual Visit':
+                    $data['new_order'] = $dealerVisit->new_order;
+                    if ($dealerVisit->new_order === 'Yes' && $dealerVisit->order) {
+                        $data['order'] = $this->formatOrderDetails($dealerVisit->order);
+                        $data['attachments'] = $dealerVisit->attachments ?? [];
+                    }
+                    break;
+
+                case 'Order Taking':
+                    if ($dealerVisit->order) {
+                        $data['order'] = $this->formatOrderDetails($dealerVisit->order);
+                        $data['attachments'] = $dealerVisit->attachments ?? [];
+                    }
+                    break;
+            }
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Dealer Visit details fetched successfully.',
+                'data' => $data
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -3454,7 +3489,7 @@ class OrderController extends Controller
             'additional_info' => $order->additional_information,
         ];
     }
-    
+
     public function SalesReportExport(Request $request)
     {
         try {
@@ -3508,9 +3543,9 @@ class OrderController extends Controller
                             $flattenedItems[] = $item->product->product_name . ' (' . ($productType->type_name ?? 'Unknown') . '): ' . $detail['quantity'] . ' - Rate: ' . $detail['rate'];
                         }
                     }
-    
+
                     $orderItemsString = implode('; ', $flattenedItems);
-    
+
                     $exportData[] = [
                         'employee_name'     => $emp->name,
                         'employee_code'     => $emp->employee_code,
@@ -3532,7 +3567,6 @@ class OrderController extends Controller
                 'message' => "Sales export report fetched successfully for $month/$year.",
                 'data' => $exportData,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -3577,9 +3611,9 @@ class OrderController extends Controller
             'orders.dealer',
             'orders.paymentTerm'
         ])
-        ->whereIn('created_by', $employees)
-        ->whereYear('created_at', $year)
-        ->whereMonth('created_at', $month);
+            ->whereIn('created_by', $employees)
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month);
 
         if (strtolower($leadStatus) !== 'all') {
             $leadsQuery->where('status', $leadStatus);
@@ -3641,7 +3675,7 @@ class OrderController extends Controller
 
                 'employee_name' => optional($lead->createdBy)->name,
                 'employee_code' => optional($lead->createdBy)->employee_code,
-		        'created_at' => optional($lead->created_at),
+                'created_at' => optional($lead->created_at),
             ];
         }
 
@@ -3729,22 +3763,22 @@ class OrderController extends Controller
             ->get();
         $data = [];
         $serialNo = 1;
-        
-        foreach ($payments as $payment) {	    
-        $row = [
-            's_no' => $serialNo++,
-            'dealer_code' => $payment->dealer->dealer_code ?? 'N/A',
-            'dealer_name' => $payment->dealer->dealer_name ?? 'N/A',
-            'invoice_number' => $payment->invoice_number,
-            'payment_amount' => $payment->payment_amount,
-            'payment_date' => optional($payment->payment_date)->format('Y-m-d'),
-            'payment_document_no' => $payment->payment_document_no,
-        ];
 
-    
+        foreach ($payments as $payment) {
+            $row = [
+                's_no' => $serialNo++,
+                'dealer_code' => $payment->dealer->dealer_code ?? 'N/A',
+                'dealer_name' => $payment->dealer->dealer_name ?? 'N/A',
+                'invoice_number' => $payment->invoice_number,
+                'payment_amount' => $payment->payment_amount,
+                'payment_date' => optional($payment->payment_date)->format('Y-m-d'),
+                'payment_document_no' => $payment->payment_document_no,
+            ];
 
 
-        $data[] = $row;
+
+
+            $data[] = $row;
         }
 
         return response()->json([
@@ -3754,7 +3788,7 @@ class OrderController extends Controller
             'data' => $data,
         ]);
     }
-	public function exportCreditNotes(Request $request)
+    public function exportCreditNotes(Request $request)
     {
         $employee = Auth::user();
 
@@ -3810,9 +3844,9 @@ class OrderController extends Controller
             'message' => 'Credit notes for selected month/year fetched successfully.',
             'data' => $data,
         ]);
-	}
+    }
 
-	public function getUniqueLeads(Request $request)
+    public function getUniqueLeads(Request $request)
     {
         if ($authError = $this->authorizeSalesManager()) {
             return $authError;
@@ -3842,7 +3876,7 @@ class OrderController extends Controller
             'success' => true,
             'data' => $resultList,
         ]);
-	}
+    }
 
     public function getInfluencerVisits(Request $request)
     {
@@ -3865,7 +3899,7 @@ class OrderController extends Controller
             'data' => $resultList,
         ]);
     }
-	public function getAashiyanaOrders(Request $request)
+    public function getAashiyanaOrders(Request $request)
     {
         if ($authError = $this->authorizeSalesManager()) {
             return $authError;
@@ -3973,7 +4007,7 @@ class OrderController extends Controller
 
         return null; // No issues
     }
-	public function getDealerVisitData(Request $request)
+    public function getDealerVisitData(Request $request)
     {
         $month = $request->input('month');
         $year = $request->input('year');
@@ -4012,7 +4046,7 @@ class OrderController extends Controller
                 'statusCode' => 400,
                 'message' => 'Month and year are required.',
                 'data' => null
-            ], 400); 
+            ], 400);
         }
 
         $totalInfluencerVisit = InfluencerVisit::whereYear('created_at', $year)

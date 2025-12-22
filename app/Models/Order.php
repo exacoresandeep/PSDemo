@@ -151,5 +151,9 @@ class Order extends Model
     {
         return $this->hasMany(DealerAddress::class, 'dealer_id', 'dealer_id');
     }
+    public function influencerVisit()
+    {
+        return $this->belongsTo(InfluencerVisit::class, 'influencer_visit_id');
+    }
     
 }

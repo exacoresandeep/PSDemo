@@ -222,14 +222,25 @@ class ActivityController extends Controller
                 ], 401);
             }
 
-            $salesExecutives = Employee::all();
-
             $month = $request->input('month', date('m'));
             $year = $request->input('year', date('Y'));
+            $productId = $request->input('product_id');
+
+            if (!$productId) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 422,
+                    'message' => "product_id is required",
+                ], 422);
+            }
+
+            // ✅ Employees who handle this product
+            $salesExecutives = Employee::whereJsonContains('products', (string)$productId)->get();
 
             $totalActivitiesForPeriod = 0;
 
             $reportData = $salesExecutives->map(function ($se) use ($month, $year, &$totalActivitiesForPeriod) {
+
                 $activityCount = Activity::where('employee_id', $se->id)
                     ->whereYear('assigned_date', $year)
                     ->whereMonth('assigned_date', $month)
@@ -248,12 +259,10 @@ class ActivityController extends Controller
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'message' => "Activity report listing fetched successfully for $month/$year.",
                 'data' => [
                     'total_activities_for_period' => $totalActivitiesForPeriod,
                     'activity_report' => $reportData,
                 ],
-                
             ], 200);
 
         } catch (Exception $e) {
@@ -264,6 +273,7 @@ class ActivityController extends Controller
             ], 500);
         }
     }
+
     public function activityReportDetails(Request $request, $employee_id)
     {
         try {
@@ -276,12 +286,25 @@ class ActivityController extends Controller
                 ], 401);
             }
 
-            $salesExecutive = Employee::find($employee_id);
+            $productId = $request->input('product_id');
+            if (!$productId) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 422,
+                    'message' => "product_id is required",
+                ], 422);
+            }
+
+            // ✅ Check employee handles this product
+            $salesExecutive = Employee::where('id', $employee_id)
+                ->whereJsonContains('products', (string)$productId)
+                ->first();
+
             if (!$salesExecutive || $salesExecutive->district !== $employee->district) {
                 return response()->json([
                     'success' => false,
                     'statusCode' => 404,
-                    'message' => "Sales Executive not found in your district.",
+                    'message' => "Sales Executive not found or does not handle this product.",
                 ], 404);
             }
 
@@ -291,19 +314,19 @@ class ActivityController extends Controller
             $activities = Activity::where('employee_id', $salesExecutive->id)
                 ->whereYear('assigned_date', $year)
                 ->whereMonth('assigned_date', $month)
-                ->with(['activityType', 'dealer']) 
+                ->with(['activityType', 'dealer'])
                 ->get();
-
-            $totalActivities = $activities->count();
 
             $activityList = $activities->map(function ($activity) {
                 return [
                     'activity_id' => $activity->id,
-                    'activity_type' => $activity->activityType ? $activity->activityType->name : null,
-                    'dealer_code' => $activity->dealer ? $activity->dealer->dealer_code : null,
-                    'dealer_name' => $activity->dealer ? $activity->dealer->dealer_name : null,
-                    'completed_date' => $activity->status === 'Pending' ? null : ($activity->completed_date ? Carbon::parse($activity->completed_date)->format('d/m/Y') : null),
-                    'assigned_date' => $activity->status === 'Pending' ? Carbon::parse($activity->assigned_date)->format('d/m/Y') : null,
+                    'activity_type' => optional($activity->activityType)->name,
+                    'dealer_code' => optional($activity->dealer)->dealer_code,
+                    'dealer_name' => optional($activity->dealer)->dealer_name,
+                    'completed_date' => $activity->completed_date
+                        ? Carbon::parse($activity->completed_date)->format('d/m/Y')
+                        : null,
+                    'assigned_date' => Carbon::parse($activity->assigned_date)->format('d/m/Y'),
                     'status' => $activity->status,
                 ];
             });
@@ -311,18 +334,15 @@ class ActivityController extends Controller
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
-                'message' => "Activity report details fetched successfully for $month/$year.",
-                'data' =>[
+                'data' => [
                     'employee_details' => [
                         'employee_id' => $salesExecutive->id,
                         'employee_name' => $salesExecutive->name,
                         'employee_code' => $salesExecutive->employee_code,
-                        'email' => $salesExecutive->email,
-                        'phone' => $salesExecutive->phone,
-                        'total_activities' => $totalActivities,
+                        'total_activities' => $activities->count(),
                     ],
                     'activities' => $activityList,
-                ],        
+                ],
             ], 200);
 
         } catch (Exception $e) {
@@ -333,8 +353,6 @@ class ActivityController extends Controller
             ], 500);
         }
     }
-
-
     public function activityTypeIndex()
     {
         return view('sales.activity.created-activities'); 
@@ -347,7 +365,7 @@ class ActivityController extends Controller
             'activity_name' => 'required|string|max:255',
             'status' => 'required|in:1,2',
         ]);
-$user = Auth::user();
+        $user = Auth::user();
         $activity_type = ActivityType::create([
             "id" =>27,
             'name' => $request->activity_name,
@@ -681,7 +699,6 @@ $user = Auth::user();
         return response()->json(['message' => 'Activity deleted successfully!']);
     }
     
-   
     public function getEmployeesByDistrictType($district_id, $employee_type_id)
     {
 
