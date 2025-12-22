@@ -87,19 +87,104 @@ class StockController extends Controller
         ], 200);
     }
 
+    // public function stockDetails(Request $request)
+    // {
+    //     try {
+    //         $request->validate([
+    //             'product_item' => 'required|string',
+    //             'search_key'   => 'nullable|string|min:3'
+    //         ]);
+
+    //         $productItem = Product::where("product_code",$request->product_item)->value('sap_id');
+    //         $searchKey   = $request->search_key ?? '';  
+
+    //         $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
+
+    //         if (!$conn) {
+    //             return response()->json([
+    //                 'status' => 'error',
+    //                 'message' => 'SAP Connection Failed: ' . odbc_errormsg()
+    //             ], 500);
+    //         }
+
+    //         if (!empty($searchKey) && strlen($searchKey) >= 1) {
+    //             $sql = "CALL \"PRABHU_NEW\".\"Mobile_App_GetStock\"('$productItem', '$searchKey')";
+    //         } else {
+    //             $sql = "CALL \"PRABHU_NEW\".\"Mobile_App_GetStock\"('$productItem','')";
+    //         }
+    //         $result = odbc_exec($conn, $sql);
+
+    //         if (!$result) {
+    //             odbc_close($conn);
+    //             return response()->json([
+    //                 'status' => 'error',
+    //                 'message' => 'SAP Query Failed: ' . odbc_errormsg()
+    //             ], 500);
+    //         }
+
+    //        $stockData = [];
+
+    //         while ($row = odbc_fetch_array($result)) {
+
+    //             $row = array_map('trim', $row);
+
+    //             foreach ($row as $key => $value) {
+    //                 $row[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
+    //             }
+
+    //             $qty = isset($row['OnHand']) ? floatval($row['OnHand']) : 0;
+
+    //             if ($qty > 10) {
+    //                 $status = "In-Stock";
+    //             } elseif ($qty >= 1 && $qty <= 10) {
+    //                 $status = "Low Stock";
+    //             } else {
+    //                 $status = "Out of Stock";
+    //             }
+
+    //             $row['status'] = $status;
+
+    //             $stockData[] = $row;
+    //         }
+
+
+    //         odbc_close($conn);
+
+    //         return response()->json([
+    //             'status' => 'success',
+    //             'statusCode' => 200,
+    //             'message' => 'Stock fetched successfully',
+    //             'data' => $stockData
+    //         ]);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Internal Error: ' . $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
     public function stockDetails(Request $request)
     {
         try {
             $request->validate([
                 'product_item' => 'required|string',
-                'search_key'   => 'nullable|string|min:3'
+                'search_key'   => 'nullable|string'
             ]);
 
-            $productItem = Product::where("product_code",$request->product_item)->value('sap_id');
-           // dd( $productItem );
-            $searchKey   = $request->search_key ?? '';  // If null, pass empty string
+            $sapId = Product::where('product_code', $request->product_item)
+                            ->value('sap_id');
 
-            // Connect to SAP HANA
+            if (!$sapId) {
+                return response()->json([
+                    'status' => 'error',
+                    'statusCode' => 404,
+                    'message' => 'Invalid product item'
+                ], 404);
+            }
+
+            $searchKey = trim($request->search_key ?? '');
+
             $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
 
             if (!$conn) {
@@ -109,14 +194,7 @@ class StockController extends Controller
                 ], 500);
             }
 
-            // SAP Procedure Call
-            if (!empty($searchKey) && strlen($searchKey) >= 1) {
-            // Use search key
-                $sql = "CALL \"PRABHU_NEW\".\"Mobile_App_GetStock\"('$productItem', '$searchKey')";
-            } else {
-                // No search key
-                $sql = "CALL \"PRABHU_NEW\".\"Mobile_App_GetStock\"('$productItem','')";
-            }
+            $sql = "CALL \"PRABHU_NEW\".\"Mobile_App_GetStock\"($sapId, '$searchKey')";
             $result = odbc_exec($conn, $sql);
 
             if (!$result) {
@@ -127,35 +205,63 @@ class StockController extends Controller
                 ], 500);
             }
 
-           $stockData = [];
+            $stockData = [];
 
             while ($row = odbc_fetch_array($result)) {
-
-                // Clean spaces
                 $row = array_map('trim', $row);
 
-                // Convert all values to UTF-8 safely
                 foreach ($row as $key => $value) {
-                    $row[$key] = mb_convert_encoding($value, 'UTF-8', 'UTF-8, ISO-8859-1, Windows-1252');
+                    $row[$key] = mb_convert_encoding(
+                        $value,
+                        'UTF-8',
+                        'UTF-8, ISO-8859-1, Windows-1252'
+                    );
                 }
 
-                // Convert OnHand to float
-                $qty = isset($row['OnHand']) ? floatval($row['OnHand']) : 0;
+                $qty = isset($row['OnHand']) ? (float)$row['OnHand'] : 0;
 
-                // Determine Stock Status
                 if ($qty > 10) {
                     $status = "In-Stock";
-                } elseif ($qty >= 1 && $qty <= 10) {
+                } elseif ($qty >= 1) {
                     $status = "Low Stock";
                 } else {
                     $status = "Out of Stock";
                 }
 
                 $row['status'] = $status;
-
                 $stockData[] = $row;
             }
 
+            if (empty($stockData) && $searchKey !== '') {
+
+                $sql = "CALL \"PRABHU_NEW\".\"Mobile_App_GetStock\"($sapId, '')";
+                $result = odbc_exec($conn, $sql);
+
+                while ($row = odbc_fetch_array($result)) {
+                    $row = array_map('trim', $row);
+
+                    foreach ($row as $key => $value) {
+                        $row[$key] = mb_convert_encoding(
+                            $value,
+                            'UTF-8',
+                            'UTF-8, ISO-8859-1, Windows-1252'
+                        );
+                    }
+
+                    $qty = isset($row['OnHand']) ? (float)$row['OnHand'] : 0;
+
+                    if ($qty > 10) {
+                        $status = "In-Stock";
+                    } elseif ($qty >= 1) {
+                        $status = "Low Stock";
+                    } else {
+                        $status = "Out of Stock";
+                    }
+
+                    $row['status'] = $status;
+                    $stockData[] = $row;
+                }
+            }
 
             odbc_close($conn);
 
@@ -173,6 +279,7 @@ class StockController extends Controller
             ], 500);
         }
     }
+
 
 
     public function getProductStockDetails($product_details_id)
