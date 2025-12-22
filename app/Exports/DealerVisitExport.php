@@ -22,9 +22,13 @@ class DealerVisitExport implements FromCollection, WithHeadings, WithMapping, Sh
 
     public function collection()
     {
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
         return DealerVisit::with(['dealer', 'aso', 'creator', 'order.orderItems'])
             ->whereYear('created_at', $this->year)
             ->whereMonth('created_at', $this->month)
+             ->whereHas('createdBy', function($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            })
             ->get();
     }
 

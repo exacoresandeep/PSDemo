@@ -297,6 +297,7 @@ class AccountsController extends Controller
             'Details'       => $details,
         ];
 
+        
         try {
             // Log payload for debugging
         $response = Http::withHeaders([

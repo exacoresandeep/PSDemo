@@ -21,7 +21,7 @@ class ProductHelper
         $productIds = $user->product_ids ?? [];
 
         $product = Product::whereIn('id', $productIds)
-            ->select('id', 'product_name', 'product_code')
+            ->select('id', 'product_name', 'product_code') 
             ->first();
 
         return $product ? $product->id : null;

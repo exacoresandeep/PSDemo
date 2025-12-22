@@ -23,9 +23,13 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
 
     public function collection()
     {
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID(); 
         return InfluencerVisit::with(['district', 'order.dealer', 'order.paymentTerm', 'followUps', 'order.orderItems',"createdBy"])
             ->whereYear('created_at', $this->year)
-            ->whereMonth('created_at', $this->month)
+            ->whereMonth('created_at', $this->month) 
+            ->whereHas('createdBy', function($q) use ($productID) { //push
+                $q->whereJsonContains('products', (string)$productID);
+            })
             ->get();
     }
 
