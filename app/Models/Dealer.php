@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Dealer extends Model
 {
     use HasApiTokens, HasFactory;
-protected $table = 'dealers';
+    protected $table = 'dealers';
     protected $fillable = [
         'dealer_code',
         'dealer_name',

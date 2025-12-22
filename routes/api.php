@@ -105,12 +105,12 @@ use App\Http\Controllers\ExpenseController;
                 Route::get('/', [OrderController::class, 'index']); // List orders by current user ID
                 Route::get('{orderId}', [OrderController::class, 'show']); // order details
                 Route::post('/filter', [OrderController::class, 'orderFilter']);
-    
-                Route::get('/dealer/outstanding-payments', [OrderController::class, 'outstandingPaymentsList']); 
-                Route::get('/dealer/outstanding-payments/search', [OrderController::class, 'searchOutstandingPayments']);  // New
-                Route::get('/dealer/outstanding-payments/search-by-invoice', [OrderController::class, 'searchOutstandingByInvoice']);  // New
-              
-                Route::get('/dealer/outstanding-payments/{dealer_id}', [OrderController::class, 'viewOutstandingPaymentByDealer']);  // New
+           
+                Route::get('/dealer/outstanding-payments/search',[OrderController::class, 'searchOutstandingPayments']);
+                Route::get('/dealer/outstanding-payments/search-by-invoice',[OrderController::class, 'searchOutstandingByInvoice']);
+                Route::get('/dealer/outstanding-payments/product/{product_id}',[OrderController::class, 'outstandingPaymentsList']);
+                Route::get('/dealer/outstanding-payments/dealer/{dealer_id}',[OrderController::class, 'viewOutstandingPaymentByDealer']);
+                
                 Route::get('/dealer/view-outstanding-payment/{orderId}', [OrderController::class, 'viewOutstandingPaymentOrderDetails']); 
                 Route::post('/dealer/outstanding-payment/{id}/add-commitment', [OrderController::class, 'addOutstandingPaymentCommitment']);
                 Route::post('/dealer/outstanding-payment/{id}/add-commitment-new', [OrderController::class, 'addOutstandingPaymentCommitmentNew']);
