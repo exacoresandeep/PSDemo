@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use PDO;
 use PDOException;
+use Carbon\Carbon;
 
 class HanaController extends Controller
 {
@@ -74,5 +75,63 @@ class HanaController extends Controller
             ], 500);
         }
     }
+    public function fetchInvoiceLayout(Request $request)
+    {
+        $request->validate([
+            'invoice_number' => 'required|string',
+            'invoice_date'   => 'required|date',
+        ]);
+
+        $invoiceNumber = $request->invoice_number;
+
+        $invoiceDate = Carbon::parse($request->invoice_date)->format('Ymd');
+
+        try {
+            $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
+
+            if (!$conn) {
+                return response()->json([
+                    'success' => false,
+                    'message' => odbc_errormsg()
+                ], 500);
+            }
+
+            $sql = sprintf(
+                'CALL "PRABHU_NEW"."MobileApp_Invoice_Layout"(\'%s\', \'%s\')',
+                $invoiceNumber,
+                $invoiceDate
+            );
+
+            $result = odbc_exec($conn, $sql);
+
+            if (!$result) {
+                return response()->json([
+                    'success' => false,
+                    'message' => odbc_errormsg($conn)
+                ], 500);
+            }
+
+            $data = [];
+            while ($row = odbc_fetch_array($result)) {
+                $data[] = array_map('trim', $row);
+            }
+
+            odbc_close($conn);
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Invoice layout fetched successfully',
+                'data' => $data
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
 
