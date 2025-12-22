@@ -509,7 +509,7 @@
             .change(loadSalesPerformance);
     });
 
-    $("#commonMonth,commonYear").on('change', function() {
+    $("#commonMonth,#commonYear").on('change', function() {
         // const month = $('#commonMonth').val();
         // const year = $('#commonYear').val();
         fetchLeadsData();

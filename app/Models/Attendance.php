@@ -22,7 +22,8 @@ class Attendance extends Model
         'starting_remarks',
         'ending_remarks',
         'starting_km',
-        'ending_km',
+	'leave_type',
+	'ending_km',
         'status',
         'starting_attachment',
         'ending_attachment'

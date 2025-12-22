@@ -182,7 +182,9 @@ class LeadController extends Controller
                     'message' => 'Lead not found!',
                 ], 404);
             }
-
+            if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
+                $lead->update(['notification_status'=>'opened']);
+            }
             $leadWonOrders = $lead->orders->where('source', 'lead_won');
             $relatedLeads = Lead::with('orders.orderItems')
                 ->where('lead_chain_id', $lead->lead_chain_id)
@@ -1617,6 +1619,14 @@ class LeadController extends Controller
                         'status' => $visit->status,
                     ];
                 });
+
+
+            
+            InfluencerVisitFollowUp::where('created_by', $employee->id)
+                    ->where('notification_status', 'pending')
+                    ->update([
+                        'notification_status' => 'opened'
+                    ]);
     
             return response()->json([
                 'success' => true,
@@ -1934,8 +1944,8 @@ class LeadController extends Controller
                     'message' => 'Unauthorized access.',
                 ], 401);
             }
-
-             $query = Lead::with(['customerType'])
+            
+            $query = Lead::with(['customerType'])
                 ->where('created_by', $user->id)
                 ->where('status', $status);
 
@@ -1946,6 +1956,16 @@ class LeadController extends Controller
             }
 
             $leads = $query->orderBy('created_at', 'desc')->get();
+
+            
+            if ($status === 'Follow Up') {
+                LeadFollowUp::where('created_by', $user->id)
+                    ->where('notification_status', 'pending')
+                    // ->whereIn('lead_id', $leads->pluck('id'))
+                    ->update([
+                        'notification_status' => 'opened'
+                    ]);
+            }
 
             return $this->formatLeadsResponse($leads, $message);
         } catch (Exception $e) {

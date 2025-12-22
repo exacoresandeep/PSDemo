@@ -11,8 +11,8 @@ class ActivityQuestionLabel extends Model
         'activity_types_id',
         'type',
         'label_name',
-        'label_options',
-        'created_by',
+	'label_options',
+	'created_by',
     ];
 
     public function activityType()

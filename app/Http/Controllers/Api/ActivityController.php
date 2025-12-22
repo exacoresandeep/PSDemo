@@ -182,6 +182,9 @@ class ActivityController extends Controller
                 ], 404);
             }
 
+            if($user->id==$activity->employee_id && $activity->notification_status=="pending"){
+                $activity->update(['notification_status' => 'opened']);      
+            }
         $questionInputs = ActivitiesQuestionDetail::with(["questionLabel"])->where('activity_id', $activityId)
             // ->select('activity_question_labels_id', 'activity_input')
             ->get();
@@ -806,7 +809,7 @@ class ActivityController extends Controller
             ->toArray();
 
         $dealers = Dealer::select(
-            'id as dealer_id',
+            'id',
             'dealer_code',
             'dealer_name',
             'phone',

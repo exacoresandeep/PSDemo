@@ -73,7 +73,7 @@ use App\Http\Controllers\ExpenseController;
                 Route::get('credit-days', [DealerOrderController::class, 'getCreditDays']);
                 Route::post('/product-price', [AuthController::class, 'getPriceByProduct']);
         	    // Route::get('/product-price/{product_type_id}', [AuthController::class, 'getPriceByProductType']);
-        	    Route::get('ledger/download', [DealerController::class, 'downloadLedger']);
+        	    Route::post('ledger/download', [DealerController::class, 'downloadLedgerF']);
         	    Route::post('ledger/downloadNew', [DealerController::class, 'downloadLedgerNew']);
         	    
                 Route::post('logout', [DealerController::class, 'logout']);
