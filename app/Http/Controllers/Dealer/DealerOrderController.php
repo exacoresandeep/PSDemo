@@ -433,6 +433,8 @@ class DealerOrderController extends Controller
                 ], 400);
             }
 
+            
+
             $order = Order::with([
                 'orderType:id,name',
                 'dealers:id,dealer_name,dealer_code',
@@ -441,6 +443,9 @@ class DealerOrderController extends Controller
                 'vehicleCategory:id,vehicle_category_name',
             ])->findOrFail($orderId); 
 
+            if($user->id==$order->dealer_id && $order->notification_status=="pending"){
+                $order->update(['notification_status' => 'opened']);      
+            }
             // --- Process Order Items ---
             // --- Process Order Items ---
             if ($order->orderItems && count($order->orderItems)) {
@@ -502,8 +507,14 @@ class DealerOrderController extends Controller
                 ],
 
                 'credit_days' => $order->credit_days,
-                'billing_date' => $order->billing_date->format('d/M/Y'),
-                'delivery_date' => $order->delivery_date->format('d/M/Y'),
+                'billing_date' => $order->billing_date
+                    ? Carbon::createFromFormat('d/m/Y', $order->billing_date)->format('d/M/Y')
+                    : null,
+
+                    'delivery_date' => $order->delivery_date
+                    ? Carbon::createFromFormat('d/m/Y', $order->delivery_date)->format('d/M/Y')
+                    : null,
+
                 'total_amount' => round((float)$order->total_amount, 6),
                 'additional_information' => $order->additional_information,
                 'status' => $order->status,
