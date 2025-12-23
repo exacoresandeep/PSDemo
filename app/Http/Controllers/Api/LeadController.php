@@ -1690,7 +1690,7 @@ class LeadController extends Controller
                 'id' => $visit->id,
                 'influencer_name' => $visit->influencer_name,
                 'purpose' => $visit->purpose,
-                'created_at' => $visit->created_at?->format('d/m/Y h:i A'),
+                'created_at' => $visit->updated_at?->format('d/m/Y h:i A'),
                 'follow_up_date' =>
                     $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
                 'status' => $visit->status,
