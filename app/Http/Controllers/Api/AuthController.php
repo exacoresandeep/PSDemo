@@ -1389,6 +1389,50 @@ public function updateFcmToken(Request $request)
 
     
     // Fetch Products
+
+     public function getProductForDealer()
+    {
+        try {
+            $user = Auth::user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => 'User not authenticated',
+                    'data' => [],
+                ], 401);
+            }
+        // dd($user);
+            $productIds = $user->products;
+
+
+            if (empty($productIds) || !is_array($productIds)) {
+                return response()->json([
+                    'success' => true,
+                    'statusCode' => 200,
+                    'message' => 'No products assigned',
+                    'data' => [],
+                ], 200);
+            }
+
+            $data = \App\Models\Product::whereIn('id', $productIds)
+                ->select('id as product_id', 'product_name', 'product_code')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Products fetched successfully',
+                'data' => $data,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
     public function getProducts()
     {
         try {
@@ -1401,7 +1445,7 @@ public function updateFcmToken(Request $request)
                     'data' => [],
                 ], 401);
             }
-// dd($user);
+        // dd($user);
             $productIds = $user->products;
 
 
