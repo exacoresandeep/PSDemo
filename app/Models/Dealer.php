@@ -27,12 +27,12 @@ class Dealer extends Model
         'location',
         'assigned_route_id',
         'password_reset_flag',
-        'product_id',
+        'products',
         'address_id'
         
     ];
      protected $casts = [
-        'product_id' => 'array',
+        'products' => 'array',
     ];
     public function orders()
     {

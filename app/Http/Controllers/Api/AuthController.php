@@ -1480,6 +1480,98 @@ public function updateFcmToken(Request $request)
     //         ], 500);
     //     }
     // }
+    // public function getProductTypes(Request $request)
+    // {
+    //     try {
+    //         $user = Auth::user();
+    //         if (!$user) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 401,
+    //                 'message' => 'Unauthorized access.'
+    //             ], 401);
+    //         }
+
+    //         $productId = $request->input('product_id');
+    //         $search = $request->input('search');
+
+    //         if (!$productId || $productId == 0) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 400,
+    //                 'message' => 'Invalid product_id provided.'
+    //             ], 400);
+    //         }
+
+    //         $product = Product::find($productId);
+ 
+    //         if (!$product) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'statusCode' => 404,
+    //                 'message' => 'Product not found.'
+    //             ], 404);
+    //         }
+
+    //         $productCode = strtolower($product->product_code);
+            
+    //         if ($productCode === 'durashine' || $productCode === 'structura') {
+    //             $query = ProductDetails::select(
+    //                     'products_details.product_id',
+    //                     'product_types.id as product_type_id',
+    //                     // 'products_details.product_name as type_name',
+    //                     'product_types.rate',
+    //                     'product_types.type_name'
+    //                 )
+    //                 ->join('product_types', 'product_types.id', '=', 'products_details.type_id')
+    //                 ->where('products_details.product_id', $productId);
+    //             if (!empty($search)) {
+    //                     $query->where('product_types.type_name', 'LIKE', '%'. $search . '%');
+    //             }
+
+    //             $data = $query->limit(20)->get();
+
+    //             return response()->json([
+    //                 'success' => true,
+    //                 'statusCode' => 200,
+    //                 'message' => 'Durashine product types fetched successfully',
+    //                 'data' => $data
+    //             ]);
+    //         }
+    //         else  {
+
+    //             $data = ProductType::select(
+    //                     'product_id',
+    //                     'id as product_type_id',
+    //                     'type_name',
+    //                     'rate'
+    //                 )
+    //                 ->where('product_id', $productId)
+    //                 ->get();
+
+    //             return response()->json([
+    //                 'success' => true,
+    //                 'statusCode' => 200,
+    //                 'message' => 'Product types fetched successfully',
+    //                 'data' => $data
+    //             ]);
+    //         }
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 400,
+    //             'message' => 'Unsupported product type.'
+    //         ]);
+
+    //     } catch (\Exception $e) {
+
+    //         return response()->json([
+    //             'success' => false,
+    //             'statusCode' => 500,
+    //             'message' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
     public function getProductTypes(Request $request)
     {
         try {
@@ -1493,7 +1585,7 @@ public function updateFcmToken(Request $request)
             }
 
             $productId = $request->input('product_id');
-            $search = $request->input('search');
+            $search    = $request->input('search');
 
             if (!$productId || $productId == 0) {
                 return response()->json([
@@ -1504,7 +1596,7 @@ public function updateFcmToken(Request $request)
             }
 
             $product = Product::find($productId);
- 
+
             if (!$product) {
                 return response()->json([
                     'success' => false,
@@ -1514,57 +1606,68 @@ public function updateFcmToken(Request $request)
             }
 
             $productCode = strtolower($product->product_code);
-            
-            if ($productCode === 'durashine' || $productCode === 'structura') {
+
+         
+            if (in_array($productCode, ['durashine', 'structura'])) {
+
                 $query = ProductDetails::select(
                         'products_details.product_id',
                         'product_types.id as product_type_id',
-                        // 'products_details.product_name as type_name',
-                        'product_types.rate',
-                        'product_types.type_name'
+                        'product_types.type_name',
+                        'product_types.rate'
                     )
                     ->join('product_types', 'product_types.id', '=', 'products_details.type_id')
-                    ->where('products_details.product_id', $productId);
+                    ->where('products_details.product_id', $productId)
+                    ->where('products_details.availability_status', 'Available');
+
                 if (!empty($search)) {
-                        $query->where('product_types.type_name', 'LIKE', '%'. $search . '%');
+                    $query->where('product_types.type_name', 'LIKE', '%' . $search . '%');
                 }
 
-                $data = $query->limit(20)->get();
-
-                return response()->json([
-                    'success' => true,
-                    'statusCode' => 200,
-                    'message' => 'Durashine product types fetched successfully',
-                    'data' => $data
-                ]);
-            }
-            else  {
-
-                $data = ProductType::select(
-                        'product_id',
-                        'id as product_type_id',
-                        'type_name',
-                        'rate'
+                $data = $query
+                    ->groupBy(
+                        'products_details.product_id',
+                        'product_types.id',
+                        'product_types.type_name',
+                        'product_types.rate'
                     )
-                    ->where('product_id', $productId)
+                    ->limit(20)
                     ->get();
 
                 return response()->json([
                     'success' => true,
                     'statusCode' => 200,
-                    'message' => 'Product types fetched successfully',
+                    'message' => 'Available product types fetched successfully',
                     'data' => $data
                 ]);
             }
 
+          
+            $data = ProductType::select(
+                    'product_types.product_id',
+                    'product_types.id as product_type_id',
+                    'product_types.type_name',
+                    'product_types.rate'
+                )
+                ->join('products_details', 'products_details.type_id', '=', 'product_types.id')
+                ->where('product_types.product_id', $productId)
+                ->where('products_details.availability_status', 'Available')
+                ->groupBy(
+                    'product_types.product_id',
+                    'product_types.id',
+                    'product_types.type_name',
+                    'product_types.rate'
+                )
+                ->get();
+
             return response()->json([
-                'success' => false,
-                'statusCode' => 400,
-                'message' => 'Unsupported product type.'
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Available product types fetched successfully',
+                'data' => $data
             ]);
 
         } catch (\Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'statusCode' => 500,
@@ -1572,6 +1675,7 @@ public function updateFcmToken(Request $request)
             ], 500);
         }
     }
+
 
    
     public function getPriceByProduct(Request $request)

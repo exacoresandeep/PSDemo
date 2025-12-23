@@ -36,7 +36,7 @@ class FetchDealerDatas extends Command
         foreach ($products as $productName) {
             foreach ($districts as $district) {
 
-                $sql = "CALL \"PRABHU_NEW\".\"MobileApp_Dealers_Type_param\"('$productName','$district')";
+                $sql = "CALL \"PRABHU_NEW\".\"MobileApp_Dealers_Type_param\"('$productID','$district')";
                 $result = odbc_exec($conn, $sql);
 
                 if (!$result) {
