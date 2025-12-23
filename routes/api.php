@@ -46,7 +46,7 @@ use App\Http\Controllers\ExpenseController;
     	        Route::post('reset-password', [AuthController::class, 'resetPassword']);
                 Route::get('order-types', [AuthController::class, 'getOrderTypes']);
                 Route::get('payment-terms', [AuthController::class, 'getPaymentTerms']);
-                Route::get('products', [AuthController::class, 'getProducts']);
+                Route::get('products', [AuthController::class, 'getProductForDealer']);
                 Route::post('product-types', [AuthController::class, 'getProductTypes']);
                 Route::get('getVehicleCategory', [AuthController::class, 'getVehicleCategory']);
                 Route::post('getVehicleTypeByCategory', [AuthController::class, 'getVehicleTypeByCategory']);
