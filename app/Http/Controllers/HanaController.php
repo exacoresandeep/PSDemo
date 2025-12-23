@@ -152,8 +152,8 @@ class HanaController extends Controller
                     "number"          => $first["SeriesName"]."/".$first["Credit Memo Number"],
                     "date"            => $first["Date"],
                     "customer_ref_no" => null,
-		    "ack_no"        => $first["Ack No"],
-		    "ack_date"        => $first["U_AckDt"],
+                    "ack_no"        => $first["Ack No"],
+                    "ack_date"        => $first["U_AckDt"],
                     "irn_no"          => $first["IRNNo"]
                 ],
                 "customer_details" => [
@@ -182,8 +182,8 @@ class HanaController extends Controller
                     "sub_total"        => round($subTotal, 2),
                     "cgst_total"       => round($cgstTotal, 2),
                     "sgst_total"       => round($sgstTotal, 2),
-		    "igst_total"       => round($igstTotal, 2),
-		    "gross_total"      => round($grossTotal, 2),
+                    "igst_total"       => round($igstTotal, 2),
+                    "gross_total"      => round($grossTotal, 2),
                     "discount_percent" => $discountPercent,
                     "discount_amount"  => $discountAmount,
                     "round_off"        => round($roundOff, 2),
