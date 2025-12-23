@@ -296,12 +296,25 @@
             });
     });
     
+    // $('#exportFiltered').on('click', function () {
+    //     const status = $('#statusFilter').val();
+    //     let url = "{{ route('operations.orders.export') }}";
+    //     if (status) {
+    //         url += '?status=' + encodeURIComponent(status);
+    //     }
+    //     window.open(url, '_blank');
+    // });
     $('#exportFiltered').on('click', function () {
         const status = $('#statusFilter').val();
-        let url = "{{ route('operations.orders.export') }}";
-        if (status) {
-            url += '?status=' + encodeURIComponent(status);
-        }
+        const from_date = $('#fromdate').val();
+        const to_date = $('#todate').val();
+
+        let url = "{{ route('operations.orders.export') }}?";
+        
+        if (status) url += 'status=' + encodeURIComponent(status) + '&';
+        if (from_date) url += 'from_date=' + from_date + '&';
+        if (to_date) url += 'to_date=' + to_date + '&';
+
         window.open(url, '_blank');
     });
     $(document).on('click', '.view-attachment-btn', function () {
