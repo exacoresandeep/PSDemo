@@ -259,8 +259,11 @@ class OperationsController extends Controller
                 });
             })
             ->where(function ($query) {
-                $query->where('order_approved', '!=', '2')
-                      ->orWhereNull('order_approved');
+                $query->where('order_approved', '1') // Always include approved
+                ->orWhere(function ($q) {
+                    $q->where('order_approved', '!=', '2')
+                        ->orWhereNull('order_approved');
+                });
             })
             ->where(function ($q) {
                 $q->whereNull('vehicle_status')
@@ -581,13 +584,229 @@ class OperationsController extends Controller
 
         return response()->json(['success' => true, 'order' => $orderData]);
     }
-  
+    // public function export(Request $request)
+    // {
+    //     $statusFilter = $request->get('status');
+
+    //     $orders = Order::with(['dealer', 'dealers', 'createdBy.employeeType','orderItems','vehicleCategory'])
+    //         ->where(function ($query) {
+    //             $query->where(function ($subQuery) {
+    //                 $subQuery->where('dealer_flag_order', '1')
+    //                     ->where('status', 'Accepted')
+    //                     ->where(function ($approvalQuery) {
+    //                         $approvalQuery->where('send_for_approval', '0')
+    //                                     ->orWhere('send_for_approval', '1');
+    //                     });
+    //             })
+    //             ->orWhere(function ($subQuery) {
+    //                 $subQuery->whereHas('createdBy', function ($employeeQuery) {
+    //                     $employeeQuery->whereIn('employee_type_id', [2, 3, 4, 5]);
+    //                 })->where('dealer_flag_order', '!=', '1')
+    //                 ->where(function ($sourceQuery) {
+    //                     $sourceQuery->whereNull('source')->orWhere('source', '!=', 'lead_won');
+    //                 });
+    //             });
+    //         });
+
+    //     if ($statusFilter === 'Approved') {
+    //         $orders->where('order_approved', '1');
+    //     } elseif ($statusFilter === 'Pending') {
+    //         $orders->where(function ($query) {
+    //             $query->whereNull('order_approved')->orWhereNotIn('order_approved', ['1', '2']);
+    //         });
+    //     }
+
+	//     $data = $orders->latest()->get()->map(function ($order) {
+	// 	$employee = $order->createdBy;
+    //         $isDealerOrder = $order->dealer_flag_order == 1;
+    //         return [
+    //             'Date' => $order->created_at->format('d/m/Y'),
+    //             'Order ID' => 'OD00' . $order->id,
+    //             'Dealer Name' => $order->created_by_dealer ? $order->dealers?->dealer_name : $order->dealer?->dealer_name,
+    //             'Dealer Code' => $order->created_by_dealer ? $order->dealers?->dealer_code : $order->dealer?->dealer_code,
+                
+    //             'Employee Type' => $isDealerOrder ? '-' : ($employee?->employeeType?->type_name ?? 'N/A'),
+    //             'Employee Name' => $isDealerOrder ? '-' : ($employee->name ?? '-'),
+    //             'Employee Code' => $isDealerOrder ? '-' : ($employee->employee_code ?? '-'),
+
+    //             'District'=> $order->dealer->district,
+    //             'Vehicle Category'=> $order->vehicleCategory ? $order->vehicleCategory->vehicle_category_name : "NA",
+    //             'Vehicle Number'=> $order->vehicle_number,
+    //             'Driver Number'=> $order->driver_phone,
+    //             'Driver Name'=> $order->driver_name,
+    //             'Yard Status'=> $order->vehicle_status,
+    //             'Scheme' => $order->scheme ?? '-',
+    //             'Quantity' => $order->orderItems->sum('total_quantity') ?? 0,
+	// 	        'Amount' => number_format($order->total_amount, 2),
+    //             'Status' => match ($order->order_approved) {
+    //                 '1' => 'Approved',
+    //                 '2' => 'Rejected',
+    //                 default => 'Pending',
+    //             },
+    //         ];
+    //     });
+
+    //     return Excel::download(new class($data) implements \Maatwebsite\Excel\Concerns\FromCollection, \Maatwebsite\Excel\Concerns\WithHeadings {
+    //         protected $data;
+
+    //         public function __construct($data)
+    //         {
+    //             $this->data = $data;
+    //         }
+
+    //         public function collection()
+    //         {
+    //             return collect($this->data);
+    //         }
+
+    //         public function headings(): array
+    //         {
+    //             return [
+    //                 'Date',
+    //                 'Order ID',
+    //                 'Dealer Name',
+    //                 'Dealer Code',
+    //                 'Employee Type',
+	// 	            'Employee Name',
+    //                 'Employee Code',
+
+    //                 'District',
+    //                 'Vehicle Category',
+    //                 'Vehicle Number',
+    //                 'Driver Number',
+    //                 'Driver Name',
+    //                 'Yard Status',
+
+	// 	            'Scheme',
+    //                 'Quantity',
+	// 	            'Amount',
+    //                 'Status',
+    //             ];
+    //         }
+    //     }, 'orders.xlsx');
+    // }
+    // public function export(Request $request)
+    // {
+    //     $statusFilter = $request->get('status');
+    //     $fromDate = $request->get('from_date');
+    //     $toDate = $request->get('to_date');
+
+    //     $productID = ProductHelper::getSelectedProductId();
+
+    //     $orders = Order::with([
+    //             'dealer',
+    //             'dealers',
+    //             'createdBy.employeeType',
+    //             'orderItems',
+    //             'vehicleCategory'
+    //         ])
+    //         ->whereHas('orderItems', function ($q) use ($productID) {
+    //             $q->where('product_id', $productID);
+    //         });
+
+    //     if ($statusFilter === 'Approved') {
+    //         $orders->where('order_approved', '1');
+    //     } elseif ($statusFilter === 'Pending') {
+    //         $orders->where(function ($q) {
+    //             $q->whereNull('order_approved')
+    //             ->orWhereNotIn('order_approved', ['1', '2']);
+    //         });
+    //     }
+
+    //     if ($fromDate) {
+    //         $orders->whereDate('created_at', '>=', $fromDate);
+    //     }
+    //     if ($toDate) {
+    //         $orders->whereDate('created_at', '<=', $toDate);
+    //     }
+
+    //     $data = $orders->latest()->get()->map(function ($order) {
+
+    //         $employee = $order->createdBy;
+    //         $isDealerOrder = $order->dealer_flag_order == '1';
+
+    //         return [
+    //             'Date' => $order->created_at->format('d/m/Y'),
+    //             'Order ID' => 'OD00' . $order->id,
+    //             'Dealer Name' => $order->created_by_dealer
+    //                 ? $order->dealers?->dealer_name
+    //                 : $order->dealer?->dealer_name,
+
+    //             'Dealer Code' => $order->created_by_dealer
+    //                 ? $order->dealers?->dealer_code
+    //                 : $order->dealer?->dealer_code,
+
+    //             'Employee Type' => $isDealerOrder ? '-' : ($employee?->employeeType?->type_name ?? 'N/A'),
+    //             'Employee Name' => $isDealerOrder ? '-' : ($employee->name ?? '-'),
+    //             'Employee Code' => $isDealerOrder ? '-' : ($employee->employee_code ?? '-'),
+
+    //             'District' => $order->dealer?->district ?? '-',
+    //             'Vehicle Category' => $order->vehicleCategory?->vehicle_category_name ?? 'NA',
+    //             'Vehicle Number' => $order->vehicle_number,
+    //             'Driver Number' => $order->driver_phone,
+    //             'Driver Name' => $order->driver_name,
+    //             'Yard Status' => $order->vehicle_status,
+    //             'Scheme' => $order->scheme ?? '-',
+    //             'Quantity' => $order->orderItems->sum('total_quantity'),
+    //             'Amount' => number_format($order->total_amount, 2),
+    //             'Status' => match ($order->order_approved) {
+    //                 '1' => 'Approved',
+    //                 '2' => 'Rejected',
+    //                 default => 'Pending',
+    //             },
+    //         ];
+    //     });
+
+    //     return Excel::download(
+    //         new class($data) implements
+    //             \Maatwebsite\Excel\Concerns\FromCollection,
+    //             \Maatwebsite\Excel\Concerns\WithHeadings {
+
+    //             protected $data;
+
+    //             public function __construct($data)
+    //             {
+    //                 $this->data = $data;
+    //             }
+
+    //             public function collection()
+    //             {
+    //                 return collect($this->data);
+    //             }
+
+    //             public function headings(): array
+    //             {
+    //                 return [
+    //                     'Date',
+    //                     'Order ID',
+    //                     'Dealer Name',
+    //                     'Dealer Code',
+    //                     'Employee Type',
+    //                     'Employee Name',
+    //                     'Employee Code',
+    //                     'District',
+    //                     'Vehicle Category',
+    //                     'Vehicle Number',
+    //                     'Driver Number',
+    //                     'Driver Name',
+    //                     'Yard Status',
+    //                     'Scheme',
+    //                     'Quantity',
+    //                     'Amount',
+    //                     'Status',
+    //                 ];
+    //             }
+    //         },
+    //         'orders.xlsx'
+    //     );
+    // }
     public function export(Request $request)
     {
         $productID   = ProductHelper::getSelectedProductId();
         $status      = $request->get('status');
         $fromDate    = $request->get('from_date');
         $toDate      = $request->get('to_date');
+        $vehicleStatus = $request->get('vehicle_status');
 
         $orders = Order::with([
                 'dealer',
@@ -653,27 +872,41 @@ class OperationsController extends Controller
             $isDealerOrder = $order->dealer_flag_order == '1';
 
             return [
-                'Date' => $order->created_at->format('d/m/Y'),
-                'Order ID' => 'OD00' . $order->id,
-                'Dealer Name' => $order->created_by_dealer
-                    ? $order->dealers?->dealer_name
-                    : $order->dealer?->dealer_name,
-                'Dealer Code' => $order->created_by_dealer
-                    ? $order->dealers?->dealer_code
-                    : $order->dealer?->dealer_code,
-                'Employee Type' => $isDealerOrder ? '-' : ($employee?->employeeType?->type_name ?? 'N/A'),
-                'Employee Name' => $isDealerOrder ? '-' : ($employee->name ?? '-'),
-                'Employee Code' => $isDealerOrder ? '-' : ($employee->employee_code ?? '-'),
-                'District' => $order->dealer?->district ?? '-',
-                'Vehicle Category' => $order->vehicleCategory?->vehicle_category_name ?? 'NA',
-                'Quantity' => $order->orderItems->sum('total_quantity'),
-                'Amount' => number_format($order->total_amount, 2),
-                'Status' => match ($order->order_approved) {
-                    '1' => 'Approved',
-                    '2' => 'Rejected',
-                    default => 'Pending',
-                },
-            ];
+                    'Date' => $order->created_at->format('d/m/Y'),
+                    'Order ID' => 'OD00' . $order->id,
+
+                    'Dealer Name' => $order->created_by_dealer
+                        ? $order->dealers?->dealer_name
+                        : $order->dealer?->dealer_name,
+
+                    'Dealer Code' => $order->created_by_dealer
+                        ? $order->dealers?->dealer_code
+                        : $order->dealer?->dealer_code,
+
+                    'Employee Type' => $isDealerOrder ? '-' : ($employee?->employeeType?->type_name ?? 'N/A'),
+                    'Employee Name' => $isDealerOrder ? '-' : ($employee->name ?? '-'),
+                    'Employee Code' => $isDealerOrder ? '-' : ($employee->employee_code ?? '-'),
+
+                    'District' => $order->dealer?->district ?? '-',
+                    'Vehicle Category' => $order->vehicleCategory?->vehicle_category_name ?? 'NA',
+
+                    // 🔹 NEW FIELDS ADDED
+                    'Vehicle Number' => $order->vehicle_number ?? '-',
+                    'Driver Number'  => $order->driver_phone ?? '-',
+                    'Driver Name'    => $order->driver_name ?? '-',
+                    'Yard Status'    => $order->vehicle_status ?? '-',
+                    'Scheme'         => $order->scheme ?? '-',
+
+                    'Quantity' => $order->orderItems->sum('total_quantity'),
+                    'Amount' => number_format($order->total_amount, 2),
+
+                    'Status' => match ($order->order_approved) {
+                        '1' => 'Approved',
+                        '2' => 'Rejected',
+                        default => 'Pending',
+                    },
+                ];
+
         });
 
         return Excel::download(
@@ -691,19 +924,27 @@ class OperationsController extends Controller
                 public function headings(): array
                 {
                     return [
-                        'Date',
-                        'Order ID',
-                        'Dealer Name',
-                        'Dealer Code',
-                        'Employee Type',
-                        'Employee Name',
-                        'Employee Code',
-                        'District',
-                        'Vehicle Category',
-                        'Quantity',
-                        'Amount',
-                        'Status',
-                    ];
+                            'Date',
+                            'Order ID',
+                            'Dealer Name',
+                            'Dealer Code',
+                            'Employee Type',
+                            'Employee Name',
+                            'Employee Code',
+                            'District',
+                            'Vehicle Category',
+
+                            // 🔹 NEW HEADINGS
+                            'Vehicle Number',
+                            'Driver Number',
+                            'Driver Name',
+                            'Yard Status',
+                            'Scheme',
+
+                            'Quantity',
+                            'Amount',
+                            'Status',
+                        ];
                 }
             },
             'orders.xlsx'

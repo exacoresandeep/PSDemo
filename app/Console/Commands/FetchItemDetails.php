@@ -24,6 +24,7 @@ class FetchItemDetails extends Command
 	    Log::info('✅ Running FetchItemDetails at ' . now());
         try {
             $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
+            
             if (!$conn) {
                 $this->error('ODBC Connection Failed: ' . odbc_errormsg());
                 return 1;
@@ -65,21 +66,27 @@ class FetchItemDetails extends Command
 
                     $productTypeName = trim($item['Product Code'] ?? '');
 
-                    $productType = ProductType::firstOrCreate(
+                    $productType = ProductType::updateOrCreate(
                         ['type_name' => $productTypeName],
                         ['product_id' => $product_id] 
                     );
 
                     ProductDetails::updateOrCreate(
-                        ['product_name' => trim($item['Product'])],
                         [
+                            'product_name' => trim($item['Product']),
                             'product_id' => $product_id,
+                        ],
+                        [
+                            
                             'item_profile' => $item['Item Profile'] ?? null,
                             'item_thickness' => $item['Item Thickness'] ?? null,
                             'type_id' => $productType->id,
                             'primary_group' => $item['Primary Group'] ?? null,
-                            'weight' => $item['Weight'] ?? null,
-                            'total_available_quantity' => 0,
+                            // 'weight' => $item['Weight'] ?? null,
+			                'weight' => (isset($item['Weight']) && is_numeric($item['Weight']))
+                                ? (float) $item['Weight']
+                                : null,
+			                'total_available_quantity' => 0,
                             'availability_status' => ($item['Availability Status'] ?? '') === 'Available' ? 'Available' : 'Unavailable',
                             'stock_updated_at' => Carbon::now(),
                             'rate' => 0,
