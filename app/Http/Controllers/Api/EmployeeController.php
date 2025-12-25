@@ -17,9 +17,10 @@ use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\EmployeeProductSap;
 
 use Illuminate\Support\Str;
-
+use Matrix\Decomposition\QR;
 
 class EmployeeController extends Controller
 {
@@ -76,118 +77,218 @@ class EmployeeController extends Controller
         }
     }
 
+    // public function create(Request $request)
+    // {
+    //     try {
+    //         $request->validate([
+    //             'name' => 'required|string',
+    //             'employee_code' => 'required|string|unique:employees,employee_code',
+    //             'employee_type_id' => 'required',
+    //             'email' => 'unique:employees,email',
+    //             'employee_sap_code' => 'required|string|unique:employees,employee_sap_code',
+    //         ]);
+
+    //         $namePart = Str::upper(substr($request->name, 0, 3)); // first 3 letters uppercase
+    //         $password = $namePart . $request->employee_code . '@';
+    //          $managerName = $request->reporting_manager 
+    //         ? Employee::find($request->reporting_manager)?->name 
+    //         : null;
+    //         $designation = $request->employee_type_id 
+    //         ? EmployeeType::find($request->employee_type_id)?->type_name 
+    //         : null;
+    //         $employee = Employee::create([
+    //             'name' => $request->name,
+    //             'employee_code' => $request->employee_code,
+    //             'employee_sap_code' => $request->employee_sap_code,
+    //             'employee_type_id' => $request->employee_type_id,
+    //             'email' => $request->email,
+    //             'designation' => $designation ?? '',
+    //             'phone' => $request->phone,
+    //             'district_id' => $request->district_id,
+    //             'district' => $request->district_id 
+    //                                         ? District::find($request->district_id)?->name 
+    //                                         : null,
+    //             'products' => $request->products ? json_encode($request->products) : null,
+    //             'reporting_manager' => $request->reporting_manager,
+    //             'reporting_manager_name' => $managerName,
+    //             'password' => Hash::make($password),
+    //         ]);
+           
+    //         return response()->json(['message' => 'Employee created successfully', 'employee' => $employee]);
+            
+    //     } catch (ValidationException $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Validation failed',
+    //             'errors' => $e->errors()
+    //         ], 422);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Something went wrong',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
     public function create(Request $request)
     {
-        try {
-            $request->validate([
-                'name' => 'required|string',
-                'employee_code' => 'required|string|unique:employees,employee_code',
-                'employee_type_id' => 'required',
-                'email' => 'unique:employees,email',
-                'employee_sap_code' => 'required|string|unique:employees,employee_sap_code',
-            ]);
+        $request->validate([
+            'name' => 'required|string',
+            'employee_code' => 'required|string|unique:employees,employee_code',
+            'employee_type_id' => 'required',
+            'email' => 'nullable|email|unique:employees,email',
+            'products' => 'required|array'
+        ]);
 
-            $namePart = Str::upper(substr($request->name, 0, 3)); // first 3 letters uppercase
-            $password = $namePart . $request->employee_code . '@';
-             $managerName = $request->reporting_manager 
-            ? Employee::find($request->reporting_manager)?->name 
-            : null;
-            $designation = $request->employee_type_id 
-            ? EmployeeType::find($request->employee_type_id)?->type_name 
-            : null;
-            $employee = Employee::create([
-                'name' => $request->name,
-                'employee_code' => $request->employee_code,
-                'employee_sap_code' => $request->employee_sap_code,
-                'employee_type_id' => $request->employee_type_id,
-                'email' => $request->email,
-                'designation' => $designation ?? '',
-                'phone' => $request->phone,
-                'district_id' => $request->district_id,
-                'district' => $request->district_id 
-                                            ? District::find($request->district_id)?->name 
-                                            : null,
-                'products' => $request->products ? json_encode($request->products) : null,
-                'reporting_manager' => $request->reporting_manager,
-                'reporting_manager_name' => $managerName,
-                'password' => Hash::make($password),
+        $password = Str::upper(substr($request->name, 0, 3))
+                    . $request->employee_code . '@';
+
+        $designation = $request->employee_type_id
+            ? EmployeeType::find($request->employee_type_id)?->type_name
+            : '';
+
+        $employee = Employee::create([
+            'name' => $request->name,
+            'employee_code' => $request->employee_code,
+            'employee_type_id' => $request->employee_type_id,
+            'designation' => $designation,   
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'district_id' => $request->district_id,
+            'district' => $request->district_id 
+                            ? District::find($request->district_id)?->name 
+                            : null,
+            'reporting_manager' => $request->reporting_manager,
+            'reporting_manager_name' => $request->reporting_manager
+                ? Employee::find($request->reporting_manager)?->name
+                : null,
+            'products' => json_encode(array_map('strval', $request->products)),
+            'password' => Hash::make($password),
+        ]);
+
+        foreach ($request->products as $productId) {
+            EmployeeProductSap::create([
+                'employee_id' => $employee->id,
+                'product_id'  => $productId,
+                'sap_code'    => $request->product_sap[$productId] ?? null,
             ]);
-           
-            return response()->json(['message' => 'Employee created successfully', 'employee' => $employee]);
-            
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Something went wrong',
-                'error' => $e->getMessage()
-            ], 500);
         }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Employee created successfully'
+        ]);
     }
 
     public function update(Request $request, $id)
     {
-        try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'employee_code' => 'required|string|max:50|unique:employees,employee_code,' . $id,
-                'employee_sap_code' => 'required|string|max:22|employee_sap_code,' . $id,
-                'employee_type_id' => 'required|integer',
-                'email' => 'required|email|unique:employees,email,' . $id,
-                'phone' => 'nullable|string|max:15',
-                'district_id' => 'nullable|integer',
-                'reporting_manager' => 'nullable|integer',
-            ]);
+        $request->validate([
+            'name' => 'required|string',
+            'employee_code' => 'required|string|unique:employees,employee_code,' . $id,
+            'employee_type_id' => 'required',
+            'email' => 'nullable|email|unique:employees,email,' . $id,
+            'products' => 'required|array'
+        ]);
 
-            $employee = Employee::findOrFail($id);
-            $designation = $request->employee_type_id 
-            ? EmployeeType::find($request->employee_type_id)?->type_name 
-            : null;
-            $employee->update([
-                'name' => $request->name,
-                'employee_code' => $request->employee_code,
-                'employee_sap_code' => $request->employee_sap_code,
-                'employee_type_id' => $request->employee_type_id,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'district_id' => $request->district_id,
-                'district' => $request->district_id 
-                                            ? District::find($request->district_id)?->name 
-                                            : null,
-                'reporting_manager' => $request->reporting_manager,
-                'reporting_manager_name' => $request->reporting_manager 
-                                            ? Employee::find($request->reporting_manager)?->name 
-                                            : null,
-                'designation' => $designation,
-                'products' => $request->products ? json_encode($request->products) : null,
-                'area' => $request->area ?? $employee->area,
-            ]);
+        $employee = Employee::findOrFail($id);
 
-            return response()->json([
-                'status' => true,
-                'message' => 'Employee updated successfully!',
-                'data' => $employee
-            ]);
+        $employee->update([
+            'name' => $request->name,
+            'employee_code' => $request->employee_code,
+            'employee_type_id' => $request->employee_type_id,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'district_id' => $request->district_id,
+            'reporting_manager' => $request->reporting_manager,
+            'reporting_manager_name' => $request->reporting_manager
+                ? Employee::find($request->reporting_manager)?->name
+                : null,
+            'products' => json_encode(array_map('strval', $request->products)),
+        ]);
 
-        } catch (ValidationException $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Validation failed',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => false,
-                'message' => 'Failed to update employee!',
-                'error' => $e->getMessage()
-            ], 500);
+        EmployeeProductSap::where('employee_id', $employee->id)->delete();
+
+        foreach ($request->products as $productId) {
+            EmployeeProductSap::create([
+                'employee_id' => $employee->id,
+                'product_id'  => $productId,
+                'sap_code'    => $request->product_sap[$productId] ?? null,
+            ]);
         }
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Employee updated successfully'
+        ]);
     }
+    public function edit($id)
+    {
+        $employee = Employee::with('productSaps')->findOrFail($id);
+
+        return response()->json([
+            'status' => true,
+            'data' => $employee
+        ]);
+    }
+
+    // public function update(Request $request, $id)
+    // {
+    //     try {
+    //         $request->validate([
+    //             'name' => 'required|string|max:255',
+    //             'employee_code' => 'required|string|max:50|unique:employees,employee_code,' . $id,
+    //             'employee_sap_code' => 'required|string|max:22|employee_sap_code,' . $id,
+    //             'employee_type_id' => 'required|integer',
+    //             'email' => 'required|email|unique:employees,email,' . $id,
+    //             'phone' => 'nullable|string|max:15',
+    //             'district_id' => 'nullable|integer',
+    //             'reporting_manager' => 'nullable|integer',
+    //         ]);
+
+    //         $employee = Employee::findOrFail($id);
+    //         $designation = $request->employee_type_id 
+    //         ? EmployeeType::find($request->employee_type_id)?->type_name 
+    //         : null;
+    //         $employee->update([
+    //             'name' => $request->name,
+    //             'employee_code' => $request->employee_code,
+    //             'employee_sap_code' => $request->employee_sap_code,
+    //             'employee_type_id' => $request->employee_type_id,
+    //             'email' => $request->email,
+    //             'phone' => $request->phone,
+    //             'district_id' => $request->district_id,
+    //             'district' => $request->district_id 
+    //                                         ? District::find($request->district_id)?->name 
+    //                                         : null,
+    //             'reporting_manager' => $request->reporting_manager,
+    //             'reporting_manager_name' => $request->reporting_manager 
+    //                                         ? Employee::find($request->reporting_manager)?->name 
+    //                                         : null,
+    //             'designation' => $designation,
+    //             'products' => $request->products ? json_encode($request->products) : null,
+    //             'area' => $request->area ?? $employee->area,
+    //         ]);
+
+    //         return response()->json([
+    //             'status' => true,
+    //             'message' => 'Employee updated successfully!',
+    //             'data' => $employee
+    //         ]);
+
+    //     } catch (ValidationException $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Validation failed',
+    //             'errors' => $e->errors()
+    //         ], 422);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'status' => false,
+    //             'message' => 'Failed to update employee!',
+    //             'error' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
 
     public function export(Request $request)
     {
@@ -429,112 +530,211 @@ class EmployeeController extends Controller
 
         return response()->json($employees);
     }
+    // public function list(Request $request)
+    // {
+    //     $productId = ProductHelper::getSelectedProductId(); 
+    //     $query = Employee::with([
+    //         'employeeType',
+    //         'district',
+    //         'reportingManager',
+    //         'productSaps' => function($q) use ($productId) {
+    //             $q->where('product_id', $productId);
+    //         }
+    //     ])->whereJsonContains('products', $productId);
+
+    //     if (!empty($request->designation)) {
+    //         $query->where('employee_type_id', $request->designation);
+    //     }
+
+    //     if (!empty($request->employee_id)) {
+    //         $query->where('id', $request->employee_id);
+    //     }
+
+    //     if (!empty($request->district)) {
+    //         $query->where('district_id', $request->district);
+    //     }
+
+    //     // if (!empty($request->status)) {
+    //     //     $query->where('status', $request->status);
+    //     // }
+
+    //     $query->orderBy('id', 'desc');
+    //     $allProducts = Product::pluck('product_name', 'id');
+    //     return DataTables::of($query)
+    //         ->addIndexColumn()
+    //         ->addColumn('name', fn($t) => $t->name ?? '-')
+    //         ->addColumn('employee_code', fn($t) => $t->employee_code ?? '-')
+    //         ->addColumn('designation', fn($t) => optional($t->employeeType)->type_name ?? '-')
+    //         ->addColumn('phone', fn($t) => !empty($t->phone) ? $t->phone : '-')
+    //         ->addColumn('email', fn($t) => $t->email ?? '-')
+    //         ->addColumn('district', fn($t) => optional($t->district)->name ?? $t->district ?? '-')
+    //         ->addColumn('reporting_manager_name', fn($t) => $t->reporting_manager_name ?? '-')
+    //         ->addColumn('products', function ($t) use ($allProducts) {
+    //             if (empty($t->products)) return '-';
+
+    //             $productIds = json_decode($t->products, true);
+    //             if (empty($productIds) || !is_array($productIds)) return '-';
+
+    //             $productNames = collect($productIds)->map(function($id) use ($t, $allProducts) {
+    //                 $name = $allProducts[$id] ?? 'Unknown';
+    //                 $sap = optional($t->productSaps->firstWhere('product_id', $id))->sap_code;
+    //                 return $sap ? "$name ($sap)" : $name;
+    //             })->filter()->join(', ');
+
+    //             return $productNames ?: '-';
+    //         })
+    //         ->addColumn('action', function ($t) {
+    //             $editUrl = route('sales.employee.edit', $t->id);
+    //             $deleteUrl = route('sales.employee.delete', $t->id); // your delete route
+
+    //             return '
+    //                 <button class="btn btn-sm btn-info editEmployeeBtn" data-id="'.$t->id.'">
+    //                     <i class="fa fa-edit"></i>
+    //                 </button>
+    //                 <button class="btn btn-sm btn-danger deleteEmployeeBtn" data-url="'.$deleteUrl.'">
+    //                     <i class="fa fa-trash"></i>
+    //                 </button>
+    //             ';
+    //         })
+
+    //         ->filterColumn('name', function($query, $keyword) {
+    //             $query->where('name', 'like', "%{$keyword}%");
+    //         })
+    //         ->filterColumn('employee_code', function($query, $keyword) {
+    //             $query->where('employee_code', 'like', "%{$keyword}%");
+    //         })
+    //         ->filterColumn('designation', function($query, $keyword) {
+    //             $query->whereHas('employeeType', function($q) use ($keyword) {
+    //                 $q->where('type_name', 'like', "%{$keyword}%");
+    //             });
+    //         })
+    //         ->filterColumn('phone', function($query, $keyword) {
+    //             $query->where('phone', 'like', "%{$keyword}%");
+    //         })
+    //         ->filterColumn('email', function($query, $keyword) {
+    //             $query->where('email', 'like', "%{$keyword}%");
+    //         })
+    //         ->filterColumn('district', function($query, $keyword) {
+    //             $query->whereHas('district', function($q) use ($keyword) {
+    //                 $q->where('name', 'like', "%{$keyword}%");
+    //             });
+    //         })
+    //         ->filterColumn('reporting_manager_name', function($query, $keyword) {
+    //             $query->whereHas('reportingManager', function($q) use ($keyword) {
+    //                 $q->where('name', 'like', "%{$keyword}%");
+    //             });
+    //         })
+    //        ->filterColumn('employee_sap_code', function($query, $keyword) {
+    //             $query->where('employee_sap_code', 'like', "%{$keyword}%");
+    //         })
+    //         ->addColumn('products', function ($t) use ($allProducts) {
+    //             if (empty($t->products)) {
+    //                 return '-';
+    //             }
+
+    //             $productIds = json_decode($t->products, true);
+
+    //             if (empty($productIds) || !is_array($productIds)) {
+    //                 return '-';
+    //             }
+
+    //             $productNames = collect($productIds)
+    //                 ->map(fn($id) => $allProducts[$id] ?? null)
+    //                 ->filter()
+    //                 ->join(', ');
+
+    //             return $productNames ?: '-';
+    //         })
+
+    //         ->rawColumns(['action'])
+    //         ->make(true);
+    // }
     public function list(Request $request)
     {
-        $productId = ProductHelper::getSelectedProductId(); 
-        $query = Employee::with(['employeeType', 'district', 'reportingManager'])
-                ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]']);
+        $productId  = $request->product_id;
+        $employeeId = $request->employee_id;
 
-        // Filters
-        if (!empty($request->designation)) {
-            $query->where('employee_type_id', $request->designation);
+        $query = Employee::with([
+            'employeeType',
+            'district',
+            'reportingManager',
+            'productSaps' 
+        ]);
+
+        if ($productId) {
+            $query->whereJsonContains('products', $productId);
         }
 
-        if (!empty($request->employee_id)) {
-            $query->where('id', $request->employee_id);
+        if ($employeeId) {
+            $query->where('id', $employeeId);
+        }
+
+        if (!empty($request->designation)) {
+            $query->where('employee_type_id', $request->designation);
         }
 
         if (!empty($request->district)) {
             $query->where('district_id', $request->district);
         }
 
-        // if (!empty($request->status)) {
-        //     $query->where('status', $request->status);
-        // }
-
         $query->orderBy('id', 'desc');
+
         $allProducts = Product::pluck('product_name', 'id');
+
         return DataTables::of($query)
             ->addIndexColumn()
+
             ->addColumn('name', fn($t) => $t->name ?? '-')
             ->addColumn('employee_code', fn($t) => $t->employee_code ?? '-')
             ->addColumn('designation', fn($t) => optional($t->employeeType)->type_name ?? '-')
-            ->addColumn('phone', fn($t) => !empty($t->phone) ? $t->phone : '-')
+            ->addColumn('phone', fn($t) => $t->phone ?? '-')
             ->addColumn('email', fn($t) => $t->email ?? '-')
-            ->addColumn('district', fn($t) => optional($t->district)->name ?? $t->district ?? '-')
+            ->addColumn('district', fn($t) => $t->district ?? '-')
             ->addColumn('reporting_manager_name', fn($t) => $t->reporting_manager_name ?? '-')
-            ->addColumn('employee_sap_code', fn($t) => $t->employee_sap_code ?? '-')
-            // ->addColumn('status', function ($t) {
-            //     return $t->status === 'Active'
-            //         ? '<span class="badge badge-success">Active</span>'
-            //         : '<span class="badge badge-warning">Inactive</span>';
-            // })
-            ->addColumn('action', function ($t) {
-                $editUrl = route('sales.employee.edit', $t->id);
-                $deleteUrl = route('sales.employee.delete', $t->id); // your delete route
 
+            ->addColumn('products', function ($t) use ($allProducts) {
+
+                if (empty($t->products)) return '-';
+
+                $productIds = json_decode($t->products, true);
+                if (!is_array($productIds)) return '-';
+
+                return collect($productIds)->map(function ($id) use ($t, $allProducts) {
+
+                    $name = $allProducts[$id] ?? 'Unknown';
+
+                    $sap  = optional(
+                        $t->productSaps->firstWhere('product_id', $id)
+                    )->sap_code;
+
+                    return $sap
+                        ? "{$name} - {$sap}"
+                        : "{$name} - -";
+
+                })->join(', ');
+            })
+
+            ->addColumn('action', function ($t) {
                 return '
                     <button class="btn btn-sm btn-info editEmployeeBtn" data-id="'.$t->id.'">
                         <i class="fa fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger deleteEmployeeBtn" data-url="'.$deleteUrl.'">
+                    <button class="btn btn-sm btn-danger deleteEmployeeBtn" data-url="'.route('sales.employee.delete', $t->id).'">
                         <i class="fa fa-trash"></i>
                     </button>
                 ';
             })
 
-            ->filterColumn('name', function($query, $keyword) {
-                $query->where('name', 'like', "%{$keyword}%");
-            })
-            ->filterColumn('employee_code', function($query, $keyword) {
-                $query->where('employee_code', 'like', "%{$keyword}%");
-            })
-            ->filterColumn('designation', function($query, $keyword) {
-                $query->whereHas('employeeType', function($q) use ($keyword) {
-                    $q->where('type_name', 'like', "%{$keyword}%");
+            ->filterColumn('products', function ($q, $k) {
+                $q->whereHas('productSaps', function ($s) use ($k) {
+                    $s->where('sap_code', 'like', "%{$k}%");
                 });
-            })
-            ->filterColumn('phone', function($query, $keyword) {
-                $query->where('phone', 'like', "%{$keyword}%");
-            })
-            ->filterColumn('email', function($query, $keyword) {
-                $query->where('email', 'like', "%{$keyword}%");
-            })
-            ->filterColumn('district', function($query, $keyword) {
-                $query->whereHas('district', function($q) use ($keyword) {
-                    $q->where('name', 'like', "%{$keyword}%");
-                });
-            })
-            ->filterColumn('reporting_manager_name', function($query, $keyword) {
-                $query->whereHas('reportingManager', function($q) use ($keyword) {
-                    $q->where('name', 'like', "%{$keyword}%");
-                });
-            })
-           ->filterColumn('employee_sap_code', function($query, $keyword) {
-                $query->where('employee_sap_code', 'like', "%{$keyword}%");
-            })
-            ->addColumn('products', function ($t) use ($allProducts) {
-                if (empty($t->products)) {
-                    return '-';
-                }
-
-                $productIds = json_decode($t->products, true);
-
-                if (empty($productIds) || !is_array($productIds)) {
-                    return '-';
-                }
-
-                $productNames = collect($productIds)
-                    ->map(fn($id) => $allProducts[$id] ?? null)
-                    ->filter()
-                    ->join(', ');
-
-                return $productNames ?: '-';
             })
 
             ->rawColumns(['action'])
             ->make(true);
     }
+
 
     public function destroy($id)
     {
@@ -547,14 +747,14 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function edit($id)
-    {
-        $employee = Employee::findOrFail($id);
-        return response()->json([
-            'status' => 'success',
-            'data' => $employee
-        ]);
-    }
+    // public function edit($id)
+    // {
+    //     $employee = Employee::findOrFail($id);
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'data' => $employee
+    //     ]);
+    // }
      public function getEmployeeProducts(Request $request)
     {
         try {
