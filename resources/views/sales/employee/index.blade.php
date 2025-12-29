@@ -69,8 +69,7 @@
                     <th>Email</th>
                     <th width="80">District</th>
                     <th>Reporting Person</th>
-                    <th>SAP Code</th>
-                    <th>Products</th>
+                    <th>Products & SAP Code</th>
                     <th width="80">Action</th>
                 </tr>
             </thead>
@@ -156,18 +155,43 @@
                     <option value="">Select Manager</option>
                 </select>
             </div>
-            <div class="col-md-6 mb-3">
+            {{-- <div class="col-md-6 mb-3">
                 <label for="employee_sap_code" class="form-label">Employee Sap Code</label>
                 <input type="text" class="form-control" id="employee_sap_code" name="employee_sap_code">
             </div>
+             --}}
             <div class="col-md-6 mb-3">
+                <label class="form-label">Products & SAP Codes</label>
+
+                @foreach($products as $product)
+                    <div class="d-flex align-items-center mb-2">
+                        <input type="checkbox"
+                            class="me-2 product-check"
+                            name="products[]"
+                            value="{{ $product->id }}"
+                            id="product_{{ $product->id }}">
+
+                        <label class="me-3" for="product_{{ $product->id }}">
+                            {{ $product->product_name }}
+                        </label>
+
+                        <input type="text"
+                            class="form-control"
+                            name="product_sap[{{ $product->id }}]"
+                            placeholder="SAP Code"
+                            style="max-width:200px">
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- <div class="col-md-6 mb-3">
                 <label for="products" class="form-label">Products</label>
                 <select class="form-control" id="products" name="products[]" multiple="multiple" style="width: 100%;">
                     @foreach($products as $product)
                         <option value="{{ $product->id }}">{{ $product->product_name }}</option>
                     @endforeach
                 </select>
-            </div>            
+            </div>             --}}
           </div>
         </div>
 
@@ -376,11 +400,9 @@ $(document).ready(function () {
                 console.log(res);
                 let emp = res.data ?? res;
 
-                // Products
                 let products = emp.products ? JSON.parse(emp.products) : [];
                 $('#products').val(products).trigger('change');
 
-                // Basic fields
                 $('#employee_id').val(emp.id);
                 $('#name').val(emp.name);
                 $('#employee_code').val(emp.employee_code);
@@ -388,9 +410,21 @@ $(document).ready(function () {
                 $('#email').val(emp.email);
                 $('#phone').val(emp.phone);
                 $('#district_id').val(emp.district_id).trigger('change');
-                $('#employee_sap_code').val(emp.employee_sap_code);
+                $('input[name="products[]"]').prop('checked', false);
+                $('input[name^="product_sap"]').val('');
 
-                // Reporting Manager (Select2)
+                if (Array.isArray(emp.product_saps)) {
+                    emp.product_saps.forEach(function (row) {
+
+                        $('input[name="products[]"][value="' + row.product_id + '"]')
+                            .prop('checked', true);
+
+                        $('input[name="product_sap[' + row.product_id + ']"]')
+                            .val(row.sap_code);
+                    });
+                }
+
+
                 if (!$('#reporting_manager').hasClass("select2-hidden-accessible")) {
                     $('#reporting_manager').select2({
                         placeholder: "Select Manager",
@@ -414,7 +448,6 @@ $(document).ready(function () {
                     });
                 }
 
-                // Set the selected manager properly
                 if (emp.reporting_manager) {
                     let newOption = new Option(emp.reporting_manager_name, emp.reporting_manager, true, true);
                     $('#reporting_manager').append(newOption).trigger('change');
@@ -422,11 +455,9 @@ $(document).ready(function () {
                     $('#reporting_manager').val(null).trigger('change');
                 }
 
-                // Change modal heading + button
                 $('#employeeModalTitle').text('Edit Employee');
                 $('#employeeModalSubmit').text('Update');
 
-                // Show modal
                 $('#employeeModal').modal('show');
             },
             error: function(err) {
@@ -491,7 +522,7 @@ $(document).ready(function () {
             { data: 'email', name: 'email' },
             { data: 'district', name: 'district' },
             { data: 'reporting_manager_name', name: 'reporting_manager_name' },
-            { data: 'employee_sap_code', name: 'employee_sap_code' },
+            // { data: 'employee_sap_code', name: 'employee_sap_code' },
              { data: 'products', name: 'products', orderable: false, searchable: false },
             { data: 'action', name: 'action', orderable: false, searchable: false },
         ]

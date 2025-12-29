@@ -34,10 +34,10 @@ class TargetController extends Controller
     {
         $productId = ProductHelper::getSelectedProductId(); 
         $query = Target::with(['employee.employeeType'])->where('status', '1')
-         ->whereNotNull('employee_id')
-        ->whereHas('employee')    
-        ->where('product_id', $productId)    
-        ->withTrashed();
+            ->whereNotNull('employee_id')
+            ->whereHas('employee')    
+            ->where('product_id', $productId)    
+            ->withTrashed();
 
         if ($request->has('employee_type') && !empty($request->employee_type)) {
             $query->whereHas('employee', function ($q) use ($request) {

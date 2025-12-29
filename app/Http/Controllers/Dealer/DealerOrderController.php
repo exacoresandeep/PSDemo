@@ -741,7 +741,6 @@ class DealerOrderController extends Controller
             $year = $request->input('year', Carbon::now()->format('Y'));
             $productId = $request->input('product_id'); // ✅ NEW
 
-            /** 🔹 Optional validation */
             if ($productId && !is_numeric($productId)) {
                 return response()->json([
                     'success' => false,
@@ -790,19 +789,36 @@ class DealerOrderController extends Controller
                 ], 403);
             }
 
-            $salesData = Order::where(function ($query) use ($dealer) {
-                    $query->where('created_by_dealer', $dealer->id)
-                        ->orWhere('dealer_id', $dealer->id);
+            // $salesData = Order::where(function ($query) use ($dealer) {
+            //         $query->where('created_by_dealer', $dealer->id)
+            //             ->orWhere('dealer_id', $dealer->id);
+            //     })
+            //     ->where('order_approved', '1')
+            //     ->whereMonth('created_at', $month)
+            //     ->whereYear('created_at', $year)
+            //     ->when($productId, function ($query) use ($productId) {
+            //         $query->where('product_id', $productId); 
+            //     })
+            //     ->selectRaw('
+            //         SUM(invoice_quantity) as total_quantity,
+            //         SUM(invoice_total) as total_transaction
+            //     ')
+            //     ->first();
+            $salesData = DB::table('order_items')
+                ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->where(function ($query) use ($dealer) {
+                    $query->where('orders.created_by_dealer', $dealer->id)
+                        ->orWhere('orders.dealer_id', $dealer->id);
                 })
-                ->where('status', 'Delivered')
-                ->whereMonth('created_at', $month)
-                ->whereYear('created_at', $year)
+                ->where('orders.order_approved', '1')              // ✅ approved only
+                ->whereMonth('orders.created_at', $month)
+                ->whereYear('orders.created_at', $year)
                 ->when($productId, function ($query) use ($productId) {
-                    $query->where('product_id', $productId); // ✅ FILTER
+                    $query->where('orders.product_id', $productId);
                 })
                 ->selectRaw('
-                    SUM(invoice_quantity) as total_quantity,
-                    SUM(invoice_total) as total_transaction
+                    SUM(order_items.total_quantity) as total_quantity,
+                    SUM(orders.total_amount) as total_transaction
                 ')
                 ->first();
 
@@ -842,29 +858,26 @@ class DealerOrderController extends Controller
 
             $month = $request->input('month', Carbon::now()->format('m'));
             $year = $request->input('year', Carbon::now()->format('Y'));
+            $productId = $request->input('product_id'); 
 
-            // 1️⃣ Get target for the dealer for that month/year
-            // $target = DB::table('dealer_targets')
-            //     ->where('dealer_id', $dealer->id)
-            //     ->where('month', $month)
-            //     ->where('year', $year)
-            //     ->select('target_quantity')
-            //     ->first();
-
-            // 2️⃣ Get achieved sales (same logic as in your existing API)
-            $salesData = Order::where(function ($query) use ($dealer) {
-                    $query->where('created_by_dealer', $dealer->id)
-                        ->orWhere('dealer_id', $dealer->id);
+            $query = DB::table('order_items')
+                ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->where(function ($query) use ($dealer) {
+                    $query->where('orders.created_by_dealer', $dealer->id)
+                        ->orWhere('orders.dealer_id', $dealer->id);
                 })
-                ->where('status', 'Delivered')
-                ->whereMonth('created_at', $month)
-                ->whereYear('created_at', $year)
-                ->selectRaw('
-                    SUM(invoice_quantity) as achieved_quantity
-                ')
+                ->where('orders.order_approved', '1')
+                ->whereMonth('orders.created_at', $month)
+                ->whereYear('orders.created_at', $year);
+
+            if (!empty($productId)) {
+                $query->where('orders.product_id', $productId);
+            }
+
+            $salesData = $query
+                ->selectRaw('SUM(order_items.total_quantity) as achieved_quantity')
                 ->first();
 
-            // 3️⃣ Format response
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,

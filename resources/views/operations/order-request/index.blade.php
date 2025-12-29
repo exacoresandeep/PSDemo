@@ -9,6 +9,7 @@
     <div class="listing-sec">
 
 	<div class="d-flex align-items-end mb-3">
+        
 	    <div class="me-2">
             <label for="statusFilter" class="form-label">From Date</label>
             <input type="date" class="form-control" id="fromdate" name="from_date">
@@ -308,12 +309,14 @@
         const status = $('#statusFilter').val();
         const from_date = $('#fromdate').val();
         const to_date = $('#todate').val();
+        const vehicle_status = $('#vehicleStatusFilter').val();
 
         let url = "{{ route('operations.orders.export') }}?";
         
         if (status) url += 'status=' + encodeURIComponent(status) + '&';
         if (from_date) url += 'from_date=' + from_date + '&';
         if (to_date) url += 'to_date=' + to_date + '&';
+        if (vehicle_status) url += 'vehicle_status=' + encodeURIComponent(vehicle_status) + '&';
 
         window.open(url, '_blank');
     });

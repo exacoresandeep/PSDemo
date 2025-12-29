@@ -251,6 +251,63 @@ class HanaController extends Controller
             ], 500);
         }
     }
+    // public function fetchInvoiceLayout(Request $request)
+    // {
+    //     $request->validate([
+    //         'invoice_number' => 'required|string',
+    //         'invoice_date'   => 'required|date',
+    //     ]);
+
+    //     $invoiceNumber = $request->invoice_number;
+
+    //     $invoiceDate = Carbon::parse($request->invoice_date)->format('Ymd');
+
+    //     try {
+    //         $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
+
+    //         if (!$conn) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => odbc_errormsg()
+    //             ], 500);
+    //         }
+
+    //         $sql = sprintf(
+    //             'CALL "PRABHU_NEW"."MobileApp_Invoice_Layout"(\'%s\', \'%s\')',
+    //             $invoiceNumber,
+    //             $invoiceDate
+    //         );
+
+    //         $result = odbc_exec($conn, $sql);
+
+    //         if (!$result) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => odbc_errormsg($conn)
+    //             ], 500);
+    //         }
+
+    //         $data = [];
+    //         while ($row = odbc_fetch_array($result)) {
+    //             $data[] = array_map('trim', $row);
+    //         }
+
+    //         odbc_close($conn);
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'statusCode' => 200,
+    //             'message' => 'Invoice layout fetched successfully',
+    //             'data' => $data
+    //         ]);
+
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => $e->getMessage()
+    //         ], 500);
+    //     }
+    // }
     public function fetchInvoiceLayout(Request $request)
     {
         $request->validate([
@@ -259,8 +316,7 @@ class HanaController extends Controller
         ]);
 
         $invoiceNumber = $request->invoice_number;
-
-        $invoiceDate = Carbon::parse($request->invoice_date)->format('Ymd');
+        $invoiceDate   = Carbon::parse($request->invoice_date)->format('Ymd');
 
         try {
             $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
@@ -287,18 +343,118 @@ class HanaController extends Controller
                 ], 500);
             }
 
-            $data = [];
+            $rows = [];
             while ($row = odbc_fetch_array($result)) {
-                $data[] = array_map('trim', $row);
+                $rows[] = array_map('trim', $row);
             }
 
             odbc_close($conn);
 
+            if (empty($rows)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No invoice data found'
+                ], 404);
+            }
+
+            $first = $rows[0];
+
+            $invoice = [
+                'company_name'            => $first['Company name'], //
+                'company_address'         => $first['Company addr'], //
+                'company_gst'             => $first['LocGSTN'], //
+                'company_pan'             => $first['Loc PAN No'], //
+                'company_state'           => $first['Loc State Name'], //
+                'company_state_code'      => $first['LocStaGSTN'], //
+                'company_email'      => $first['Company Email'], //
+                'company_ph'      => $first['Company Ph'], //
+                "branch1" => [
+                    "CompName" => $first["CompName"],
+                    "Loc Street"   => $first["Loc Street"],
+                    "Loc Block"   => $first["Loc Block"],
+                    "Loc Building"   => $first["Loc Building"],
+                    "Loc City"   => $first["Loc City"],
+                    "Loc Zipcode"   => $first["Loc Zipcode"],
+                    "Loc PAN No"   => $first["Loc PAN No"],
+                    "Loc CIN No"   => $first["Loc CIN No"],
+                    "Loc Country Name"   => $first["Loc Country Name"],
+                    "Loc State Name"   => $first["Loc State Name"],
+                    "LocGSTN"   => $first["LocGSTN"],
+                    "LocStatCod"   => $first["LocStatCod"],
+                    "LocStaGSTN"   => $first["LocStaGSTN"],
+                    "LocGSTType"   => $first["LocGSTType"],
+                ],
+
+                'invoice_number'          => $first['DocNum'], //
+                'invoice_date'            => Carbon::parse($first['DocDate'])->format('d-m-Y'), //
+
+                'ref_no'           => $first['U_RefNo'], //
+                'ref_date'           => $first['U_RefDate'], //
+
+                'customer_code'           => $first['CardCode'], //
+                'customer_name'    => $first['CardName'], //
+                'customer_number'    => $first['Cust Mobile No'], //
+                'customer_gst'     => $first['BpGSTN'], //
+                'customer_pan'    => $first['BPPANNo'], //
+                'billing_address'  => $first['BillToAddrs'], //
+                'shipping_address' => $first['ShipToAddrs'], //
+                'eway_bill_number' => $first['U_EWayBill'], //
+                'eway_bill_date'   => Carbon::parse($first['U_EWayDate'])->format('d-m-Y'), // 
+                
+                'vehicle_no'       => $first['U_VehicleNo'], //
+                'transporter_name'       => $first['U_Transporter'], //
+                'driver_number'       => $first['U_DriverNo'], //
+                'payment_due_date'   => Carbon::parse($first['InvDueDate'])->format('d-m-Y'), // 
+                'payment_term'     => $first['PaymentTerm'], //
+                'shipping_terms'     => $first['Shipping Term'], //
+                'segment'     => $first['Segment'], //
+
+                'remarks'     => $first['Comments'], //
+                'qr_code'     => $first['QRCODE'], //
+                'ack_no'     => $first['U_IRNAckNo'], //
+                'ack_dt'     => $first['U_AckDt'], //
+                'irn_no'     => $first['U_Irn'], //
+                'qr_path'     => $first['U_IRNQRPath'], //
+                
+                'doc_total'        => (float) $first['Doc Total'], //
+                'round_off'        => (float) $first['RoundDif'], //
+                
+                
+            ];
+
+   
+            $items = [];
+
+            foreach ($rows as $row) {
+                $items[] = [
+                    'item_code'   => $row['ItemCode'],
+                    'description' => $row['Dscription'],
+                    'hsn_code'    => $row['ChapterID'],
+                    'quantity'    => (float) $row['Quantity'],
+                    'uom'         => $row['UomCode'],
+                    'unit_price'  => (float) $row['INRPrice'],
+                    'line_total'  => (float) $row['Line Total'],
+                    'cgst_rate' => (float) $row['CGSTRate'],
+                    'cgst_amount' => (float) $row['CGSTAmount'],
+                    'sgst_rate' => (float) $row['SGSTRate'],
+                    'sgst_amount' => (float) $row['SGSTAmount'],
+                    'igst_rate' => (float) $row['IGSTRate'],
+                    'igst_amount' => (float) $row['IGSTAmount'],
+                    'tcs_rate' => (float) $row['TCSRate'],
+                    'tcs_amount' => (float) $row['TCSAmount'],
+                    'discount' => (float) $row['Disc Total'],
+                ];
+            }
+
+ 
             return response()->json([
-                'success' => true,
-                'statusCode' => 200,
-                'message' => 'Invoice layout fetched successfully',
-                'data' => $data
+                'success'    => true,
+                'statusCode'=> 200,
+                'message'    => 'Invoice layout fetched successfully',
+                'data'       => [
+                    'invoice' => $invoice,
+                    'items'   => $items
+                ]
             ]);
 
         } catch (\Exception $e) {
@@ -308,6 +464,5 @@ class HanaController extends Controller
             ], 500);
         }
     }
-
 }
 

@@ -39,5 +39,16 @@ class Employee extends Authenticatable
     {
         return $this->hasOneThrough(Regions::class, District::class, 'id', 'id', 'district_id', 'regions_id');
     }
+    public function productSaps()
+    {
+        return $this->hasMany(EmployeeProductSap::class);
+    }
+
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'employee_product_sap')
+                    ->withPivot('sap_code')
+                    ->withTimestamps();
+    }
     
 }

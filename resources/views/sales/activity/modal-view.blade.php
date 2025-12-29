@@ -22,6 +22,34 @@
                     <div class="row mb-4"> 
                         <div class="col-md-12"><strong>Instructions:</strong> <span id="view_instructions"></span></div>
                     </div>
+                    <hr>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <strong>Remarks:</strong>
+                            <div id="view_remarks">-</div>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Completed Date:</strong>
+                            <div id="view_completed_date">-</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <strong>Attachments:</strong>
+                            <div id="view_attachments">-</div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2>Activity Inputs</h2>
+                            <div id="view_activity_questions"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
