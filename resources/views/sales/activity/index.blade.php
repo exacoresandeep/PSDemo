@@ -234,22 +234,78 @@
                     }).modal('show');
 
                 } else if (action === 'view') {
-            // console.log(response);
+                    let activity = response.activity; // ✅ IMPORTANT
 
-                    $('#view_activity_type').text(response.activity.activity_type && response.activity.activity_type.name ? response.activity.activity_type.name : '-');
-                    $('#view_dealer').text(response.activity.dealer ? response.activity.dealer.dealer_name + ' (' + response.activity.dealer.dealer_code + ')' : '-');
-                    $('#view_employee_name').text(response.activity.employee ? response.activity.employee.name : '-');
-                    $('#view_assigned_date').text(response.activity.assigned_date || '-');
-                    $('#view_due_date').text(response.activity.due_date || '-');
-                    $('#view_status').html(response.activity.status === 'Completed' ? 
-                        '<span class="badge bg-success text-white">Completed</span>' : 
-                        '<span class="badge bg-warning text-dark">Pending</span>'
+                    $('#view_activity_type').text(
+                        activity.activity_type?.name ?? '-'
                     );
-                    $('#view_instructions').text(response.activity.instructions || 'No instructions provided');
+
+                    $('#view_dealer').text(
+                        activity.dealer
+                            ? activity.dealer.dealer_name + ' (' + activity.dealer.dealer_code + ')'
+                            : '-'
+                    );
+
+                    $('#view_employee_name').text(activity.employee?.name ?? '-');
+                    $('#view_assigned_date').text(activity.assigned_date ?? '-');
+                    $('#view_due_date').text(activity.due_date ?? '-');
+
+                    $('#view_status').html(
+                        activity.status === 'Completed'
+                            ? '<span class="badge bg-success text-white">Completed</span>'
+                            : '<span class="badge bg-warning text-dark">Pending</span>'
+                    );
+
+                    $('#view_instructions').text(
+                        activity.instructions || 'No instructions provided'
+                    );
+
+                    $('#view_remarks').text(activity.remarks ?? '-');
+                    $('#view_completed_date').text(activity.completed_date ?? '-');
+
+                    let attachmentHtml = '-';
+
+                    if (Array.isArray(activity.attachments) && activity.attachments.length) {
+                        attachmentHtml = activity.attachments.map(file => {
+                            // If already full URL, use as is
+                            const fileUrl = file.startsWith('http')
+                                ? file
+                                : `/storage/${file}`;
+
+                            return `
+                                <a href="${fileUrl}" target="_blank" class="d-block">
+                                    ${file.split('/').pop()}
+                                </a>
+                            `;
+                        }).join('');
+                    }
+
+                    $('#view_attachments').html(attachmentHtml);
+
+                    // ✅ ACTIVITY QUESTIONS
+                    let questionsHtml = '';
+
+                    if (Array.isArray(activity.question_details)) {
+                        activity.question_details.forEach(q => {
+                            const label = q.question_label;
+                            if (!label) return;
+
+                            questionsHtml += `
+                                <div class="mb-2">
+                                    <strong>${label.label_name}:</strong>
+                                    <div>${q.activity_input ?? '-'}</div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    $('#view_activity_questions').html(
+                        questionsHtml || '<p>No activity inputs available</p>'
+                    );
 
                     $('#viewModal').modal({
-                        backdrop: 'static', // Prevent clicking outside to close
-                        keyboard: false     // Prevent "Esc" key from closing
+                        backdrop: 'static',
+                        keyboard: false
                     }).modal('show');
                 }
             }).fail(function () {

@@ -18,7 +18,6 @@ class ActivitiesQuestionDetail extends Model
         'activity_input',
     ];
 
-    // Relationships (if applicable)
     public function activity()
     {
         return $this->belongsTo(Activity::class, 'activity_id');
@@ -28,4 +27,5 @@ class ActivitiesQuestionDetail extends Model
     {
         return $this->belongsTo(ActivityQuestionLabel::class, 'activity_question_labels_id');
     }
+    
 }

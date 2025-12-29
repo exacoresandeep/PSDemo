@@ -14,25 +14,19 @@ class ActivityType extends Model
 
     protected $fillable = [
         'name',
-	'status',
-	'created_by',
+        'status',
+        'created_by',
     ];
 
     protected $casts = [
-        'status' => 'string', // Ensures enum is stored as string
+        'status' => 'string', 
     ];
 
-    /**
-     * Relationship: ActivityType has many Activities
-     */
     public function activities()
     {
         return $this->hasMany(Activity::class, 'activity_type_id', 'id');
     }
 
-    /**
-     * Relationship: ActivityType has many Question Labels
-     */
     public function questionLabels()
     {
         return $this->hasMany(ActivityQuestionLabel::class, 'activity_types_id', 'id');

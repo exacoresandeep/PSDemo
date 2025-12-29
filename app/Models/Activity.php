@@ -28,14 +28,17 @@ class Activity extends Model
     ];
     protected $casts = [
         'attachments' => 'array', 
-        // 'completed_date' => 'date',
-        // 'assigned_date' => 'date',
     ];
     
 
+    // public function activityType()
+    // {
+    //     return $this->belongsTo(ActivityType::class, 'activity_type_id');
+    // }
     public function activityType()
     {
-        return $this->belongsTo(ActivityType::class, 'activity_type_id');
+        return $this->belongsTo(ActivityType::class, 'activity_type_id')
+                    ->withTrashed();
     }
 
     public function dealer()
@@ -47,4 +50,9 @@ class Activity extends Model
     {
         return $this->belongsTo(Employee::class, 'employee_id');
     }
+    public function questionDetails()
+    {
+        return $this->hasMany(ActivitiesQuestionDetail::class, 'activity_id');
+    }
+
 }

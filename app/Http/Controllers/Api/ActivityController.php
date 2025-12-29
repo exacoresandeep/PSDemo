@@ -42,7 +42,6 @@ class ActivityController extends Controller
 	                ->orderBy('created_at', 'desc')
                 ->orderBy('assigned_date', 'desc')
                 ->get();
-            // dd($activities);
             $activitiesData = $activities->map(function ($activity) {
                 $activity->assigned_date =\Carbon\Carbon::parse($activity->assigned_date)->format('d/m/Y');
                 $activity->completed_date = \Carbon\Carbon::parse($activity->completed_date)->format('d/m/Y');
@@ -519,7 +518,13 @@ class ActivityController extends Controller
 
     public function activityIndex()
     {
-        $activityTypes = ActivityType::all();
+        $user = Auth::user();
+        $activityTypes = ActivityType::where('status', '1')
+            ->whereNull('deleted_at')
+            ->where('created_by', $user->id)                   
+            ->orderBy('id', 'desc')
+            ->get();
+        
         $districts = District::select('id', 'name')->get();
         return view('sales.activity.index', compact('activityTypes', 'districts'));
     }
@@ -648,7 +653,7 @@ class ActivityController extends Controller
     }
     public function view($id)
     {
-        $activity = Activity::with(['activityType', 'dealer', 'employee'])->find($id);
+        $activity = Activity::with(['activityType', 'dealer', 'employee', 'questionDetails.questionLabel'])->find($id);
         if (!$activity) {
             return response()->json(['error' => 'Activity not found'], 404);
         }

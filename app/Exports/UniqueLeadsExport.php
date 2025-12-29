@@ -167,7 +167,7 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
             $totalDealVolume,
             $totalOrderQty,
             $totalOrderAmount,
-            $balanceQuantity,
+            // $balanceQuantity,
 
             $lead->status,
             optional($lead->createdBy)->name,
@@ -204,7 +204,7 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
             'Total Deal Volume',
             'Total Ordered Quantity',
             'Total Order Amount',
-            'Balance Quantity',
+            // 'Balance Quantity',
 
             'Status',
             'Created By',

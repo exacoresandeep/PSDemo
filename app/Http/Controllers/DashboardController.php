@@ -483,6 +483,7 @@ class DashboardController extends Controller
                 ->whereBetween('orders.created_at', [$fromDate, $toDate])
                 ->sum('order_items.total_quantity');
             $totalAmount = Order::where('created_by', $employee->id)
+                ->where('order_approved', '1')    
                 ->whereBetween('created_at', [$fromDate, $toDate])
                 ->sum('total_amount');
             $result[] = [

@@ -464,7 +464,5 @@ class HanaController extends Controller
             ], 500);
         }
     }
-
-
 }
 
