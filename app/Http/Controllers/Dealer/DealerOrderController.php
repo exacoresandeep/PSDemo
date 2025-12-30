@@ -188,6 +188,141 @@ class DealerOrderController extends Controller
     // } 
 
     public function store(Request $request)
+{
+    try {
+        $dealer = Auth::user();
+
+        if (!$dealer) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 401,
+                'message' => "User not Authenticated",
+            ], 401);
+        }
+
+        $validatedData = $request->validate([
+            'order_type' => 'nullable|exists:order_types,id',
+            'payment_terms_id' => 'required|exists:payment_terms,id',
+            'credit_days' => 'nullable|string',
+
+            // ✅ STRICT DATE VALIDATION
+            'billing_date' => 'required|date_format:d/m/Y',
+            'delivery_date' => 'nullable|date_format:d/m/Y',
+
+            'scheme' => 'nullable',
+            'total_amount' => 'nullable|numeric',
+            'additional_information' => 'nullable|string',
+            'status' => 'nullable|in:Pending,Dispatched,Delivered',
+            'vehicle_category_id' => 'required|integer',
+
+            'vehicle_number' => [
+                Rule::requiredIf($request->vehicle_category_id == 1),
+                'nullable',
+                'string'
+            ],
+            'driver_name' => [
+                Rule::requiredIf($request->vehicle_category_id == 1),
+                'nullable',
+                'string'
+            ],
+            'driver_phone' => [
+                Rule::requiredIf($request->vehicle_category_id == 1),
+                'nullable',
+                'string'
+            ],
+
+            'order_items' => 'required|array',
+            'order_items.*.product_id' => 'required|exists:products,id',
+            'order_items.*.product_details' => 'nullable|array',
+
+            'attachment' => 'nullable|array',
+            'attachment.*' => 'nullable|string',
+        ]);
+
+        // ✅ NORMALIZE DATES
+        $validatedData['billing_date']  = $this->normalizeDate($validatedData['billing_date']);
+        $validatedData['delivery_date'] = $this->normalizeDate($validatedData['delivery_date'] ?? null);
+
+        $validatedData['created_by'] = null;
+        $validatedData['created_by_dealer'] = $dealer->id;
+        $validatedData['dealer_flag_order'] = '1';
+        $validatedData['order_approved'] = '0';
+
+        $validatedData['product_id'] = $validatedData['order_items'][0]['product_id'] ?? null;
+
+        $order = Order::create($validatedData);
+
+        foreach ($validatedData['order_items'] as $orderItem) {
+
+            $totalQuantity = 0;
+            $productDetailsArray = [];
+
+            if (!empty($orderItem['product_details'])) {
+                foreach ($orderItem['product_details'] as $productDetail) {
+
+                    $totalQuantity += (float) ($productDetail['pieces'] ?? 0);
+                    $totalQuantity += (float) ($productDetail['tonnage'] ?? 0);
+
+                    $productDetail['type_name'] = \App\Models\ProductType::where(
+                        'id',
+                        $productDetail['product_type_id'] ?? null
+                    )->value('type_name');
+
+                    $productDetailsArray[] = $productDetail;
+                }
+            }
+
+            $orderItem['product_details'] = $productDetailsArray ?: null;
+            $orderItem['total_quantity'] = round($totalQuantity, 6);
+
+            $order->orderItems()->create($orderItem);
+        }
+
+        // ✅ RESPONSE (NO Carbon::parse needed)
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => 'Order created successfully!',
+            'data' => [
+                'order_type' => $order->order_type,
+                'payment_terms_id' => $order->payment_terms_id,
+                'credit_days' => $order->credit_days,
+                'billing_date' => optional($order->billing_date)->format('d/m/Y'),
+                'delivery_date' => optional($order->delivery_date)->format('d/m/Y'),
+                'total_amount' => round($order->total_amount, 2),
+                'additional_information' => $order->additional_information,
+                'status' => $order->status,
+                'created_by_dealer' => $order->created_by_dealer,
+                'dealer_flag_order' => $order->dealer_flag_order,
+                'vehicle_category_id' => $order->vehicle_category_id,
+                'vehicle_number' => $order->vehicle_number,
+                'driver_name' => $order->driver_name,
+                'driver_phone' => $order->driver_phone,
+                'created_at' => $order->created_at->format('d/m/Y'),
+                'updated_at' => $order->updated_at->format('d/m/Y'),
+                'id' => $order->id,
+                'product_id' => $order->product_id,
+            ]
+        ], 200);
+
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'statusCode'=> 500,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
+
+private function normalizeDate(?string $date): ?string
+{
+    if (!$date) {
+        return null;
+    }
+
+    return Carbon::createFromFormat('d/m/Y', $date)->format('Y-m-d');
+}
+    public function storeOld(Request $request)
     {
         try {
             $dealer = Auth::user();
@@ -204,8 +339,10 @@ class DealerOrderController extends Controller
                 'order_type' => 'nullable|exists:order_types,id',
                 'payment_terms_id' => 'required|exists:payment_terms,id',
                 'credit_days' => 'nullable|string',
-                'billing_date' => 'required|string',
-                'delivery_date' => 'nullable|string',
+                // 'billing_date' => 'required|string',
+                // 'delivery_date' => 'nullable|string',
+                'billing_date' => 'required|date_format:d/m/Y',
+                'delivery_date' => 'nullable|date_format:d/m/Y',
                 'scheme' => 'nullable',
                 'total_amount' => 'nullable|numeric',
                 'additional_information' => 'nullable|string',
@@ -231,11 +368,12 @@ class DealerOrderController extends Controller
             ]);
 
             // $validatedData['billing_date'] = Carbon::createFromFormat('d-m-Y', $validatedData['billing_date'])->format('Y-m-d');
-            $validatedData['billing_date'] = Carbon::createFromFormat('d/m/Y', $validatedData['billing_date'])->format('Y-m-d');
+            
+           $validatedData['billing_date'] = $this->normalizeDate($validatedData['billing_date']);
+        $validatedData['delivery_date'] = $this->normalizeDate($validatedData['delivery_date'] ?? null);
+       // dd($validatedData);
 
-            if (!empty($validatedData['delivery_date'])) {
-                $validatedData['delivery_date'] = Carbon::createFromFormat('d/m/Y', $validatedData['delivery_date'])->format('Y-m-d');
-            }
+
             $validatedData['created_by'] = null;
             $validatedData['created_by_dealer'] = $dealer->id;
             $validatedData['dealer_flag_order'] = '1';
@@ -287,7 +425,14 @@ class DealerOrderController extends Controller
                 'order_type' => $order->order_type,
                 'payment_terms_id' => $order->payment_terms_id,
                 'credit_days' => $order->credit_days,
-                'billing_date' => Carbon::parse($order->billing_date)->format('d/m/Y'),
+                // 'billing_date' => Carbon::parse($order->billing_date)->format('d/m/Y'),
+                // 'billing_date' => Carbon::createFromFormat('Y-m-d', $order->billing_date)->format('d/m/Y'),
+                'billing_date' =>  $order->billing_date->format('d/m/Y'),
+                // 'delivery_date' => $order->delivery_date
+                // ? $order->delivery_date->format('d/m/Y')
+                // : null,
+                // ? Carbon::createFromFormat('Y-m-d', $order->delivery_date)->format('d/m/Y')
+                // : null,
                 'total_amount' => round($order->total_amount, 2),
                 'additional_information' => $order->additional_information,
                 'status' => $order->status,

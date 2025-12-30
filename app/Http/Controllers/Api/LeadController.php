@@ -415,7 +415,9 @@ class LeadController extends Controller
                     ] : null,
                     'route_name' => $lead->tripRoute->route_name ?? null,
                     'location' => $lead->location,
-                    'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+                    'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
+                        ? optional($lead->updated_at)->format('d/m/Y h:i A')
+                        : optional($lead->created_at)->format('d/m/Y h:i A'),
                     'updated_at' => $lead->updated_at,
                 ];
             });
@@ -1614,7 +1616,12 @@ class LeadController extends Controller
                         'id' => $visit->id,
                         'influencer_name' => $visit->influencer_name,
                         'purpose' => $visit->purpose,
-                        'created_at' => $visit->created_at ? $visit->created_at->format('d/m/Y') : null,
+                        //'created_at' => $visit->created_at ? $visit->created_at->format('d/m/Y') : null,
+
+                        'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
+                        ? optional($visit->updated_at)->format('d/m/Y h:i A')
+                        : optional($visit->created_at)->format('d/m/Y h:i A'),
+
                         'follow_up_date' => $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
                         'status' => $visit->status,
                     ];
@@ -1690,9 +1697,9 @@ class LeadController extends Controller
                 'id' => $visit->id,
                 'influencer_name' => $visit->influencer_name,
                 'purpose' => $visit->purpose,
-                'created_at' => $visit->status === 'Follow Up'
-            ? optional($visit->updated_at)->format('d/m/Y h:i A')
-            : optional($visit->created_at)->format('d/m/Y h:i A'),
+                    'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
+                        ? optional($visit->updated_at)->format('d/m/Y h:i A')
+                        : optional($visit->created_at)->format('d/m/Y h:i A'),
                 'follow_up_date' =>
                     $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
                 'status' => $visit->status,
@@ -1900,7 +1907,10 @@ class LeadController extends Controller
                     'lead_source' => $lead->lead_source,
                     'lead_score' => $lead->lead_score,
                     'created_by' => $lead->created_by,
-                    'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+                    // 'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+                    'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
+                    ? optional($lead->updated_at)->format('d/m/Y h:i A')
+                    : optional($lead->created_at)->format('d/m/Y h:i A')
                 ];
             });
     
@@ -2001,7 +2011,9 @@ class LeadController extends Controller
                 'lead_score' => $lead->lead_score,
                 'location' => $lead->location,
                 'created_by' => $lead->created_by,
-                'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+                    'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
+                        ? optional($lead->updated_at)->format('d/m/Y h:i A')
+                        : optional($lead->created_at)->format('d/m/Y h:i A')
             ];
         });
 
@@ -2068,7 +2080,10 @@ class LeadController extends Controller
                 'id' => $visit->id,
                 'influencer_name' => $visit->influencer_name,
                 'purpose' => $visit->purpose,
-                'created_at' => $visit->created_at?->format('d/m/Y h:i A'),
+                // 'created_at' => $visit->created_at?->format('d/m/Y h:i A'),
+                'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won')
+                        ? optional($visit->updated_at)->format('d/m/Y h:i A')
+                        : optional($visit->created_at)->format('d/m/Y h:i A'),
                 'follow_up_date' => $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
                 'status' => $visit->status,
             ];
