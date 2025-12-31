@@ -75,7 +75,7 @@ class DealerVisitExport implements FromCollection, WithHeadings, WithMapping, Sh
             // ($visit->purpose_of_visit === 'Casual Visit' && $visit->new_order === 'Yes') || $visit->purpose_of_visit === 'Order Taking'
             //     ? optional($order)->payment_date : '',
             $productSummary,
-            optional($visit->creator)->name,
+            optional($visit->createdBy)->name,
         ];
     }
 

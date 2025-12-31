@@ -36,10 +36,31 @@ class AccountsController extends Controller
         $productID = ProductHelper::getSelectedProductId();
         $statusFilter = $request->get('status');       
 
-        $orders = Order::with(['orderItems','dealer', 'dealers', 'createdBy.employeeType', 'sendForApprovalBy'])
+        $orders = Order::select([
+        'id',
+        'dealer_id',
+        'created_by_dealer',
+        'created_by',
+        'dealer_flag_order',
+        'send_for_approval',
+        'send_for_approval_by',
+        'created_at',
+        'total_amount',
+        'status'
+    ])
+    ->with([
+        'orderItems:id,order_id,product_id',
+        'dealer:id,dealer_name,dealer_code',
+        'dealers:id,dealer_name,dealer_code',
+        'createdBy:id,name,employee_code,employee_type_id',
+        'createdBy.employeeType:id,type_name',
+        'sendForApprovalBy:id,name,employee_code'
+    ])
+            ->whereDate('created_at', '>=', now()->subDays(90))
             ->whereHas('orderItems', function ($q) use ($productID) {
                 $q->where('product_id', $productID);
             })
+
             ->where(function ($query) {
                 $query->where(function ($subQuery) {
                     $subQuery->where('dealer_flag_order', '1')
@@ -77,7 +98,8 @@ class AccountsController extends Controller
                 $query->whereNull('order_approved')->orWhereNotIn('order_approved', ['1', '2']);
             });
         }         
-
+        
+        
         return DataTables::of($orders)
             ->filter(function ($query) use ($request) {
                 if ($search = $request->get('search')['value'] ?? false) {

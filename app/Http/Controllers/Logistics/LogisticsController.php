@@ -19,8 +19,8 @@ class LogisticsController extends Controller
             ->whereIn('vehicle_category_id', ['2', '3'])
             ->where('order_approved', '1')
             ->orderBy('id', 'desc')
+            ->whereDate('created_at', '>=', now()->subDays(90))
             ->get();
-
         return DataTables::of($orders)
             ->addColumn('checkbox', function ($order) {
                 return '<input type="checkbox" class="order-checkbox" value="' . $order->id . '">';

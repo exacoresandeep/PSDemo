@@ -96,9 +96,8 @@
         });
     });
          
-  $(document).on('click', '.view-order', function () {
+   $(document).on('click', '.view-order', function () {
             let orderId = $(this).data('id');
-            
             $('#vehicle_status').val('');
             $('#vehicle_remarks').val('');
             $.ajax({
@@ -118,8 +117,7 @@
                         $('#view_dealer_name').text(order.dealer_name);
                         $('#view_dealer_code').text(order.dealer_code);
                         $('#view_dealer_phone').text(order.dealer_phone);
-                        
-			            $('#view_instructions').html(order.additional_information);
+                        $('#view_instructions').html(order.additional_information);
                         $('#view_dealer_district').text(order.dealer_district);
                         $('#view_vehicle_category').text(order.vehicle_category);
                         $('#view_vehicle_number').text(order.vehicle_number);
@@ -163,11 +161,14 @@
                         }
                         if (order.order_type === "Retail" && order.payment_type === "Advance") {
                             $('#view_product_price_label').show();
+                            $('#view_total_product_price').show();
                             $('#view_product_price_label').text('ADP Price');
                         } else if(order.order_type === "Retail" && order.payment_type === "Credit"){
                             $('#view_product_price_label').show();
+                            $('#view_total_product_price').show();
                             $('#view_product_price_label').text('DP Price');
                         }else {
+                            $('#view_total_product_price').hide();
                             $('#view_product_price_label').hide();
                         }
                         if (order.attachments && order.attachments.length > 0) {
@@ -181,12 +182,14 @@
                             $('#view_attachment').html('<span class="text-muted">No attachment available</span>');
                         }
                         let productHtml = '';
-                        let totalQuantity = 0;
+                        let totalQuantity=totalPieces =totalTonnage= 0;
                         let totalAmount = 0;
                         let totalProductPrice = 0;
 
                         order.order_items.forEach(item => {
                             totalQuantity += item.quantity;
+                            totalPieces += item.pieces;
+                            totalTonnage += item.tonnage;
                             totalAmount += (item.rate*item.quantity);
                             let priceColumn = '';
                             let productPrice = 0;
@@ -211,7 +214,9 @@
                                 <tr>
                                     <td>${item.product_name}</td>
                                     <td>${item.type_name}</td>
-                                    <td>${item.quantity}</td>
+                                    <td class="template1">${item.quantity}</td>
+                                    <td class="template2">${item.pieces}</td>
+                                    <td class="template2">${item.tonnage}</td>
                                     ${priceColumn}
                                     <td>${((item.rate)).toFixed(2)}</td>
                                 </tr>
@@ -229,7 +234,7 @@
                             $('#view_total_product_price').hide();
                             $('#view_product_price_label').hide();
                         }
-                   
+                        // Handle Order Approval Status
                         if (order.order_approved == '1') {
                             $('#payment-form').hide();
                             $('#approval-buttons').hide();
@@ -257,12 +262,20 @@
 
                         }
 
+                        // Store orderId for later use
                         $('#approve_order, #reject_order').data('id', orderId);
 
-                       
+                        if(order.product_id == '1' || order.product_id == '4'){
+                            $('.template1').show();
+                            $('.template2').hide();
+                        }else{
+                            $('.template1').hide();
+                            $('.template2').show();
+                        }
+                        // Show Modal
                         $('#viewModal').modal({
-                            backdrop: 'static', 
-                            keyboard: false   
+                            backdrop: 'static', // Prevent clicking outside to close
+                            keyboard: false     // Prevent "Esc" key from closing
                         }).modal('show');
                     }
                 }

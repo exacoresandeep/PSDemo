@@ -278,5 +278,6 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
             Route::get('/view/{id}', [OperationsController::class, 'viewOrder'])->name('view');
             Route::post('/change-status/{id}', [OperationsController::class, 'changeStatus'])->name('operations.orders.changeStatus');
             Route::get('/export', [OperationsController::class, 'export'])->name('operations.orders.export'); 
+            Route::get('/exportAllOrder', [OperationsController::class, 'exportAllOrder'])->name('operations.orders.exportAllOrder'); 
         });
     });

@@ -111,7 +111,7 @@
         });
     });
          
-  $(document).on('click', '.view-order', function () {
+    $(document).on('click', '.view-order', function () {
             let orderId = $(this).data('id');
             $('#vehicle_status').val('');
             $('#vehicle_remarks').val('');
@@ -311,7 +311,7 @@
         const to_date = $('#todate').val();
         const vehicle_status = $('#vehicleStatusFilter').val();
 
-        let url = "{{ route('operations.orders.export') }}?";
+        let url = "{{ route('operations.orders.exportAllOrder') }}?";
         
         if (status) url += 'status=' + encodeURIComponent(status) + '&';
         if (from_date) url += 'from_date=' + from_date + '&';
