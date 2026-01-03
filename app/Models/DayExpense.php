@@ -19,9 +19,10 @@ class DayExpense extends Model
         'remarks',
         'attachment',
         'total_amount',
+        'route',
     ];
     public function employee()
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(Employee::class)->withTrashed();
     }
 }

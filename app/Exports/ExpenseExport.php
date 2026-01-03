@@ -48,12 +48,14 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping, Should
     {
         return [
             'Sl.No',
+            'ID',
             'Employee Name',
             'Employee Code',
             'Date',
             'Time',
             'Travel Method',
             'Kilometer Travelled',
+            'Route',
             'Other Expense',
             'Remarks',
             'Total Amount',
@@ -79,12 +81,14 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping, Should
 
         return [
             $count,
+            $expense->employee_id ?? '-',
             $expense->employee->name ?? '-',
             $expense->employee->employee_code ?? '-',
             $expense->created_at ? $expense->created_at->format('d-m-Y') : '-',
             $expense->created_at ? $expense->created_at->format('h:i A') : '-',
             $expense->travel_method,
             $km,
+            $expense->route ?? '-',
             number_format($other, 2),
             $expense->remarks ?? '-',
             round($total, 2),

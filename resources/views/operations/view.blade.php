@@ -61,6 +61,7 @@
 
 		            <div class="row" id="credit_details_row" style="display: block;">
                         <h5 class="mt-3">Credit Details</h5>
+                        <div class="col-md-6"><strong>Credit Days:</strong> <span id="view_credit_days"></span></div>
                         <div class="col-md-12">
                             <div class="alert alert-danger">
                                 <strong>Total Outstanding Amount:</strong>

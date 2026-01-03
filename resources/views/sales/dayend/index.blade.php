@@ -61,8 +61,9 @@
                     <th>Time</th>
                     <th>Travel Method</th>
                     <th>Kilometer Travelled</th>
+                    <th>Route</th>
                     <th>Other Expense</th>
-                    <th>Remarks</th>
+                    <th>Reason</th>
                     <th>Attachment</th>
                     <th>Total Amount</th>
                 </tr>
@@ -189,6 +190,7 @@
             { data: 'date', name: 'date' },      // Date & Time
             { data: 'time', name: 'time' },      // Date & Time
             { data: 'travel_method', name: 'travel_method' },// Travel Method
+            { data: 'route', name: 'route' },// Route
             { data: 'km_traveled', name: 'km_traveled' },    // Kilometer Travelled
             { data: 'other_expense', name: 'other_expense' },// Other Expense
             { data: 'remarks', name: 'remarks' },            // Remarks

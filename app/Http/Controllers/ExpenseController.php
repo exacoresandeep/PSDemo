@@ -78,6 +78,7 @@ class ExpenseController extends Controller
             // 'km_traveled'   => 'nullable|integer|min:0',
             'other_expense' => 'nullable|numeric',
             'remarks'       => 'nullable|string|max:1000',
+            'route'       => 'nullable|string|max:255',
             'attachment'    => 'nullable|array',
             'attachment.*'  => 'nullable|string|max:256',
         ]);
@@ -116,6 +117,7 @@ class ExpenseController extends Controller
             'km_traveled'   => $request->km_traveled,
             'other_expense' => $request->other_expense,
             'remarks'       => $request->remarks,
+            'route'         => $request->route,
             'attachment'    => json_encode($attachments),
             'total_amount'  => $totalAmount,
         ]);
@@ -136,6 +138,7 @@ class ExpenseController extends Controller
                 'km_traveled'   => $dayExpense->km_traveled,
                 'other_expense' => $dayExpense->other_expense,
                 'remarks'       => $dayExpense->remarks,
+                'route'         => $dayExpense->route,                
                 'attachment'    => $fileUrls,
                 'total_amount'  => $dayExpense->total_amount,
             ]
@@ -175,6 +178,7 @@ class ExpenseController extends Controller
                 'km_traveled'   => $expense->km_traveled,
                 'other_expense' => $expense->other_expense,
                 'remarks'       => $expense->remarks,
+                'route'         => $expense->route,
                 'attachments'   => $expense->attachment ? json_decode($expense->attachment, true) : [],
                 'total_amount'  => $calculatedAmount,
             ];
@@ -251,6 +255,7 @@ class ExpenseController extends Controller
                     })
                     ->orWhere('travel_method', 'like', "%{$searchValue}%")
                     ->orWhere('remarks', 'like', "%{$searchValue}%")
+                    ->orWhere('route', 'like', "%{$searchValue}%")
                     ->orWhere('total_amount', 'like', "%{$searchValue}%");
                 }
             })
@@ -260,6 +265,7 @@ class ExpenseController extends Controller
             ->addColumn('time', fn($t) => $t->created_at ? $t->created_at->format('h:i A') : '-')
             ->addColumn('travel_method', fn($t) => ucfirst($t->travel_method ?? '-'))
             ->addColumn('km_traveled', fn($t) => $t->km_traveled ?? 0)
+            ->addColumn('route', fn($t) => $t->route ?? '-')
             ->addColumn('other_expense', fn($t) => number_format($t->other_expense ?? 0, 2))
             ->addColumn('remarks', fn($t) => $t->remarks ?? '-')
             ->addColumn('attachment', function ($t) {

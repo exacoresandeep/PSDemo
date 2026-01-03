@@ -120,7 +120,8 @@
                             } else {
                                 $('#view_due_in_days').text('-');
                             }
-
+                           
+                            $('#view_credit_days').text(response.order.credit_days);
                             $('#credit_details_row').show();
                         } else {
                             $('#credit_details_row').hide();
