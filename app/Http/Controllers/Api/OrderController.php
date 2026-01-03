@@ -1566,8 +1566,8 @@ class OrderController extends Controller
                             }
                         })
                         ->get();
-
-                    $totalSales = $orders->flatMap->orderItems->sum('total_quantity');
+                       
+                    $totalSales =  $orders->sum('total_amount');
                     $totalSalesForPeriod += $totalSales;
 
                     return [
@@ -1580,7 +1580,7 @@ class OrderController extends Controller
                             return [
                                 'order_id' => $order->id,
                                 'created_at' => optional($order->created_at)->format('d/m/Y'),
-                                'invoice_total' => $order->orderItems->sum('total_quantity'),
+                                'invoice_total' => $order->total_amount,
                             ];
                         }),
                     ];
@@ -1624,7 +1624,8 @@ class OrderController extends Controller
                         })
                         ->get();
 
-                    $totalSales = $orders->flatMap->orderItems->sum('total_quantity');
+                    $totalSales =  $orders->sum('total_amount');
+                    
                     $totalSalesForPeriod += $totalSales;
 
                     return [
@@ -1637,7 +1638,7 @@ class OrderController extends Controller
                             return [
                                 'order_id' => $order->id,
                                 'created_at' => optional($order->created_at)->format('d/m/Y'),
-                                'invoice_total' => $order->orderItems->sum('total_quantity'),
+                                'invoice_total' => $order->total_amount,
                             ];
                         }),
                     ];
@@ -1674,7 +1675,7 @@ class OrderController extends Controller
                         })
                         ->get();
 
-                    $totalSales = $orders->flatMap->orderItems->sum('total_quantity');
+                    $totalSales = $orders->sum('total_amount');
                     $totalSalesForPeriod += $totalSales;
 
                     return [
@@ -1687,7 +1688,7 @@ class OrderController extends Controller
                             return [
                                 'order_id' => $order->id,
                                 'created_at' => optional($order->created_at)->format('d/m/Y'),
-                                'invoice_total' => $order->orderItems->sum('total_quantity'),
+                                'invoice_total' => $order->total_amount,
                             ];
                         }),
                     ];
@@ -1828,14 +1829,15 @@ class OrderController extends Controller
              * TOTAL CALCULATION
              * =====================
              */
-            $totalSalesAmount = $orders->flatMap->orderItems->sum('total_quantity');
+            $totalSalesAmount = $orders->flatMap->sum('total_amount');
 
             $ordersData = $orders->map(function ($order) {
                 return [
                     'order_id' => $order->id,
+                    'status' => $order->status,
                     'created_at' => optional($order->created_at)->format('d/m/Y'),
                     'dealer_name' => optional($order->dealer)->dealer_name ?? 'N/A',
-                    'invoice_total' => $order->orderItems->sum('total_quantity'),
+                    'invoice_total' => $order->total_amount
                 ];
             });
 
@@ -2049,6 +2051,7 @@ class OrderController extends Controller
             ])
                 ->where('created_by', $employee->id)
                 ->where('status', '!=', 'Pending')
+                //->whereNotIn('status', ['Pending','Accounts Rejected','Rejected'])
                 ->whereYear('created_at', $year)
                 ->whereMonth('created_at', $month)
                 ->whereHas('orderItems', function ($q) use ($product_id) {
@@ -2068,12 +2071,14 @@ class OrderController extends Controller
                         'name' => $employee->name,
                         'employee_code' => $employee->employee_code,
                         'total_orders' => $orders->count(),
+                        'total_amount' => $orders->sum('total_amount'),
                     ],
                     'orders' => $orders->map(fn($order) => [
                         'order_id' => $order->id,
                         'dealer_name' => optional($order->dealer)->dealer_name,
                         'created_at' => optional($order->created_at)->format('d/m/Y'),
                         'quantity' => $order->orderItems->sum('total_quantity'),
+                        'amount' => $order->total_amount,
                     ]),
                 ],
             ]);

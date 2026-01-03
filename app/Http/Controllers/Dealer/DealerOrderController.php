@@ -28,24 +28,32 @@ class DealerOrderController extends Controller
     public function index(Request $request)
     {
         try {
-           
+            
             $dealer = Auth::user();
             if($dealer)
             {
-                $orders = Order::where('created_by_dealer', $dealer->id)
-                ->where('dealer_flag_order', "1")
-                ->with([
-                    'dealer:id,dealer_name,dealer_code',
-                    'orderItems:id,order_id,total_quantity' 
-                ])
-                ->select('id', 'total_amount', 'status', 'created_at', 'created_by_dealer')
-                ->orderBy('id', 'desc')
-                ->get()
-                ->map(function ($order) {
-                    $order->total_amount = (float) sprintf("%.2f", $order->total_amount);
-                    $order->total_quantity = $order->orderItems->sum('total_quantity'); 
-                    return $order;
-		});
+                $query = Order::where('created_by_dealer', $dealer->id)
+                    ->where('dealer_flag_order', "1")
+                    ->with([
+                        'dealer:id,dealer_name,dealer_code',
+                        'orderItems:id,order_id,product_id,total_quantity'
+                    ])
+                    ->select('id', 'total_amount', 'status', 'created_at', 'created_by_dealer');
+
+                // ✅ PRODUCT FILTER (correct place)
+                if ($request->filled('product_id')) {
+                    $query->where('product_id', $request->product_id);
+                }
+
+                $orders = $query
+                    ->orderBy('id', 'desc')
+                    ->get()
+                    ->map(function ($order) {
+                        $order->total_amount = (float) sprintf("%.2f", $order->total_amount);
+                        $order->total_quantity = $order->orderItems->sum('total_quantity');
+                        return $order;
+                    });
+
 
                 return response()->json([
                     'success' => true,

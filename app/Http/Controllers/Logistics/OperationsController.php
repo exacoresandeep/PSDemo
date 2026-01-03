@@ -367,6 +367,7 @@ class OperationsController extends Controller
             'billing_date' => $order->billing_date ?? 'N/A',
             'status_badge' => $order->status,
             'scheme' => $order->scheme,
+            'credit_days' => $order->credit_days,
             'reason_for_rejection' => $order->reason_for_rejection,
             'remarks' => $order->order_remarks,
             'order_approved' => $order->order_approved, 
@@ -696,6 +697,10 @@ class OperationsController extends Controller
                     'Yard Status'    => $order->vehicle_status ?? '-',
                     'Scheme'         => $order->scheme ?? '-',
 
+                    'Order Type'         => $order->orderType->name ?? '-',
+                    'Payment Type'         => $order->paymentTerm->name ?? '-',
+                    'Billing Date'         => $order->billing_date ?? '-',
+
                     'Quantity' => $order->orderItems->sum('total_quantity'),
                     'Amount' => number_format($order->total_amount, 2),
 
@@ -739,6 +744,9 @@ class OperationsController extends Controller
                             'Driver Name',
                             'Yard Status',
                             'Scheme',
+                            'Order Type',
+                            'Payment Type',
+                            'Billing Date',
 
                             'Quantity',
                             'Amount',
@@ -865,7 +873,7 @@ class OperationsController extends Controller
                     'Scheme'         => $order->scheme ?? '-',
                     
                     'Order Type'         => $order->orderType->name ?? '-',
-                    'Payment Type'         => $order->order_payment_terms ?? '-',
+                    'Payment Type'         => $order->paymentTerm->name ?? '-',
                     'Billing Date'         => $order->billing_date ?? '-',
 
                     'Quantity' => number_format($totalQuantity, 2, '.', ''),

@@ -623,6 +623,7 @@ class AccountsController extends Controller
                 'billing_date' => $order->billing_date ?? 'N/A',
                 'status_badge' => $order->status,
                 'scheme' => $order->scheme,
+                'credit_days' => $order->credit_days,
                 'instructions' => $order->additional_information,
                 'reason_for_rejection' => $order->reason_for_rejection,
                 'remarks' => $order->order_remarks,
@@ -924,20 +925,29 @@ class AccountsController extends Controller
         }
 
         $data = $orders->latest()->get()->map(function ($order) {
+                    
             return [
                 'Date' => $order->created_at->format('d/m/Y'),
                 'Order ID' => 'OD00' . $order->id,
+                'Order Type' => $order->orderType?->name ?? 'N/A',
+                
                 'Dealer Name' => $order->created_by_dealer ? $order->dealers?->dealer_name : $order->dealer?->dealer_name,
                 'Dealer Code' => $order->created_by_dealer ? $order->dealers?->dealer_code : $order->dealer?->dealer_code,
+                'Address' => $order->created_by_dealer ? $order->dealers?->address : $order->dealer?->address,
+
                 'Employee Type' => $order->dealer_flag_order == 1 ? '-' : ($order->createdBy?->employeeType?->type_name ?? 'N/A'),
                 'Employee Name - Code' => $order->dealer_flag_order == 1
                     ? ($order->dealer?->dealer_name ?? '-')
                     : ($order->createdBy->name ?? '-') . ' - ' . ($order->createdBy->employee_code ?? '-'),
                 'Amount' => number_format($order->total_amount, 2),
+                'Payment Type' => $order->paymentTerm?->name ?? 'N/A', 
+                'Billing Date' => $order->billing_date ?? 'N/A', 
+                'Scheme' => $order->scheme ?? 'N/A', 
                 'Status' => match ($order->order_approved) {
                     '1' => 'Approved',
                     '2' => 'Rejected',
                     default => 'Pending',
+                
                 },
             ];
         });
@@ -960,11 +970,16 @@ class AccountsController extends Controller
                 return [
                     'Date',
                     'Order ID',
+                    'Order Type',
                     'Dealer Name',
                     'Dealer Code',
+                    'Address',
                     'Employee Type',
                     'Employee Name - Code',
                     'Amount',
+                    'Payment Type', 
+                    'Billing Date',
+                    'Scheme',   
                     'Status',
                 ];
             }

@@ -352,7 +352,6 @@ class AttendanceController extends Controller
                     'punch_out' => $record->punch_out,
                     'total_active_hours' => $record->total_active_hours,
                     'starting_remarks' => $record->starting_remarks,
-                    'ending_remarks' => $record->ending_remarks,
                     'status' => $record->status,
                     'leave_type' => $record->leave_type,
                     'starting_km' => $record->starting_km,

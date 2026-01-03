@@ -162,26 +162,33 @@
              --}}
             <div class="col-md-6 mb-3">
                 <label class="form-label">Products & SAP Codes</label>
-
+                <table class="table table-borderless mb-0" style="border: none">
                 @foreach($products as $product)
-                    <div class="d-flex align-items-center mb-2">
-                        <input type="checkbox"
-                            class="me-2 product-check"
+                    {{-- <div class="d-flex align-items-center mb-2"> --}}
+                         {{-- <input type="checkbox"
+                            class="me-2 product-check "
                             name="products[]"
                             value="{{ $product->id }}"
                             id="product_{{ $product->id }}">
-
-                        <label class="me-3" for="product_{{ $product->id }}">
-                            {{ $product->product_name }}
-                        </label>
-
-                        <input type="text"
-                            class="form-control"
-                            name="product_sap[{{ $product->id }}]"
-                            placeholder="SAP Code"
-                            style="max-width:200px">
-                    </div>
+                         --}}
+                            <tr>
+                                <td style="border: none">
+                                    <label class="me-3" for="product_{{ $product->id }}">
+                                        {{ $product->product_name }}
+                                    </label>
+                                </td>
+                                <td style="border: none">
+                                    <input type="text"
+                                        class="form-control"
+                                        name="product_sap[{{ $product->id }}]"
+                                        placeholder="SAP Code"
+                                        style="max-width:200px">
+                                </td>
+                            </tr>
+                        
+                    {{-- </div> --}}
                 @endforeach
+                </table>
             </div>
 
             {{-- <div class="col-md-6 mb-3">

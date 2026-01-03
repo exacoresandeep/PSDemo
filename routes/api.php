@@ -53,7 +53,7 @@ use App\Http\Controllers\ExpenseController;
     
                 Route::prefix('orders')->group(function () {
                     Route::post('/', [DealerOrderController::class, 'store']); // Store  order
-                    Route::get('/', [DealerOrderController::class, 'index']); // List orders by current user ID
+                    Route::post('/', [DealerOrderController::class, 'index']); // List orders by current user ID
                     Route::get('/{orderId}', [DealerOrderController::class, 'show']); // order details
                     // Route::post('/filter', [DealerOrderController::class, 'orderFilter']);
                     Route::post('/track-order', [DealerOrderController::class, 'trackOrder']);
