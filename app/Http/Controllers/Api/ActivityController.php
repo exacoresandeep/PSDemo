@@ -299,7 +299,7 @@ class ActivityController extends Controller
                 ->whereJsonContains('products', (string)$productId)
                 ->first();
 
-            if (!$salesExecutive || $salesExecutive->district !== $employee->district) {
+            if (!$salesExecutive ) { //|| $salesExecutive->district !== $employee->district
                 return response()->json([
                     'success' => false,
                     'statusCode' => 404,

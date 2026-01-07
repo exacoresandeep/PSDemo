@@ -1540,7 +1540,7 @@ class OrderController extends Controller
              * DSM (employee_type_id = 3)
              * ======================
              */
-            if ($employee->employee_type_id == 3) {
+            if ($employee->employee_type_id == 3 || $employee->employee_type_id == 7) { //push
 
                 $salesExecutives = Employee::where('district_id', $employee->district_id)
                     ->whereIn('employee_type_id', [1, 2])
@@ -1735,7 +1735,7 @@ class OrderController extends Controller
              * EMPLOYEE ACCESS CHECK
              * =====================
              */
-            if ($employee->employee_type_id == 3) {
+            if ($employee->employee_type_id == 3 || $employee->employee_type_id == 7) { //push  
                 $salesEmployee = Employee::where('id', $employee_id)
                     ->whereIn('employee_type_id', [1, 2])
                     ->when(
@@ -1888,7 +1888,7 @@ class OrderController extends Controller
              * FETCH EMPLOYEES
              * =====================
              */
-            if ($loggedInEmployee->employee_type_id == 3) {
+            if ($loggedInEmployee->employee_type_id == 3 || $loggedInEmployee->employee_type_id == 7 ) { //push
 
                 $employees = Employee::where('district_id', $loggedInEmployee->district_id)
                     ->whereIn('employee_type_id', [1, 2])
@@ -1909,9 +1909,9 @@ class OrderController extends Controller
                 if (!$region) {
                     return response()->json([
                         'success' => false,
-                        'statusCode' => 404,
+                        'statusCode' => 200,
                         'message' => "Region not found.",
-                    ], 404);
+                    ], 200);
                 }
 
                 $districts = District::where('regions_id', $region->id)->pluck('id');
@@ -1944,9 +1944,9 @@ class OrderController extends Controller
             if ($employees->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'statusCode' => 404,
+                    'statusCode' => 200,
                     'message' => "No employees found for this product.",
-                ], 404);
+                ], 200);
             }
 
             $totalOrdersForPeriod = 0;
@@ -2011,6 +2011,7 @@ class OrderController extends Controller
 
             $allowedTypes = match ($loggedInEmployee->employee_type_id) {
                 3 => [1, 2],
+                7 => [1, 2], //push
                 4 => [1, 2, 3],
                 5 => [1, 2, 3, 4],
                 default => []
@@ -2109,7 +2110,7 @@ class OrderController extends Controller
             $product_id = $request->input('product_id', null);
 
             // Determine employees based on role
-            if ($loggedInEmployee->employee_type_id == 3) {
+            if ($loggedInEmployee->employee_type_id == 3 || $loggedInEmployee->employee_type_id == 7) { //push
                 // DSM: fetch SEs in same district
                 $employees = Employee::where('district_id', $loggedInEmployee->district_id)
                     ->whereIn('employee_type_id', [1, 2])
@@ -2151,16 +2152,16 @@ class OrderController extends Controller
             if ($employees->isEmpty()) {
                 return response()->json([
                     'success' => false,
-                    'statusCode' => 404,
+                    'statusCode' => 200,
                     'message' => "No employees found under your hierarchy.",
-                ], 404);
+                ], 200);
             }
 
             $totalOpenedLeads = 0;
             $totalWonLeads = 0;
             $totalLostLeads = 0;
 
-            $reportData = $employees->map(function ($employee) use ($month, $year, &$totalOpenedLeads, &$totalWonLeads, &$totalLostLeads) {
+            $reportData = $employees->map(function ($employee) use ($month, $year, &$totalOpenedLeads, &$totalWonLeads, &$totalLostLeads, $product_id) {
                 $openedLeads = Lead::where('created_by', $employee->id)
                     ->whereIn('status', ['Opened', 'Follow Up'])
                     ->whereYear('created_at', $year)
@@ -2171,6 +2172,9 @@ class OrderController extends Controller
                     ->where('status', 'Won')
                     ->whereYear('created_at', $year)
                     ->whereMonth('created_at', $month)
+                    ->whereHas('firstOrder', function ($q) use ($product_id) {
+                        $q->where('product_id', $product_id);
+                    })
                     ->count();
 
                 $lostLeads = Lead::where('created_by', $employee->id)
@@ -2240,7 +2244,7 @@ class OrderController extends Controller
 
             $product_id = $request->input('product_id', null);
 
-            if ($loggedInEmployee->employee_type_id == 3) {
+            if ($loggedInEmployee->employee_type_id == 3 || $loggedInEmployee->employee_type_id == 7) { //push
                 $allowedEmployeeTypes = [1, 2];
             } elseif ($loggedInEmployee->employee_type_id == 4) {
                 $allowedEmployeeTypes = [1, 2, 3];
@@ -2763,7 +2767,7 @@ class OrderController extends Controller
         $productId = $request->input('product_id');
 
         // Get employees handling the product
-        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])
+        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4, 7]) //push
             ->when($productId, fn($q) => $q->whereRaw('FIND_IN_SET(?, products)', [$productId]))
             ->pluck('id')
             ->toArray();
@@ -2826,7 +2830,7 @@ class OrderController extends Controller
         $productId = $request->input('product_id', null);
 
         // Get employees handling the product
-        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])
+        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4, 7]) //push
             ->when($productId, fn($q) => $q->whereRaw('FIND_IN_SET(?, products)', [$productId]))
             ->pluck('id')
             ->toArray();
@@ -3519,7 +3523,7 @@ class OrderController extends Controller
             $month = $request->input('month', date('m'));
             $year = $request->input('year', date('Y'));
 
-            $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4])->get();
+            $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4, 7])->get(); //push
             if ($employees->isEmpty()) {
                 return response()->json([
                     'success' => false,
@@ -3605,7 +3609,7 @@ class OrderController extends Controller
         $leadStatus = $request->input('lead_status', 'All');
         $customerType = $request->input('customer_type', 'All');
 
-        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4, 5])->pluck('id');
+        $employees = Employee::whereIn('employee_type_id', [1, 2, 3, 4, 5, 7])->pluck('id'); //push
 
         $leadsQuery = Lead::with([
             'customerType',
