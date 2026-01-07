@@ -579,9 +579,51 @@ public function updateLead(Request $request, $leadId)
                     'further_requirement' => $request->further_requirement ?? null,
                     'further_volume' => $request->further_volume ?? null,
                 ]);
+
+                 Lead::create([
+                        'customer_type'         => $lead->customer_type,
+                        'customer_name'         => $lead->customer_name,
+                        'phone'                 => $lead->phone,
+                        'address'               => $lead->address,
+                        'city'                  => $lead->city,
+                        'location'              => $lead->location,
+                        'district_id'           => $lead->district_id,
+                        'assigned_route_id'     => $lead->assigned_route_id,
+            
+                        'lead_chain_id'         => $lead->lead_chain_id, // same chain
+            
+                        'type_of_visit'         => $request->type_of_visit,
+                        'construction_type'     => $request->construction_type,
+                        'construction_type_name'=> $request->construction_type_name,
+                        'stage_of_construction' => $request->stage_of_construction,
+                        'lead_score'            => $request->lead_score,
+                        'lead_source'           => $request->lead_source,
+                        'source_name'           => $request->source_name,
+            
+                        'total_volume'          => $balanceVolume,
+                        'total_quantity'        => $balanceVolume,
+                        'dealer_id'             => $request->dealer_id,
+            
+                        'status'                => 'Lost',
+                        'notification_status'   => 'pending',
+            
+                        'created_by'            => Auth::id(),
+
+                        'lost_volume' => $lost['lost_volume'] ?? null,
+                        'lost_to_competitor' => $lost['lost_to_competitor'] ?? null,
+                        'competitor_name' => $lost['competitor_name'] ?? null,
+                        'reason_for_lost' => $lost['reason_for_lost'] ?? null,
+                        'previous_brand' => $request->previous_brand ?? null,
+                        'brand_name' => $request->brand_name ?? null,
+                        'previous_brand_quantity' => $request->previous_brand_quantity ?? null,
+                        'customer_meet' => $request->customer_meet ?? null,
+                        'ring_test' => $request->ring_test ?? null,
+                        'further_requirement' => $request->further_requirement ?? null,
+                        'further_volume' => $request->further_volume ?? null,
+                    ]);
             }
             $oldStatus = $lead->status;
-            $lead->update($leadData);
+            // $lead->update($leadData);
     
              $order = null;
 
