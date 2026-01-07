@@ -83,4 +83,9 @@ class Lead extends Model
     {
         return $this->belongsTo(Dealer::class, 'dealer_id');
     }
+    public function firstOrder()
+    {
+        return $this->hasOne(Order::class, 'lead_id')->oldestOfMany();
+    }
+
 }

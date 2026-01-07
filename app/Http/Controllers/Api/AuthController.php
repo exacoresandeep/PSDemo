@@ -636,7 +636,7 @@ public function updateFcmToken(Request $request)
                             if ($lastInspection) {
                                 $dueDate = Carbon::parse($lastInspection->inspection_date)->addDays(30);
                                 $daysLeft = now()->diffInDays($dueDate, false);
-
+                               
                                 if ($daysLeft > 3) {
                                     $msg = "The vehicle {$vehicle->vehicle_no} is ready for {$type} inspection.";
                                 } elseif ($daysLeft > 0) {
@@ -644,13 +644,15 @@ public function updateFcmToken(Request $request)
                                 } else {
                                     $msg = "The vehicle {$vehicle->vehicle_no} is overdue for {$type} inspection.";
                                 }
+                                 $lastInspection_id = $lastInspection->id;
                             } else {
+                                $lastInspection_id= null;
                                 $msg = "The vehicle {$vehicle->vehicle_no} is ready for {$type} inspection.";
                             }
 
                             $inspectionNotifications->push((object)[
                                 'type' => 'inspection',
-                                'id' => uniqid(),
+                                'id' => $lastInspection_id, //uniqid(),
                                 'notification_message' => $msg,
                                 'notification_status' => 'unread',
                                 'is_read' => false,
@@ -1445,8 +1447,8 @@ public function updateFcmToken(Request $request)
                     'data' => [],
                 ], 401);
             }
-        // dd($user);
             $productIds = $user->products;
+            // dd($productIds);
 
 
             if (empty($productIds) || !is_array($productIds)) {

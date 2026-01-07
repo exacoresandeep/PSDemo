@@ -36,8 +36,15 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
         ->whereHas('createdBy', function($q) use ($productID) {
             $q->whereJsonContains('products', (string)$productID);
         })
-        ->whereYear('created_at', $this->year)
-        ->whereMonth('created_at', $this->month)
+        ->where(function ($q) {
+            $q->where('status', '!=', 'Follow Up')
+            ->orWhere(function ($q2) {
+                $q2->where('status', 'Follow Up')
+                    ->whereNotNull('follow_up_date');
+            });
+        })
+        ->whereYear('updated_at', $this->year)
+        ->whereMonth('updated_at', $this->month)
         ->get();
     }
 
@@ -122,6 +129,8 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             $lead->further_requirement ?? '',
             $lead->further_volume ?? '',
             optional($lead->createdBy)->name,
+            optional($lead->updated_at)->format('Y-m-d'),
+            optional($lead->updated_at)->format('H:i:s'),
             //$lead->created_at,
         ];
     }
@@ -167,7 +176,9 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             'Ring Test Conducted',
             'Further Requirement',
             'Further Volume',
-            'Created By'
+            'Created By',
+            'Updated Date',
+            'Updated Time'
         ];
     }
 }

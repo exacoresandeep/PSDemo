@@ -634,12 +634,13 @@ class EmployeeController extends Controller
         try {
             $request->validate([
                 'employee_type_id' => 'required|integer|in:1,2,3,4',
-                'search_key' => 'nullable|string|max:255'
+                'product_id' => 'required',
+                'search_key' => 'nullable|string|max:255',
             ]);
-            $productId = ProductHelper::getSelectedProductId(); //push
+            $productId = $request->product_id; //push
             $employees = Employee::with('district:id,name')
                 ->where('employee_type_id', $request->employee_type_id)
-                 ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])//push
+                ->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productId . '"]'])//push
                 ->when($request->search_key, function ($query) use ($request) {
                     $query->where(function ($q) use ($request) {
                         $q->where('name', 'LIKE', '%' . $request->search_key . '%')
@@ -661,7 +662,6 @@ class EmployeeController extends Controller
                         'district_name' => $employee->district->name ?? null
                     ];
                 });
-
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,

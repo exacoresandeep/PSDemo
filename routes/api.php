@@ -188,7 +188,7 @@ use App\Http\Controllers\ExpenseController;
                 Route::get('/getTotalStocks', [StockController::class, 'getTotalStocks']);
             });
             Route::prefix('report')->group(function () {
-                //Sales Report
+                //Sales ReportE
                 Route::get('/sereport', [OrderController::class, 'salesExecutiveSalesReport']);
                 Route::get('/sales-executive/{employee_id}/sales-report', [OrderController::class, 'salesReportDetails']);
     
