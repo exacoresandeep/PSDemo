@@ -1665,7 +1665,8 @@ public function updateFcmToken(Request $request)
                     )
                     ->join('product_types', 'product_types.id', '=', 'products_details.type_id')
                     ->where('products_details.product_id', $productId)
-                    ->where('products_details.availability_status', 'Available');
+                    ->where('products_details.availability_status', 'Available')
+                    ->where('products_details.status', 'Active');
 
                 if (!empty($search)) {
                     $query->where('product_types.type_name', 'LIKE', '%' . $search . '%');
@@ -1699,6 +1700,7 @@ public function updateFcmToken(Request $request)
                 ->join('products_details', 'products_details.type_id', '=', 'product_types.id')
                 ->where('product_types.product_id', $productId)
                 ->where('products_details.availability_status', 'Available')
+                ->where('products_details.status', 'Active')
                 ->groupBy(
                     'product_types.product_id',
                     'product_types.id',

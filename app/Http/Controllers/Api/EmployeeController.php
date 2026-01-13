@@ -463,10 +463,13 @@ class EmployeeController extends Controller
         $designation = $request->designation;
         $employee_id = $request->employee_id;
         $district    = $request->district;
-
+        
         // Query employees
         $query = Employee::query();
-
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID(); //push
+        if ($productID){
+            $query->whereRaw("JSON_CONTAINS(products, ?)", ['["' . $productID . '"]']);
+        }
         if ($designation) {
             $query->where('employee_type_id', $designation);
         }

@@ -310,6 +310,9 @@ class TargetController extends Controller
                 //     $query->where('product_id', $productId);
                 // })
                 ->count('phone');
+
+               
+                 
     
             $aashiyanaCount = Order::where('created_by', $employeeId)
                                 ->whereYear('created_at', $year)

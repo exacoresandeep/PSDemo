@@ -1,3 +1,31 @@
+1. update-influencer-visit ---Won case
+2. dealer-visit/create     ---Direct Won on create
+3. 
+4.
+5.
+6.
+7.
+8.
+9.
+
+
+
+use App\Services\FirebasePushService;
+
+
+public function store(Request $request,FirebasePushService $fcm)
+{
+    $emp=Employee::find($request->employee_id);
+    $deviceToken=$emp->fcm_token ?? null;
+
+    if ($deviceToken) {
+        $title = 'New Activity Assigned';
+        $body = 'New Activity on ' . $request->assigned_date;
+        $fcm->sendNotification($deviceToken, $title, $body, 'employees');
+
+    }
+}
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

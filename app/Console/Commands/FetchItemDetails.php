@@ -88,6 +88,7 @@ class FetchItemDetails extends Command
                                 : null,
 			                'total_available_quantity' => 0,
                             'availability_status' => ($item['Availability Status'] ?? '') === 'Available' ? 'Available' : 'Unavailable',
+                            'status' => ($item['Status'] == "N") ? "Inactive" : "Active",
                             'stock_updated_at' => Carbon::now(),
                             'rate' => 0,
                             'updated_at' => now(),

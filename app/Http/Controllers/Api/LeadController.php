@@ -9,6 +9,7 @@ use App\Models\Lead;
 use App\Models\Order;
 use App\Models\LeadFollowUp;
 use App\Models\OrderItem;
+use App\Models\Dealer;
 use App\Models\TripRoute;
 use App\Models\ProductType;
 use App\Models\InfluencerVisit;
@@ -17,6 +18,7 @@ use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use App\Services\FirebasePushService; //push to live
 
 class LeadController extends Controller
 {
@@ -444,7 +446,7 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
         }
     }
 
-public function updateLead(Request $request, $leadId)
+public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
     {
         try {
     
@@ -579,51 +581,9 @@ public function updateLead(Request $request, $leadId)
                     'further_requirement' => $request->further_requirement ?? null,
                     'further_volume' => $request->further_volume ?? null,
                 ]);
-
-                 Lead::create([
-                        'customer_type'         => $lead->customer_type,
-                        'customer_name'         => $lead->customer_name,
-                        'phone'                 => $lead->phone,
-                        'address'               => $lead->address,
-                        'city'                  => $lead->city,
-                        'location'              => $lead->location,
-                        'district_id'           => $lead->district_id,
-                        'assigned_route_id'     => $lead->assigned_route_id,
-            
-                        'lead_chain_id'         => $lead->lead_chain_id, // same chain
-            
-                        'type_of_visit'         => $request->type_of_visit,
-                        'construction_type'     => $request->construction_type,
-                        'construction_type_name'=> $request->construction_type_name,
-                        'stage_of_construction' => $request->stage_of_construction,
-                        'lead_score'            => $request->lead_score,
-                        'lead_source'           => $request->lead_source,
-                        'source_name'           => $request->source_name,
-            
-                        'total_volume'          => $balanceVolume,
-                        'total_quantity'        => $balanceVolume,
-                        'dealer_id'             => $request->dealer_id,
-            
-                        'status'                => 'Lost',
-                        'notification_status'   => 'pending',
-            
-                        'created_by'            => Auth::id(),
-
-                        'lost_volume' => $lost['lost_volume'] ?? null,
-                        'lost_to_competitor' => $lost['lost_to_competitor'] ?? null,
-                        'competitor_name' => $lost['competitor_name'] ?? null,
-                        'reason_for_lost' => $lost['reason_for_lost'] ?? null,
-                        'previous_brand' => $request->previous_brand ?? null,
-                        'brand_name' => $request->brand_name ?? null,
-                        'previous_brand_quantity' => $request->previous_brand_quantity ?? null,
-                        'customer_meet' => $request->customer_meet ?? null,
-                        'ring_test' => $request->ring_test ?? null,
-                        'further_requirement' => $request->further_requirement ?? null,
-                        'further_volume' => $request->further_volume ?? null,
-                    ]);
             }
             $oldStatus = $lead->status;
-            // $lead->update($leadData);
+            $lead->update($leadData);
     
              $order = null;
 
@@ -919,6 +879,23 @@ public function updateLead(Request $request, $leadId)
             
                         'created_by'        => Auth::id(),
                     ]);
+                }
+
+                // Send FCM notification to assigned Dealer
+                try {
+                    
+                    if( $orderDetails['dealer_id']!=null) {
+                        $dealer=Dealer::find($orderDetails['dealer_id']);
+                        $deviceToken=$dealer->fcm_token ?? null;
+
+                        if ($deviceToken) {         
+                            $title = 'Prabhus Steels Sales App Notification';
+                            $body = 'Lead ' . $lead->customer_name . '  has been marked as ' . $request->status ;
+                            $x=$fcm->sendNotification($deviceToken, $title, $body, 'dealers');
+                        }
+                    }
+                } catch (\Exception $e) {
+
                 }
             }
 
@@ -1347,7 +1324,7 @@ public function updateLead(Request $request, $leadId)
         }
     }
 
-    public function updateInfluencerVisit(Request $request, $visitId)
+    public function updateInfluencerVisit(Request $request, $visitId, FirebasePushService $fcm)
     {
         try {
             $validated = $request->validate([
@@ -1408,6 +1385,7 @@ public function updateLead(Request $request, $leadId)
 
                 if (!empty($request->order_details)) {
                     $details = $request->order_details;
+                    
 
                     $order = Order::create([
                         'influencer_visit_id' => $visit->id,
@@ -1433,6 +1411,22 @@ public function updateLead(Request $request, $leadId)
 
                     foreach ($details['order_items'] as $item) {
                         $order->orderItems()->create($item);
+                    }
+
+                    
+                    // Send FCM notification to assigned Dealer
+                    try {
+                        if($details['dealer_id']!=null) {
+                            $dealer=Dealer::find($details['dealer_id']);
+                            $deviceToken=$dealer->fcm_token ?? null;
+
+                            if ($deviceToken) {
+                                $title = 'Prabhus Steels Sales App Notification';
+                                $body = 'Influencer visit won successfully ' . now()->format('d/m/Y');
+                                $fcm->sendNotification($deviceToken, $title, $body, 'dealers');
+                            }
+                        }
+                        } catch (\Exception $e) {
                     }
                 }
             }
@@ -1499,6 +1493,8 @@ public function updateLead(Request $request, $leadId)
             }
 
             DB::commit();
+
+
 
             return response()->json([
                 'success' => true,

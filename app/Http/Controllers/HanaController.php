@@ -312,12 +312,13 @@ class HanaController extends Controller
     {
         $request->validate([
             'invoice_number' => 'required|string',
-            'invoice_date'   => 'required|date',
+            'invoice_date'   => 'required',
         ]);
 
         $invoiceNumber = $request->invoice_number;
-        $invoiceDate   = Carbon::parse($request->invoice_date)->format('Ymd');
-
+        //$invoiceDate   = Carbon::parse($request->invoice_date)->format('Ymd');
+        $invoiceDate = Carbon::createFromFormat('d/m/Y', $request->invoice_date)
+                    ->format('Ymd');
         try {
             $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
 

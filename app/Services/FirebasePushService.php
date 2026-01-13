@@ -60,7 +60,7 @@ class FirebasePushService
 
 	if (!empty($data) && is_array($data) && array_keys($data) !== range(0, count($data) - 1)) {
 	//	$message['message']['data'] = $data;
-//		$message['message']['data'] = array_map('strval', $data);
+    //	$message['message']['data'] = array_map('strval', $data);
     }
 
         $url = "https://fcm.googleapis.com/v1/projects/{$this->projectId}/messages:send";

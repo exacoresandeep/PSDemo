@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Excel as ExcelFormat;
 use Illuminate\Support\Collection;
+use App\Services\FirebasePushService; //push to live
 
 class AccountsController extends Controller
 {
@@ -183,12 +184,38 @@ class AccountsController extends Controller
                 //     2 => '<span class="badge bg-danger">Rejected</span>',
                 //     default => '<span class="badge bg-warning">Pending</span>'
                 // };
-                if ($order->order_approved == 1) {
-                    return '<span class="badge bg-success">Approved</span>';
-                } elseif ($order->order_approved == 2) {
-                    return '<span class="badge bg-danger">Rejected</span>';
+               switch ($order->status) {
+
+                    case 'Pending':
+                        return '<span class="badge bg-warning">Pending</span>';
+
+                    case 'Accepted':
+                        return '<span class="badge bg-primary">Accepted</span>';
+
+                    case 'Approved':
+                        return '<span class="badge bg-success">Approved</span>';
+
+                    case 'Rejected':
+                        return '<span class="badge bg-danger">Rejected</span>';
+
+                    case 'Dispatched':
+                        return '<span class="badge bg-info">Dispatched</span>';
+
+                    case 'In Transit':
+                        return '<span class="badge bg-secondary">In Transit</span>';
+
+                    case 'Delivered':
+                        return '<span class="badge bg-success">Delivered</span>';
+
+                    case 'Accounts Approved':
+                        return '<span class="badge bg-success">Accounts Approved</span>';
+
+                    case 'Accounts Rejected':
+                        return '<span class="badge bg-danger">Accounts Rejected</span>';
+
+                    default:
+                        return '<span class="badge bg-dark">Unknown</span>';
                 }
-                return '<span class="badge bg-warning">Pending</span>';
             })
             ->addColumn('action', fn($order) =>
                 '<button class="btn btn-info btn-sm view-order" data-id="' . $order->id . '" title="View">
@@ -200,7 +227,7 @@ class AccountsController extends Controller
     }
 
 
-    public function approveOrder(Request $request, $id)
+    public function approveOrder(Request $request, $id, FirebasePushService $fcm)
     {
         $order = Order::findOrFail($id);
 
@@ -329,6 +356,26 @@ class AccountsController extends Controller
             $responseBody = trim($response->body(), "\" \n\r\t");
 
             if ($response->successful() && strtolower($responseBody) === 'success') {
+
+                // Send FCM notification to assigned Dealer
+                try {
+                    if ($order->dealer_flag_order == '0') {
+                        $user = Employee::find($order->created_by);
+                        $deviceToken=$user->fcm_token ?? null;
+                        $sender='employees';
+                    } else {
+                        $user = Dealer::find($order->created_by_dealer);
+                        $deviceToken=$user->fcm_token ?? null;
+                        $sender='dealers';
+                    }
+                    if ($deviceToken) {
+                        $title = 'Order No. OD00' . $order->id . ' approved successfully';
+                        $body = 'Order No. OD00' . $order->id . ' approved successfully' . now()->format('d/m/Y');
+                        $fcm->sendNotification($deviceToken, $title, $body,  $sender);
+                    }
+                } catch (\Exception $e) {
+                }
+
                 // Only save if SAP push was successful
                 $order->order_approved = '1';
                 $order->status = 'Accounts Approved';
@@ -355,7 +402,7 @@ class AccountsController extends Controller
 
     
 
-    public function rejectOrder(Request $request, $id)
+    public function rejectOrder(Request $request, $id, FirebasePushService $fcm)
     {
         // dd($request->all());
         $order = Order::findOrFail($id);
@@ -365,6 +412,26 @@ class AccountsController extends Controller
         $order->reason_for_rejection = $request->reason_for_rejection;
         $order->rejected_time = now();
         $order->save();
+
+        // Send FCM notification to assigned Dealer
+        try {
+            if ($order->dealer_flag_order == '0') {
+                $user = Employee::find($order->created_by);
+                $deviceToken=$user->fcm_token ?? null;
+                $sender='employees';
+            } else {
+                $user = Dealer::find($order->created_by_dealer);
+                $deviceToken=$user->fcm_token ?? null;
+                $sender='dealers';
+            }
+            if ($deviceToken) {
+                $title = 'Order No. OD00' . $order->id . ' approved successfully';
+                $body = 'Order No. OD00' . $order->id . ' approved successfully' . now()->format('d/m/Y');
+                $fcm->sendNotification($deviceToken, $title, $body,  $sender);
+            }
+        } catch (\Exception $e) {
+        }
+
 
         return response()->json(['success' => true, 'message' => 'Order rejected successfully']);
     }

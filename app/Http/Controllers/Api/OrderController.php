@@ -29,7 +29,7 @@ use Illuminate\Support\Facades\Auth;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Api\AuthController;
-
+use App\Services\FirebasePushService; //push to live
 
 class OrderController extends Controller
 {
@@ -3105,7 +3105,7 @@ class OrderController extends Controller
             ]
         ]);
     }
-    public function createDealerVisit(Request $request)
+    public function createDealerVisit(Request $request, FirebasePushService $fcm)
     {
 
         DB::beginTransaction();
@@ -3262,6 +3262,23 @@ class OrderController extends Controller
                         $order->orderItems()->create($item);
                     }
                 }
+
+                // Send FCM notification to assigned Dealer
+                try {
+                    if($validatedData['dealer_id']!=null) {
+                        $dealer=Dealer::find($validatedData['dealer_id']);
+                        $deviceToken=$dealer->fcm_token ?? null;
+
+                        if ($deviceToken) {
+                            $title = 'Prabhus Steels Sales App Notification';
+                            $body = 'Dealer visit won successfully ' . now()->format('d/m/Y');
+                            $fcm->sendNotification($deviceToken, $title, $body, 'dealers');
+                        }
+                    }
+                } catch (\Exception $e) {
+                }
+                
+
             }
 
             DB::commit();
