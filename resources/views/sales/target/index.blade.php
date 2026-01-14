@@ -183,19 +183,19 @@
         $('#employee_id').change(function () {
             let employeeId = $(this).val();
             let employeeTypeId = $('#employee_type').val();
-            $('#customer_visit').val('').prop('readonly', false); // Reset field
+            // $('#customer_visit').val('').prop('readonly', false); // Reset field
 
-            if (employeeId) {
-                $.get("{{ url('sales/targets/getVisitCount') }}/" + employeeTypeId + "/employee/" + employeeId, function (response) {
-                    if (response.visit_count > 0) {
-                        $('#customer_visit').val(response.visit_count).prop('readonly', true);
-                    } else {
-                        $('#customer_visit').val('').prop('readonly', false);
-                    }
-                }).fail(function () {
-                    Swal.fire('Error', 'Could not load visit count.', 'error');
-                });
-            }
+            // if (employeeId) {
+            //     $.get("{{ url('sales/targets/getVisitCount') }}/" + employeeTypeId + "/employee/" + employeeId, function (response) {
+            //         if (response.visit_count > 0) {
+            //             $('#customer_visit').val(response.visit_count).prop('readonly', true);
+            //         } else {
+            //             $('#customer_visit').val('').prop('readonly', false);
+            //         }
+            //     }).fail(function () {
+            //         Swal.fire('Error', 'Could not load visit count.', 'error');
+            //     });
+            // }
         });
         $('.target-filter select').change(function () {
             table.ajax.reload();
@@ -260,15 +260,15 @@
 
                         setTimeout(() => {
                             $('#employee_id').val(response.target.employee_id);
-                            $.get("{{ url('sales/targets/getVisitCount') }}/" + employeeTypeId + "/employee/" + employeeId, function (response) {
-                                if (visitResponse.visit_count > 0) {
-                                    $('#customer_visit').val(visitResponse.visit_count).prop('readonly', true);
-                                } else {
-                                    $('#customer_visit').val(response.target.customer_visit).prop('readonly', false);
-                                }
-                            }).fail(function () {
-                                Swal.fire('Error', 'Could not load visit count.', 'error');
-                            });
+                            // $.get("{{ url('sales/targets/getVisitCount') }}/" + employeeTypeId + "/employee/" + employeeId, function (response) {
+                            //     if (visitResponse.visit_count > 0) {
+                            //         $('#customer_visit').val(visitResponse.visit_count).prop('readonly', true);
+                            //     } else {
+                            //         $('#customer_visit').val(response.target.customer_visit).prop('readonly', false);
+                            //     }
+                            // }).fail(function () {
+                            //     Swal.fire('Error', 'Could not load visit count.', 'error');
+                            // });
 
                         }, 500);
 

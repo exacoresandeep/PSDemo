@@ -641,7 +641,7 @@ class ActivityController extends Controller
     
     	if ($deviceToken) {
 
-            $title = 'New Activity Assigned';
+            $title = 'Prabhus Steels Sales App Notification';
 
             $body = 'New Activity on ' . $request->assigned_date;
 

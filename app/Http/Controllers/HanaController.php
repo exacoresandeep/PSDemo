@@ -312,12 +312,12 @@ class HanaController extends Controller
     {
         $request->validate([
             'invoice_number' => 'required|string',
-            'invoice_date'   => 'required|date',
+            'invoice_date'   => 'required',
         ]);
 
         $invoiceNumber = $request->invoice_number;
-        $invoiceDate   = Carbon::parse($request->invoice_date)->format('Ymd');
-
+        $invoiceDate = Carbon::createFromFormat('d/m/Y', $request->invoice_date)
+                    ->format('Ymd');
         try {
             $conn = odbc_connect('HANAODBC', 'INDUS', 'Indus@123');
 
@@ -358,6 +358,19 @@ class HanaController extends Controller
             }
 
             $first = $rows[0];
+            $branches = [];
+
+            foreach ($rows as $row) {
+                $branches[] = implode(', ', [
+                    $row['Loc Street'] ?? '',
+                    $row['Loc Block'] ?? '',
+                    $row['Loc Building'] ?? '',
+                    $row['Loc City'] ?? '',
+                    $row['Loc State Name'] ?? '',
+                    $row['Loc Zipcode'] ?? '',
+                    
+                ]);
+            }
 
             $invoice = [
                 'company_name'            => $first['Company name'], //
@@ -368,23 +381,7 @@ class HanaController extends Controller
                 'company_state_code'      => $first['LocStaGSTN'], //
                 'company_email'      => $first['Company Email'], //
                 'company_ph'      => $first['Company Ph'], //
-                "branch1" => [
-                    "CompName" => $first["CompName"],
-                    "Loc Street"   => $first["Loc Street"],
-                    "Loc Block"   => $first["Loc Block"],
-                    "Loc Building"   => $first["Loc Building"],
-                    "Loc City"   => $first["Loc City"],
-                    "Loc Zipcode"   => $first["Loc Zipcode"],
-                    "Loc PAN No"   => $first["Loc PAN No"],
-                    "Loc CIN No"   => $first["Loc CIN No"],
-                    "Loc Country Name"   => $first["Loc Country Name"],
-                    "Loc State Name"   => $first["Loc State Name"],
-                    "LocGSTN"   => $first["LocGSTN"],
-                    "LocStatCod"   => $first["LocStatCod"],
-                    "LocStaGSTN"   => $first["LocStaGSTN"],
-                    "LocGSTType"   => $first["LocGSTType"],
-                ],
-
+                "branches" => $branches,
                 'invoice_number'          => $first['DocNum'], //
                 'invoice_date'            => Carbon::parse($first['DocDate'])->format('d-m-Y'), //
 
@@ -418,8 +415,12 @@ class HanaController extends Controller
                 
                 'doc_total'        => (float) $first['Doc Total'], //
                 'round_off'        => (float) $first['RoundDif'], //
-                
-                
+                "Freight" => $first['Freight'],
+                "Branch" => $first['Branch'],
+                "IFSC" => $first['IFSC'],
+                "AccNo" => $first['AccNo'],
+                "BankName" => $first['BankName'],
+                "BankAcc" => $first['BankAcc'],
             ];
 
    
@@ -430,6 +431,7 @@ class HanaController extends Controller
                     'item_code'   => $row['ItemCode'],
                     'description' => $row['Dscription'],
                     'hsn_code'    => $row['ChapterID'],
+                    'U_AQty'    => $row['U_AQty'],
                     'quantity'    => (float) $row['Quantity'],
                     'uom'         => $row['UomCode'],
                     'unit_price'  => (float) $row['INRPrice'],
@@ -453,7 +455,8 @@ class HanaController extends Controller
                 'message'    => 'Invoice layout fetched successfully',
                 'data'       => [
                     'invoice' => $invoice,
-                    'items'   => $items
+                    'items'   => $items,
+                    "result" => $rows
                 ]
             ]);
 

@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
 	   \App\Console\Commands\FetchOutstandingNew::class,
 	//    \App\Console\Commands\LogHourlyPing::class,
 	    \App\Console\Commands\FetchInvoiceLayouts::class,
+		\App\Console\Commands\PushNotificationCron::class,
 	];
 
 	protected function schedule(\Illuminate\Console\Scheduling\Schedule $schedule)
@@ -35,6 +36,8 @@ class Kernel extends ConsoleKernel
 		$schedule->command('app:fetch-item-details')->hourly();
 		// $schedule->command('log:hourly-ping')->everyFiveMinutes();
 		$schedule->command('app:fetch-invoice-layouts')->hourly();
+		$schedule->command('app:push-notification-cron')
+                 ->dailyAt('17:00');
 	}
 
     protected function commands()

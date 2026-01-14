@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Lead;
+use App\Models\OrderItem;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -72,6 +73,10 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
         : '';
        	$quantity     = $orderItem->total_quantity ?? '';
 
+        $totalDealVolume = $this->getTotalDealVolume($lead);
+        $chainOrderedQuantity = $this->getChainOrderedQuantity($lead);
+        $bal_quantity = $totalDealVolume - $chainOrderedQuantity;
+
         // $price        = $orderItem->product_details['price'] ?? '';
         //$price = $orderItem && $orderItem->product 
         //  ? optional($orderItem->product->productTypes->first())->rate 
@@ -102,9 +107,7 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             $lead->type_of_visit,
             $lead->construction_type,
             $lead->stage_of_construction,
-            $lead->follow_up_date 
-                ? \Carbon\Carbon::parse($lead->follow_up_date)->format('Y-m-d') 
-                : 'NA',
+            $lead->follow_up_date ?? 'NA',
 
             $lead->lead_score,
             $lead->lead_source,
@@ -118,6 +121,7 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             $productName,  
             $productType,  
             $quantity,
+            $bal_quantity,
             $price,    
             $lead->status === 'Lost' ? $lead->lost_volume : '',
             $lead->status === 'Lost' ? $lead->lost_to_competitor : '',
@@ -133,6 +137,28 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             optional($lead->updated_at)->format('H:i:s'),
             //$lead->created_at,
         ];
+    }
+
+    protected function getTotalDealVolume($lead)
+    {
+        if (!$lead->lead_chain_id) return 0;
+
+        $firstLead = Lead::where('lead_chain_id', $lead->lead_chain_id)
+            ->orderBy('created_at', 'asc')
+            ->first();
+
+        return $firstLead->total_quantity ?? 0;
+    }
+
+    protected function getChainOrderedQuantity($lead)
+    {
+        if (!$lead->lead_chain_id) return 0;
+
+        return OrderItem::whereHas('order', function($q) use ($lead) {
+            $q->whereHas('lead', function($sub) use ($lead) {
+                $sub->where('lead_chain_id', $lead->lead_chain_id);
+            });
+        })->sum('total_quantity');
     }
 
     public function headings(): array
@@ -166,6 +192,7 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
             'Product',
             'Product Type',
             'Won Quantity',
+            'Balance Quantity',
             'Price',
             'Lost Volume',
             'Lost To Competitor',

@@ -14,6 +14,8 @@ use App\Models\Price;
 use App\Models\OutstandingPayment;
 use App\Models\OutstandingNew;
 use App\Models\DealerRouteAssignment;
+use App\Models\EmployeeProductSap;//push to live
+use App\Models\SapCodeMaster; //push to live
 use App\Helpers\ProductHelper;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -23,6 +25,7 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Excel as ExcelFormat;
 use Illuminate\Support\Collection;
+use App\Services\FirebasePushService; 
 
 class AccountsController extends Controller
 {
@@ -183,12 +186,38 @@ class AccountsController extends Controller
                 //     2 => '<span class="badge bg-danger">Rejected</span>',
                 //     default => '<span class="badge bg-warning">Pending</span>'
                 // };
-                if ($order->order_approved == 1) {
-                    return '<span class="badge bg-success">Approved</span>';
-                } elseif ($order->order_approved == 2) {
-                    return '<span class="badge bg-danger">Rejected</span>';
+               switch ($order->status) {
+
+                    case 'Pending':
+                        return '<span class="badge bg-warning">Pending</span>';
+
+                    case 'Accepted':
+                        return '<span class="badge bg-primary">Accepted</span>';
+
+                    case 'Approved':
+                        return '<span class="badge bg-success">Approved</span>';
+
+                    case 'Rejected':
+                        return '<span class="badge bg-danger">Rejected</span>';
+
+                    case 'Dispatched':
+                        return '<span class="badge bg-info">Dispatched</span>';
+
+                    case 'In Transit':
+                        return '<span class="badge bg-secondary">In Transit</span>';
+
+                    case 'Delivered':
+                        return '<span class="badge bg-success">Delivered</span>';
+
+                    case 'Accounts Approved':
+                        return '<span class="badge bg-success">Accounts Approved</span>';
+
+                    case 'Accounts Rejected':
+                        return '<span class="badge bg-danger">Accounts Rejected</span>';
+
+                    default:
+                        return '<span class="badge bg-dark">Unknown</span>';
                 }
-                return '<span class="badge bg-warning">Pending</span>';
             })
             ->addColumn('action', fn($order) =>
                 '<button class="btn btn-info btn-sm view-order" data-id="' . $order->id . '" title="View">
@@ -200,7 +229,7 @@ class AccountsController extends Controller
     }
 
 
-    public function approveOrder(Request $request, $id)
+    public function approveOrderNew(Request $request, $id, FirebasePushService $fcm)
     {
         $order = Order::findOrFail($id);
 
@@ -227,55 +256,10 @@ class AccountsController extends Controller
             'Net-03'         => '10',
         ];
 
-        $paymentTermId = $paymentTermMap[$request->payment_term] ?? null;
-
-        if ($paymentTermId === null) {
-            return response()->json(['success' => false, 'message' => 'Invalid payment term provided.'], 400);
-        }
-
-        $details = [];
-
-        foreach ($order->orderItems as $orderItem) {
-            foreach ($orderItem->product_details as $detail) {
-                $productType = ProductType::find($detail['product_type_id']);
-
-                if ($productType) {
-                    $details[] = [
-                        'ItemCode' => $productType->type_name,
-                        'Quantity' => round((float) $detail['quantity'], 6),
-                    'Price'    => round((float) $detail['rate'] / 1.18, 6),
-                    ];
-                }
-            }
-        }
-
-        $orderTypeName = optional($order->orderType)->name;
-        $orderTypeMap = [
-            'Retail'          => '1',
-            'Retail Project'  => '2',
-            'Project'         => '3',
-            'Own Sales'       => '4',
-        ];
-        $orderType = $orderTypeMap[$orderTypeName] ?? null;
-        // Get Employee Info
         $empId = null;
         $empName = null;
         $employee = null;
 
-        // if ($order->dealer_flag_order == '0') {
-        //     $employee = Employee::find($order->created_by);
-        // } else {
-        //     $dealer = $order->created_by_dealer;
-        //     $assignedRoute = AssignRoute::where('id', $dealer->assigned_route_id)->first();
-
-        //     if ($assignedRoute) {
-        //         if (is_null($assignedRoute->parent_id)) {
-        //             $employee = Employee::find($assignedRoute->employee_id);
-        //         } else {
-        //             $employee = Employee::find($assignedRoute->parent_id); // ASO
-        //         }
-        //     }
-        // }
         if ($order->dealer_flag_order == '0') {
             $employee = Employee::find($order->created_by);
         } else {
@@ -302,6 +286,55 @@ class AccountsController extends Controller
             $empName = $employee->name;
         }
 
+        //push to live
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+        $sap_id= Product::where("id",$productID)->value("sap_id"); 
+        $emp_sap_id = -1;
+
+        $emp_sap_code = EmployeeProductSap::where('employee_id', $employee->id)
+            ->where('product_id', $productID)
+            ->value('sap_code');
+
+        if ($emp_sap_code) {
+            $emp_sap_id = SapCodeMaster::where('sap_code', $emp_sap_code)
+                ->value('sap_id') ?? -1;
+        }
+        //push to live ends
+        $paymentTermId = $paymentTermMap[$request->payment_term] ?? null;
+
+        if ($paymentTermId === null) {
+            return response()->json(['success' => false, 'message' => 'Invalid payment term provided.'], 400);
+        }
+
+        $details = [];
+
+        foreach ($order->orderItems as $orderItem) {
+            foreach ($orderItem->product_details as $detail) {
+                $productType = ProductType::find($detail['product_type_id']);
+
+                if ($productType) {
+                    $details[] = [
+                        'ItemCode' => $productType->type_name,
+                        'SapCode' => "$emp_sap_id", //push to live
+                        'Quantity' => round((float) $detail['quantity'], 6),
+                        'Price'    => round((float) $detail['rate'] / 1.18, 6),
+                    ];
+                }
+            }
+        }
+
+        $orderTypeName = optional($order->orderType)->name;
+        $orderTypeMap = [
+            'Retail'          => '1',
+            'Retail Project'  => '2',
+            'Project'         => '3',
+            'Own Sales'       => '4',
+        ];
+        $orderType = $orderTypeMap[$orderTypeName] ?? null;
+        // Get Employee Info
+        
+        
+        
         $sapPayload = [
             'CardCode'      => $order->dealer->dealer_code,
             'PaymentTerm'   => $paymentTermId,
@@ -310,25 +343,51 @@ class AccountsController extends Controller
             'SO_No'      => $order->id,
             'SO_Date'       => $order->created_at->format('d-m-Y'),
             'Delivery_Date' => optional($order->delivery_date)->format('d-m-Y') ?? now()->addDays(7)->format('d-m-Y'),
-            'BPL_ID'        => '1',
+            'BPL_ID'        => "$sap_id",  //1,3,5,6  //push to live
             'Series'        => '1032',
             'OrderType'     => $orderType,
             'EmpID'         => $empId,
             'EmpName'        => $empName,
             'Scheme'        => $order->scheme,
             'Details'       => $details,
+
+            //push to live
+            "SapCode"   => "$emp_sap_id", //integer //push to live
+            "Document_ApprovalRequests" => [], //static empty array 
+            "DocType" => "dDocument_Items", //static item.      
+            "DocDueDate" => optional($order->delivery_date)->format('d-m-Y') ?? now()->addDays(7)->format('d-m-Y'),
         ];
 
-        
+        dd($sapPayload); //push to live
         try {
             // Log payload for debugging
         $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
             ])->post('http://192.168.0.3:8081/api/SalesOrderDetails', $sapPayload);
-
+            //  ])->post('http://192.168.0.3:3958/Exacore/CreateOrder', $sapPayload);
             $responseBody = trim($response->body(), "\" \n\r\t");
 
             if ($response->successful() && strtolower($responseBody) === 'success') {
+
+                // Send FCM notification to assigned Dealer
+                try {
+                    if ($order->dealer_flag_order == '0') {
+                        $user = Employee::find($order->created_by);
+                        $deviceToken=$user->fcm_token ?? null;
+                        $sender='employees';
+                    } else {
+                        $user = Dealer::find($order->created_by_dealer);
+                        $deviceToken=$user->fcm_token ?? null;
+                        $sender='dealers';
+                    }
+                    if ($deviceToken) {
+                        $title = 'Order No. OD00' . $order->id . ' approved successfully';
+                        $body = 'Order No. OD00' . $order->id . ' approved successfully' . now()->format('d/m/Y');
+                        $fcm->sendNotification($deviceToken, $title, $body,  $sender);
+                    }
+                } catch (\Exception $e) {
+                }
+
                 // Only save if SAP push was successful
                 $order->order_approved = '1';
                 $order->status = 'Accounts Approved';
@@ -355,7 +414,7 @@ class AccountsController extends Controller
 
     
 
-    public function rejectOrder(Request $request, $id)
+    public function rejectOrder(Request $request, $id, FirebasePushService $fcm)
     {
         // dd($request->all());
         $order = Order::findOrFail($id);
@@ -365,6 +424,26 @@ class AccountsController extends Controller
         $order->reason_for_rejection = $request->reason_for_rejection;
         $order->rejected_time = now();
         $order->save();
+
+        // Send FCM notification to assigned Dealer
+        try {
+            if ($order->dealer_flag_order == '0') {
+                $user = Employee::find($order->created_by);
+                $deviceToken=$user->fcm_token ?? null;
+                $sender='employees';
+            } else {
+                $user = Dealer::find($order->created_by_dealer);
+                $deviceToken=$user->fcm_token ?? null;
+                $sender='dealers';
+            }
+            if ($deviceToken) {
+                $title = 'Order No. OD00' . $order->id . ' approved successfully';
+                $body = 'Order No. OD00' . $order->id . ' approved successfully' . now()->format('d/m/Y');
+                $fcm->sendNotification($deviceToken, $title, $body,  $sender);
+            }
+        } catch (\Exception $e) {
+        }
+
 
         return response()->json(['success' => true, 'message' => 'Order rejected successfully']);
     }
