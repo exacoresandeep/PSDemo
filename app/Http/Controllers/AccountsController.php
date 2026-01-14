@@ -14,6 +14,8 @@ use App\Models\Price;
 use App\Models\OutstandingPayment;
 use App\Models\OutstandingNew;
 use App\Models\DealerRouteAssignment;
+use App\Models\EmployeeProductSap;//push to live
+use App\Models\SapCodeMaster; //push to live
 use App\Helpers\ProductHelper;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -23,7 +25,7 @@ use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Excel as ExcelFormat;
 use Illuminate\Support\Collection;
-use App\Services\FirebasePushService; //push to live
+use App\Services\FirebasePushService; 
 
 class AccountsController extends Controller
 {
@@ -227,7 +229,7 @@ class AccountsController extends Controller
     }
 
 
-    public function approveOrder(Request $request, $id, FirebasePushService $fcm)
+    public function approveOrderNew(Request $request, $id, FirebasePushService $fcm)
     {
         $order = Order::findOrFail($id);
 
@@ -254,55 +256,10 @@ class AccountsController extends Controller
             'Net-03'         => '10',
         ];
 
-        $paymentTermId = $paymentTermMap[$request->payment_term] ?? null;
-
-        if ($paymentTermId === null) {
-            return response()->json(['success' => false, 'message' => 'Invalid payment term provided.'], 400);
-        }
-
-        $details = [];
-
-        foreach ($order->orderItems as $orderItem) {
-            foreach ($orderItem->product_details as $detail) {
-                $productType = ProductType::find($detail['product_type_id']);
-
-                if ($productType) {
-                    $details[] = [
-                        'ItemCode' => $productType->type_name,
-                        'Quantity' => round((float) $detail['quantity'], 6),
-                    'Price'    => round((float) $detail['rate'] / 1.18, 6),
-                    ];
-                }
-            }
-        }
-
-        $orderTypeName = optional($order->orderType)->name;
-        $orderTypeMap = [
-            'Retail'          => '1',
-            'Retail Project'  => '2',
-            'Project'         => '3',
-            'Own Sales'       => '4',
-        ];
-        $orderType = $orderTypeMap[$orderTypeName] ?? null;
-        // Get Employee Info
         $empId = null;
         $empName = null;
         $employee = null;
 
-        // if ($order->dealer_flag_order == '0') {
-        //     $employee = Employee::find($order->created_by);
-        // } else {
-        //     $dealer = $order->created_by_dealer;
-        //     $assignedRoute = AssignRoute::where('id', $dealer->assigned_route_id)->first();
-
-        //     if ($assignedRoute) {
-        //         if (is_null($assignedRoute->parent_id)) {
-        //             $employee = Employee::find($assignedRoute->employee_id);
-        //         } else {
-        //             $employee = Employee::find($assignedRoute->parent_id); // ASO
-        //         }
-        //     }
-        // }
         if ($order->dealer_flag_order == '0') {
             $employee = Employee::find($order->created_by);
         } else {
@@ -329,6 +286,55 @@ class AccountsController extends Controller
             $empName = $employee->name;
         }
 
+        //push to live
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+        $sap_id= Product::where("id",$productID)->value("sap_id"); 
+        $emp_sap_id = -1;
+
+        $emp_sap_code = EmployeeProductSap::where('employee_id', $employee->id)
+            ->where('product_id', $productID)
+            ->value('sap_code');
+
+        if ($emp_sap_code) {
+            $emp_sap_id = SapCodeMaster::where('sap_code', $emp_sap_code)
+                ->value('sap_id') ?? -1;
+        }
+        //push to live ends
+        $paymentTermId = $paymentTermMap[$request->payment_term] ?? null;
+
+        if ($paymentTermId === null) {
+            return response()->json(['success' => false, 'message' => 'Invalid payment term provided.'], 400);
+        }
+
+        $details = [];
+
+        foreach ($order->orderItems as $orderItem) {
+            foreach ($orderItem->product_details as $detail) {
+                $productType = ProductType::find($detail['product_type_id']);
+
+                if ($productType) {
+                    $details[] = [
+                        'ItemCode' => $productType->type_name,
+                        'SapCode' => "$emp_sap_id", //push to live
+                        'Quantity' => round((float) $detail['quantity'], 6),
+                        'Price'    => round((float) $detail['rate'] / 1.18, 6),
+                    ];
+                }
+            }
+        }
+
+        $orderTypeName = optional($order->orderType)->name;
+        $orderTypeMap = [
+            'Retail'          => '1',
+            'Retail Project'  => '2',
+            'Project'         => '3',
+            'Own Sales'       => '4',
+        ];
+        $orderType = $orderTypeMap[$orderTypeName] ?? null;
+        // Get Employee Info
+        
+        
+        
         $sapPayload = [
             'CardCode'      => $order->dealer->dealer_code,
             'PaymentTerm'   => $paymentTermId,
@@ -337,22 +343,28 @@ class AccountsController extends Controller
             'SO_No'      => $order->id,
             'SO_Date'       => $order->created_at->format('d-m-Y'),
             'Delivery_Date' => optional($order->delivery_date)->format('d-m-Y') ?? now()->addDays(7)->format('d-m-Y'),
-            'BPL_ID'        => '1',
+            'BPL_ID'        => "$sap_id",  //1,3,5,6  //push to live
             'Series'        => '1032',
             'OrderType'     => $orderType,
             'EmpID'         => $empId,
             'EmpName'        => $empName,
             'Scheme'        => $order->scheme,
             'Details'       => $details,
+
+            //push to live
+            "SapCode"   => "$emp_sap_id", //integer //push to live
+            "Document_ApprovalRequests" => [], //static empty array 
+            "DocType" => "dDocument_Items", //static item.      
+            "DocDueDate" => optional($order->delivery_date)->format('d-m-Y') ?? now()->addDays(7)->format('d-m-Y'),
         ];
 
-        
+        dd($sapPayload); //push to live
         try {
             // Log payload for debugging
         $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
             ])->post('http://192.168.0.3:8081/api/SalesOrderDetails', $sapPayload);
-
+            //  ])->post('http://192.168.0.3:3958/Exacore/CreateOrder', $sapPayload);
             $responseBody = trim($response->body(), "\" \n\r\t");
 
             if ($response->successful() && strtolower($responseBody) === 'success') {
