@@ -268,7 +268,8 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                 'source_name' => $lead->source_name,
                 'total_volume' => (float) $initialTotalVolume,
                 'total_quantity' => (float) $lead->total_quantity,
-                'current_deal_volume' => (float) $lead->total_deal_volume - $wonVolume - $lostVolume,
+		'current_deal_volume' => (float) $initialTotalVolume - $wonVolume - $lostVolume,
+		//'current_deal_volume' => (float) $lead->total_deal_volume - $wonVolume - $lostVolume,
                 // 'current_deal_volume' => (float) $lead->current_deal_volume,
                 'won_volume' => (float) $wonVolume,
                 'lost_v' => (float) $lostVolume,
@@ -823,7 +824,14 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
               
                 $balanceVolume = $totalDealVolume - $handledVolume;
             
-            
+            $f_date = $request->status == 'Won'
+    ? now()->format('Y-m-d')
+    : $request->follow_up_date;
+		if($request->status=='Lost'){
+                        $f_date = $request->status == 'Lost'
+                            ? now()->format('Y-m-d')
+                            : $request->follow_up_date;
+                    }
                 if ($balanceVolume > 0) {
             
                     Lead::create([
@@ -845,7 +853,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                         'lead_score'            => $request->lead_score,
                         'lead_source'           => $request->lead_source,
                         'source_name'           => $request->source_name,
-            
+            'follow_up_date'        => $f_date,
                         // remaining volume
                         'total_volume'          => $balanceVolume,
                         'total_quantity'        => $balanceVolume,
