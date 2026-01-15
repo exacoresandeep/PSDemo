@@ -1091,7 +1091,7 @@ class LeadController extends Controller
             // $visit->update(['balance_deal_volume' => $balance]);
 
 
-            if ($balance <= 0) {
+          if ($balance <= 0 || in_array($visit->status, ['Lost', 'Won'], true)) {
                 $newVisit = InfluencerVisit::create([
                     'influencer_name'     => $visit->influencer_name,
                     'phone'               => $visit->phone,
@@ -1252,7 +1252,7 @@ class LeadController extends Controller
             $rootChainId = $visit->chain_id ?? $visit->id;
 
             // Create next follow-up visit when there is remaining balance
-            if (in_array($request->status, ['Won', 'Lost']) && ($balance > 0 || empty($visit))) {
+            if (in_array($request->status, ['Won', 'Lost']) && $balance > 0) {
                 InfluencerVisit::create([
                     'influencer_name'   => $visit->influencer_name,
                     'phone'             => $visit->phone,
