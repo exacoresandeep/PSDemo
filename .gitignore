@@ -7,11 +7,9 @@
 /storage/pail
 /vendor
 /.env
-<<<<<<< Updated upstream
+
 .htaccess
-=======
-/.htaccess
->>>>>>> Stashed changes
+
 .env.backup
 .env.production
 .phpactor.json
