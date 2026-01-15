@@ -24,3 +24,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+!/storage
+!/storage/app
+!/storage/app/firebase
+!/storage/app/firebase/ps-steel-ae50c-firebase-adminsdk-fbsvc-ad4b6cd8a0.json
