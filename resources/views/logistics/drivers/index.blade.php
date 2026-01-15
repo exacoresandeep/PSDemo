@@ -20,7 +20,7 @@
     </div>
     <div class="listing-sec">
         
-        <table class="table table-bordered table-responsive table-striped w-100" id="driversTable">
+        <table class="table table-bordered table-striped w-100" id="driversTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>

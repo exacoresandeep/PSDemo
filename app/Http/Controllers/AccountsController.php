@@ -308,6 +308,7 @@ class AccountsController extends Controller
 
         $details = [];
 
+        dd($order->orderItems);
         foreach ($order->orderItems as $orderItem) {
             foreach ($orderItem->product_details as $detail) {
                 $productType = ProductType::find($detail['product_type_id']);
@@ -317,7 +318,7 @@ class AccountsController extends Controller
                         'ItemCode' => $productType->type_name,
                         'SapCode' => "$emp_sap_id", //push to live
                         'Quantity' => round((float) $detail['quantity'], 6),
-                        'Price'    => round((float) $detail['rate'] / 1.18, 6),
+                        'UnitPrice'    => round((float) $detail['rate'] / 1.18, 6),
                     ];
                 }
             }
@@ -341,8 +342,8 @@ class AccountsController extends Controller
             'BillTo'        => $order->dealer->dealer_name,
             'ShipTo'        => $order->dealer->dealer_name,
             'SO_No'      => $order->id,
-            'SO_Date'       => $order->created_at->format('d-m-Y'),
-            'Delivery_Date' => optional($order->delivery_date)->format('d-m-Y') ?? now()->addDays(7)->format('d-m-Y'),
+            'SO_Date'       => $order->created_at->format('Y-m-d'),
+            'Delivery_Date' => optional($order->delivery_date)->format('Y-m-d') ?? now()->addDays(7)->format('Y-m-d'),
             'BPL_ID'        => "$sap_id",  //1,3,5,6  //push to live
             'Series'        => '1032',
             'OrderType'     => $orderType,
@@ -355,7 +356,7 @@ class AccountsController extends Controller
             "SapCode"   => "$emp_sap_id", //integer //push to live
             "Document_ApprovalRequests" => [], //static empty array 
             "DocType" => "dDocument_Items", //static item.      
-            "DocDueDate" => optional($order->delivery_date)->format('d-m-Y') ?? now()->addDays(7)->format('d-m-Y'),
+            "DocDueDate" => optional($order->delivery_date)->format('Y-m-d') ?? now()->addDays(7)->format('Y-m-d'),
         ];
 
         dd($sapPayload); //push to live

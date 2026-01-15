@@ -308,6 +308,27 @@ class HanaController extends Controller
     //         ], 500);
     //     }
     // }
+    private function amountInWordsINR($amount)
+    {
+        if (!class_exists(\NumberFormatter::class)) {
+            return '';
+        }
+
+        $formatter = new \NumberFormatter('en_IN', \NumberFormatter::SPELLOUT);
+
+        $amount = round($amount, 2);
+
+        $rupees = floor($amount);
+        $paise  = round(($amount - $rupees) * 100);
+
+        $words = ucfirst($formatter->format($rupees)) . ' rupees';
+
+        if ($paise > 0) {
+            $words .= ' and ' . $formatter->format($paise) . ' paise';
+        }
+
+        return $words . ' only';
+    }
     public function fetchInvoiceLayout(Request $request)
     {
         $request->validate([
@@ -360,6 +381,11 @@ class HanaController extends Controller
             $first = $rows[0];
             $branches = [];
 
+            $cgstSum = 0;
+            $sgstSum = 0;
+            $igstSum = 0;
+            $tcsSum  = 0;
+            $totalQty = 0;
             foreach ($rows as $row) {
                 $branches[] = implode(', ', [
                     $row['Loc Street'] ?? '',
@@ -370,7 +396,35 @@ class HanaController extends Controller
                     $row['Loc Zipcode'] ?? '',
                     
                 ]);
+
+                $cgstSum += (float) $row['CGSTAmount'];
+                $sgstSum += (float) $row['SGSTAmount'];
+                $igstSum += (float) $row['IGSTAmount'];
+                $tcsSum  += (float) $row['TCSAmount'];
+                $totalQty += (float) $row['U_AQty'];
             }
+            $cgstFreight = (float) $first['CGSTFreightAmt'];
+            $sgstFreight = (float) $first['SGSTFreightAmt'];
+            $igstFreight = (float) $first['IGSTFreightAmt'];
+            $tcsFreight  = (float) $first['TCSFreightAmt'];
+
+            $cgst = ($cgstSum / 4) + $cgstFreight;
+            $sgst = ($sgstSum / 4) + $sgstFreight;
+            $igst = ($igstSum / 4) + $igstFreight;
+
+            $tcsAmount = $tcsSum - $tcsFreight;
+            $docTotal = (float) $first['Doc Total'];
+            $wtSum    = (float) $first['WTSum'];
+
+            $gross = $docTotal + $wtSum;
+            $roundedGross = round($gross, 2);
+
+            $roundDiff = $gross - $roundedGross;
+            $taxInvoice = $gross - $roundDiff;
+            $payable = $docTotal;
+
+
+
 
             $invoice = [
                 'company_name'            => $first['Company name'], //
@@ -415,12 +469,30 @@ class HanaController extends Controller
                 
                 'doc_total'        => (float) $first['Doc Total'], //
                 'round_off'        => (float) $first['RoundDif'], //
-                "Freight" => $first['Freight'],
+                
                 "Branch" => $first['Branch'],
                 "IFSC" => $first['IFSC'],
                 "AccNo" => $first['AccNo'],
                 "BankName" => $first['BankName'],
                 "BankAcc" => $first['BankAcc'],
+                'calculations' => [
+                    'cgst' => round($cgst, 2),
+                    'sgst' => round($sgst, 2),
+                    'igst' => round($igst, 2),
+                    'tcs_amount' => round($tcsAmount, 2),
+
+                    'no_of_pieces' => $totalQty,
+                    "Freight" => $first['Freight'],
+                    'doc_total' => round($docTotal, 2),
+                    'wt_sum' => round($wtSum, 2),
+                    'round_diff' => round($roundDiff, 2),
+                    'tax_invoice' => round($taxInvoice, 2),
+                    'payable' => round($payable, 2),
+                    'payable_in_words' => $this->amountInWordsINR($payable),
+
+                    
+                ]
+
             ];
 
    

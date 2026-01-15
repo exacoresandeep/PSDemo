@@ -50,7 +50,7 @@
     </div>
 
     <div class="listing-sec">
-        <table class="table table-bordered table-striped w-100 table-responsive" id="targetTable">
+        <table class="table table-bordered table-striped w-100" id="targetTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>

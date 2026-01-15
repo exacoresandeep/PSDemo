@@ -52,7 +52,7 @@
     </div>
 
     <div class="listing-sec">
-        <table class="table table-bordered table-striped w-100 table-responsive" id="dayendTable">
+        <table class="table table-bordered table-striped w-100" id="dayendTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>

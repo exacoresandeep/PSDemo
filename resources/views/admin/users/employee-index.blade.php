@@ -9,7 +9,7 @@
     </div>
 
     <div class="listing-sec">
-        <table class="table table-bordered table-striped table-responsive w-100" id="employeesTable">
+        <table class="table table-bordered table-striped w-100" id="employeesTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>
