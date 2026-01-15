@@ -22,17 +22,17 @@ use App\Services\FirebasePushService;
 
 class LeadController extends Controller
 {
-//
+    //
     public function index(Request $request)
     {
         try {
             $user = Auth::user();
             if ($user !== null) {
                 $leads = Lead::with(['customerType', 'district', 'tripRoute'])
-//                            ->where('created_by', $user->id)
-                            ->orderBy('created_at', 'desc')
-                            ->get();
-    
+                    //                            ->where('created_by', $user->id)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
                 if ($leads->isEmpty()) {
                     return response()->json([
                         'success' => true,
@@ -41,7 +41,7 @@ class LeadController extends Controller
                         'data' => [],
                     ], 200);
                 }
-    
+
                 $formattedLeads = $leads->map(function ($lead) {
                     return [
                         'lead_id' => $lead->id,
@@ -50,26 +50,25 @@ class LeadController extends Controller
                         'customer_type' => $lead->customerType ? [
                             'id' => $lead->customerType->id,
                             'name' => $lead->customerType->name,
-                        ] : null,  
+                        ] : null,
                         'district' => $lead->district ? [
                             'id' => $lead->district->id,
                             'name' => $lead->district->name,
-                        ] : null,  
-                        'route_name' => $lead->tripRoute ? $lead->tripRoute->route_name : null, 
+                        ] : null,
+                        'route_name' => $lead->tripRoute ? $lead->tripRoute->route_name : null,
                         'location_name' => $lead->location ? $lead->location : null,
                         'created_at' => $lead->created_at->format('d/M/Y h:i A'),
                         'updated_at' => $lead->updated_at->format('d/M/Y h:i A'),
                         'follow_up_date' => $lead->follow_up_date,
-                        ];
+                    ];
                 });
-    
+
                 return response()->json([
                     'success' => true,
                     'statusCode' => 200,
                     'message' => 'Leads retrieved successfully!',
                     'data' => $formattedLeads,
                 ], 200);
-    
             } else {
                 return response()->json([
                     'success' => false,
@@ -105,10 +104,10 @@ class LeadController extends Controller
                     'success' => false,
                     'statusCode' => 400,
                     'message' => 'Lead with the same phone number already exists!',
-                    'data' =>[],
+                    'data' => [],
                 ], 400);
             }
-         
+
 
             $validatedData['created_by'] = Auth::id();
 
@@ -132,7 +131,6 @@ class LeadController extends Controller
                 'message' => 'Lead created successfully!',
                 'data' => $leadData,
             ], 200);
-
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -141,7 +139,7 @@ class LeadController extends Controller
             ], 500);
         }
     }
-    
+
     public function show($leadId)
     {
         try {
@@ -149,20 +147,20 @@ class LeadController extends Controller
             $allowedEmployeeTypes = [];
 
             switch ($employee->employee_type_id) {
-                case 1: 
-                    $allowedEmployeeTypes = [1]; 
+                case 1:
+                    $allowedEmployeeTypes = [1];
                     break;
-                case 2: 
-                    $allowedEmployeeTypes = [2]; 
+                case 2:
+                    $allowedEmployeeTypes = [2];
                     break;
-                case 3: 
-                    $allowedEmployeeTypes = [1,2,3]; 
+                case 3:
+                    $allowedEmployeeTypes = [1, 2, 3];
                     break;
-                case 4: 
-                    $allowedEmployeeTypes = [1, 2, 3, 4]; 
+                case 4:
+                    $allowedEmployeeTypes = [1, 2, 3, 4];
                     break;
                 case 5:
-                    $allowedEmployeeTypes = [1, 2, 3, 4, 5]; 
+                    $allowedEmployeeTypes = [1, 2, 3, 4, 5];
                     break;
                 default:
                     return response()->json([
@@ -184,8 +182,8 @@ class LeadController extends Controller
                     'message' => 'Lead not found!',
                 ], 404);
             }
-if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
-                $lead->update(['notification_status'=>'opened']);
+            if ($lead->notification_status == 'pending' && $lead->created_by == $employee->id) {
+                $lead->update(['notification_status' => 'opened']);
             }
             $leadWonOrders = $lead->orders->where('source', 'lead_won');
             $relatedLeads = Lead::with('orders.orderItems')
@@ -195,10 +193,10 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                 return $relatedLead->orders->flatMap(function ($order) {
                     return $order->orderItems;
                 });
-		        })->sum('total_quantity'); 
+            })->sum('total_quantity');
             $lostVolume = $relatedLeads->sum(function ($relatedLead) {
                 return $relatedLead->lost_volume ?? 0;
-	        });
+            });
             if ((float) $lead->total_quantity === 0.0) {
                 $wonVolume = 0;
                 $lostVolume = 0;
@@ -215,7 +213,7 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                 })
                 ->values();
             $paymentTerms = $paymentTerms->count() === 1 ? $paymentTerms->first() : ($paymentTerms->isEmpty() ? null : $paymentTerms);
-            
+
             $dealers = $leadWonOrders
                 ->pluck('dealer')
                 ->unique('id')
@@ -228,12 +226,12 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                 })
                 ->values();
             $dealers = $dealers->count() === 1 ? $dealers->first() : ($dealers->isEmpty() ? null : $dealers);
-             $latestOrder = $leadWonOrders->last();
+            $latestOrder = $leadWonOrders->last();
             $attachments = [
                 'attachment' => $latestOrder && $latestOrder->attachment ? $latestOrder->attachment : null,
-              
-	    ];
-	    $firstLead = Lead::where('lead_chain_id', $lead->lead_chain_id)
+
+            ];
+            $firstLead = Lead::where('lead_chain_id', $lead->lead_chain_id)
                 ->orderBy('created_at', 'asc')
                 ->first();
 
@@ -268,8 +266,8 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                 'source_name' => $lead->source_name,
                 'total_volume' => (float) $initialTotalVolume,
                 'total_quantity' => (float) $lead->total_quantity,
-		'current_deal_volume' => (float) $initialTotalVolume - $wonVolume - $lostVolume,
-		//'current_deal_volume' => (float) $lead->total_deal_volume - $wonVolume - $lostVolume,
+                'current_deal_volume' => (float) $initialTotalVolume - $wonVolume - $lostVolume,
+                //'current_deal_volume' => (float) $lead->total_deal_volume - $wonVolume - $lostVolume,
                 // 'current_deal_volume' => (float) $lead->current_deal_volume,
                 'won_volume' => (float) $wonVolume,
                 'lost_v' => (float) $lostVolume,
@@ -284,7 +282,7 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                 'further_volume' => (float) $lead->further_volume,
                 'lost_volume' => (float) $lead->lost_volume,
                 'lost_to_competitor' => $lead->lost_to_competitor,
-                'competitor_name' =>$lead->competitor_name,
+                'competitor_name' => $lead->competitor_name,
                 'reason_for_lost' => $lead->reason_for_lost,
                 'status' => $lead->status,
                 'dealer' => $lead->dealer ? [
@@ -299,13 +297,13 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                         'id' => $followUp->id,
                         'follow_up_date' => $followUp->follow_up_date,
                         'follow_up_reason' => $followUp->reason,
-                        
+
                     ];
                 })->values(),
-                
+
                 'payment_terms' => $paymentTerms,
                 'dealers' => $dealers,
-                 'attachment' => $attachments['attachment'],
+                'attachment' => $attachments['attachment'],
                 'orders' => $leadWonOrders->map(function ($order) {
                     return [
                         'id' => $order->id,
@@ -313,14 +311,13 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                         'status' => $order->status,
                         'billing_date' => $order->billing_date,
                         'credit_days'  => $order->credit_days,
-                       
                         'order_items' => $order->orderItems->map(function ($item) {
-                             $details = is_array($item->product_details)
+                            $details = is_array($item->product_details)
                                 ? $item->product_details
                                 : json_decode($item->product_details, true);
-                        
+
                             $totalPieces = 0;
-                            $totalTon = 0; 
+                            $totalTon = 0;
 
                             if (is_array($details)) {
                                 foreach ($details as $d) {
@@ -328,20 +325,18 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                                     $tonnage = isset($d['tonnage']) ? (float) $d['tonnage'] : 0;
 
                                     $totalPieces += $pieces;
-                                    $totalTon += ($pieces * $tonnage); 
+                                    $totalTon += ($pieces * $tonnage);
                                 }
                             }
-                        
+
                             return [
                                 'id' => $item->id,
                                 'product_id' => $item->product_id,
                                 'product_name' => $item->product ? $item->product->product_name : null,
                                 'product_code' => $item->product ? $item->product->product_code : null,
-                        
                                 'total_quantity' => $item->total_quantity,
                                 'balance_quantity' => (float) $item->balance_quantity,
                                 'product_details' => $details,
-                        
                                 'total_pieces' => $totalPieces,
                                 'total_ton' => $totalTon,
                             ];
@@ -368,10 +363,10 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
 
     public function searchLead(Request $request)
     {
-      
+
         try {
             $user = Auth::user();
-    
+
             if (!$user) {
                 return response()->json([
                     'success' => false,
@@ -379,26 +374,26 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                     'message' => 'Unauthorized access.',
                 ], 401);
             }
-    
+
             $query = Lead::with(['customerType', 'district', 'tripRoute'])
-                        ->where('created_by', $user->id);
-                        
+                ->where('created_by', $user->id);
+
             if ($request->has('status')) {
                 $status = $request->input('status');
 
                 if (is_string($status)) {
                     $status = explode(',', $status);
                 }
-    
+
                 $query->whereIn('status', $status);
             }
-    
+
             if ($request->has('customer_name')) {
                 $query->where('customer_name', 'like', '%' . $request->input('customer_name') . '%');
             }
-    
+
             $leads = $query->orderBy('customer_name', 'asc')->get();
-    
+
             if ($leads->isEmpty()) {
                 return response()->json([
                     'success' => true,
@@ -407,7 +402,7 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                     'data' => [],
                 ], 200);
             }
-    
+
             $formattedLeads = $leads->map(function ($lead) {
                 return [
                     'id' => $lead->id,
@@ -423,21 +418,20 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
                     ] : null,
                     'route_name' => $lead->tripRoute->route_name ?? null,
                     'location' => $lead->location,
-                  //  'created_at' => $lead->created_at->format('d/M/Y h:i A'),
-                    'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won'|| $lead->status === 'Lost')
+                    //  'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+                    'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
                         ? optional($lead->updated_at)->format('d/m/Y h:i A')
-			: optional($lead->created_at)->format('d/m/Y h:i A'),
-			'updated_at' => $lead->updated_at,
+                        : optional($lead->created_at)->format('d/m/Y h:i A'),
+                    'updated_at' => $lead->updated_at,
                 ];
             });
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Filtered leads retrieved successfully!',
                 'data' => $formattedLeads,
             ], 200);
-    
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -447,10 +441,10 @@ if($lead->notification_status=='pending' && $lead->created_by==$employee->id){
         }
     }
 
-public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
+    public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
     {
         try {
-    
+
             $validatedData = $request->validate([
                 'type_of_visit' => 'required|string',
                 'construction_type' => 'required|string',
@@ -465,7 +459,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'total_volume' => 'required|numeric',
                 'status' => 'required|in:Opened,Follow Up,Won,Lost',
                 'dealer_id' => 'nullable|numeric',
-    
+
                 'lost_details.lost_volume' => 'required_if:status,Lost|nullable|numeric',
                 'lost_details.lost_to_competitor' => 'required_if:status,Lost|nullable|string',
                 'lost_details.competitor_name' => 'nullable|string',
@@ -477,7 +471,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'ring_test' => 'required_if:status,Lost|nullable|in:Yes,No',
                 'further_requirement' => 'required_if:status,Lost|nullable|in:Yes,No',
                 'further_volume' => 'required_if:status,Lost|nullable|numeric',
-    
+
                 'order_details.customer_type_id' => 'required_if:status,Won|nullable|exists:customer_types,id',
                 'order_details.dealer_id' => 'required_if:status,Won|exists:dealers,id',
                 'order_details.dealer_flag_order' => 'nullable|numeric',
@@ -491,7 +485,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'order_details.attachment' => 'nullable|array',
                 'order_details.attachment.*' => 'nullable|string',
             ]);
-   
+
             $lead = Lead::where('id', $leadId)
                 ->where('created_by', Auth::id())
                 ->firstOrFail();
@@ -499,40 +493,19 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
             if (!$lead->lead_chain_id) {
                 $lead->update(['lead_chain_id' => (string) Str::uuid()]);
             }
-        
+
             $firstLead = Lead::where('lead_chain_id', $lead->lead_chain_id)
                 ->orderBy('created_at', 'asc')
                 ->first();
-    
+
             $totalDealVolume = $firstLead ? (float) $firstLead->total_volume : (float) $lead->total_volume;
             $skipVolumeCheck = empty($totalDealVolume);
             DB::beginTransaction();
-    
- 
-    //         if (in_array($request->status, ['Won', 'Lost']) && $lead->status === 'Opened') {
-    // // dd($lead->id);
-    //             if ($firstLead && $firstLead->status === 'Opened') {
-                        
-    //                 $firstLead->update(['status' => 'Follow Up']);
-    //             }
-    
-    //             $lead->update(['status' => 'Follow Up']);
-    
-    //             // DB::commit();
-    
-    //             // return response()->json([
-    //             //     'success' => true,
-    //             //     'statusCode' => 200,
-    //             //     'message' => 'Lead converted to Follow Up automatically.',
-    //             //     'data' => $lead
-    //             // ]);
-    //         }
-    
-         
+
             $notification_status = $request->status === 'Follow Up' ? 'approved' : 'pending';
- 
+
             if ($request->status === 'Follow Up') {
-    
+
                 LeadFollowUp::create([
                     'lead_id' => $lead->id,
                     'follow_up_date' => $request->follow_up_date,
@@ -540,10 +513,10 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                     'notification_status' => 'pending',
                     'created_by' => Auth::id(),
                 ]);
-    
+
                 $lead->update(['follow_up_date' => $request->follow_up_date]);
             }
-   
+
             $leadData = [
                 'type_of_visit' => $request->type_of_visit,
                 'construction_type' => $request->construction_type,
@@ -560,15 +533,15 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'notification_status' => $notification_status,
                 'updated_by' => Auth::id(),
             ];
-    
+
             if (!empty($request->dealer_id)) {
                 $leadData['dealer_id'] = $request->dealer_id;
             }
-    
-            
+
+
             if ($request->status === 'Lost' && !empty($request->lost_details)) {
                 $lost = $request->lost_details;
-    
+
                 $leadData = array_merge($leadData, [
                     'lost_volume' => $lost['lost_volume'] ?? null,
                     'lost_to_competitor' => $lost['lost_to_competitor'] ?? null,
@@ -585,8 +558,8 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
             }
             $oldStatus = $lead->status;
             $lead->update($leadData);
-    
-             $order = null;
+
+            $order = null;
 
             if ($request->status === 'Won' && !empty($request->order_details)) {
 
@@ -630,7 +603,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
 
                             $productDetailsArray[] = $pd;
                         }
-
                     } else {
                         $totalQuantity += (float)($item['total_quantity'] ?? 0);
                     }
@@ -644,196 +616,39 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                     ]);
                 }
             }
-    
-    //         if (in_array($request->status, ['Won', 'Lost']) ) {
-    
-    //             // $totalWonVolume = Lead::where('lead_chain_id', $lead->lead_chain_id)
-    //             //     ->where('status', 'Won')
-    //             //     ->with('orders.orderItems')
-    //             //     ->get()
-    //             //     ->sum(function ($l) {
-    //             //         return $l->orders->sum(function ($order) {
-    //             //             return $order->orderItems->sum('total_quantity');
-    //             //         });
-    //             //     });
-    //             $query = OrderItem::whereHas('order.lead', function ($q) use ($lead) {
-    //                 $q->where('lead_chain_id', $lead->lead_chain_id)
-    //                   ->where('status', 'Won');
-    //             });
-                
-                
-    //             $totalWonVolume = $query->sum('total_quantity');
 
-    //             $totalLostVolume = Lead::where('lead_chain_id', $lead->lead_chain_id)
-    //                 ->where('status', 'Lost')
-    //                 ->sum('lost_volume');
-   
-    //             $handledVolume = (float) $totalWonVolume +  (float) $totalLostVolume;
-    //   dd($totalDealVolume);
-    //             if ($oldStatus === 'Opened' && in_array($request->status, ['Won', 'Lost'])) {
-    //                 if ($skipVolumeCheck || $handledVolume < $totalDealVolume) {
-    //                 Lead::create([
-    //                     'customer_type' => $lead->customer_type,
-    //                     'customer_name' => $lead->customer_name,
-    //                     'phone' => $lead->phone,
-    //                     'address' => $lead->address,
-    //                     'city' => $lead->city,
-    //                     'location' => $lead->location,
-    //                     'district_id' => $lead->district_id,
-    //                     'assigned_route_id' => $lead->assigned_route_id,
-    //                     'lead_chain_id' => $lead->lead_chain_id,
-
-    //                     // Carry basic details
-    //                     'type_of_visit' => $request->type_of_visit,
-    //                     'construction_type' => $request->construction_type,
-    //                     'construction_type_name' => $request->construction_type_name,
-    //                     'stage_of_construction' => $request->stage_of_construction,
-    //                     'lead_score' => $request->lead_score,
-    //                     'lead_source' => $request->lead_source,
-    //                     'source_name' => $request->source_name,
-    //                     'total_quantity' => $request->total_volume,
-    //                     'total_volume' => $request->total_volume,
-    //                     'dealer_id' => $request->dealer_id,
-
-    //                     // Follow-Up created
-    //                     'follow_up_date' => $request->follow_up_date,
-    //                     'follow_up_reason' => $request->follow_up_reason,
-    //                     'status' => 'Follow Up',
-
-    //                     'created_by' => Auth::id(),
-    //                 ]);
-    //                 }
-    //             }
-
-    //             if ($handledVolume >= $totalDealVolume) {
-
-    //                 Lead::create([
-    //                     'customer_type' => $lead->customer_type,
-    //                     'customer_name' => $lead->customer_name,
-    //                     'phone' => $lead->phone,
-    //                     'address' => $lead->address,
-    //                     'city' => $lead->city,
-    //                     'location' => $lead->location,
-    //                     'district_id' => $lead->district_id,
-    //                     'assigned_route_id' => $lead->assigned_route_id,
-
-    //                     'lead_chain_id' => null,
-
-    //                     'status' => 'Opened',
-    //                     'total_volume' => 0,
-    //                     'total_quantity' => 0,
-
-    //                     'created_by' => Auth::id(),
-    //                 ]);
-    //             }
-    
-    //         }
-            // if (in_array($request->status, ['Won', 'Lost'])) {
-        
-            //     // FIX: If initial deal volume was zero, use current request volume.
-            //     if ($skipVolumeCheck) {
-            //         $totalDealVolume = (float) $request->total_volume;
-            //     }
-            
-            //     $totalWonVolume = OrderItem::whereHas('order.lead', function ($q) use ($lead) {
-            //         $q->where('lead_chain_id', $lead->lead_chain_id)
-            //           ->where('status', 'Won');
-            //     })->sum('total_quantity');
-            
-            //     $totalLostVolume = Lead::where('lead_chain_id', $lead->lead_chain_id)
-            //         ->where('status', 'Lost')
-            //         ->sum('lost_volume');
-            
-            //     $handledVolume = (float) $totalWonVolume + (float) $totalLostVolume;
-            
-            //     // CASE 1: Old status Opened → user changed to Won/Lost → NEED FOLLOW UP
-            //     if ($oldStatus === 'Opened' && $handledVolume < $totalDealVolume) {
-            
-            //         Lead::create([
-            //             'customer_type' => $lead->customer_type,
-            //             'customer_name' => $lead->customer_name,
-            //             'phone' => $lead->phone,
-            //             'address' => $lead->address,
-            //             'city' => $lead->city,
-            //             'location' => $lead->location,
-            //             'district_id' => $lead->district_id,
-            //             'assigned_route_id' => $lead->assigned_route_id,
-            //             'lead_chain_id' => $lead->lead_chain_id,
-            
-            //             'type_of_visit' => $request->type_of_visit,
-            //             'construction_type' => $request->construction_type,
-            //             'construction_type_name' => $request->construction_type_name,
-            //             'stage_of_construction' => $request->stage_of_construction,
-            //             'lead_score' => $request->lead_score,
-            //             'lead_source' => $request->lead_source,
-            //             'source_name' => $request->source_name,
-            //             'total_quantity' => $request->total_volume,
-            //             'total_volume' => $request->total_volume,
-            //             'dealer_id' => $request->dealer_id,
-            
-            //             'follow_up_date' => $request->follow_up_date,
-            //             'follow_up_reason' => $request->follow_up_reason,
-            //             'status' => 'Follow Up',
-            
-            //             'created_by' => Auth::id(),
-            //         ]);
-            //     }
-            
-            //     // CASE 2: Full volume handled → CREATE FRESH OPENED LEAD
-            //     if ($handledVolume >= $totalDealVolume) {
-            
-            //         Lead::create([
-            //             'customer_type' => $lead->customer_type,
-            //             'customer_name' => $lead->customer_name,
-            //             'phone' => $lead->phone,
-            //             'address' => $lead->address,
-            //             'city' => $lead->city,
-            //             'location' => $lead->location,
-            //             'district_id' => $lead->district_id,
-            //             'assigned_route_id' => $lead->assigned_route_id,
-            
-            //             'lead_chain_id' => null, // reset chain
-            
-            //             'status' => 'Opened',
-            //             'total_volume' => 0,
-            //             'total_quantity' => 0,
-            
-            //             'created_by' => Auth::id(),
-            //         ]);
-            //     }
-            // }
             if (in_array($request->status, ['Won', 'Lost'])) {
 
-      
+
                 if ($skipVolumeCheck) {
                     $totalDealVolume = (float) $request->total_volume;
                 }
-            
-      
+
+
                 $totalWonVolume = OrderItem::whereHas('order.lead', function ($q) use ($lead) {
                     $q->where('lead_chain_id', $lead->lead_chain_id)
-                      ->where('status', 'Won');
+                        ->where('status', 'Won');
                 })->sum('total_quantity');
-            
+
                 $totalLostVolume = Lead::where('lead_chain_id', $lead->lead_chain_id)
                     ->where('status', 'Lost')
                     ->sum('lost_volume');
-            
+
                 $handledVolume = (float) $totalWonVolume + (float) $totalLostVolume;
-            
-              
+
+
                 $balanceVolume = $totalDealVolume - $handledVolume;
-            
-            $f_date = $request->status == 'Won'
-    ? now()->format('Y-m-d')
-    : $request->follow_up_date;
-		if($request->status=='Lost'){
-                        $f_date = $request->status == 'Lost'
-                            ? now()->format('Y-m-d')
-                            : $request->follow_up_date;
-                    }
+
+                $f_date = $request->status == 'Won'
+                    ? now()->format('Y-m-d')
+                    : $request->follow_up_date;
+                if ($request->status == 'Lost') {
+                    $f_date = $request->status == 'Lost'
+                        ? now()->format('Y-m-d')
+                        : $request->follow_up_date;
+                }
                 if ($balanceVolume > 0) {
-            
+
                     Lead::create([
                         'customer_type'         => $lead->customer_type,
                         'customer_name'         => $lead->customer_name,
@@ -843,32 +658,28 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                         'location'              => $lead->location,
                         'district_id'           => $lead->district_id,
                         'assigned_route_id'     => $lead->assigned_route_id,
-            
                         'lead_chain_id'         => $lead->lead_chain_id, // same chain
-            
                         'type_of_visit'         => $request->type_of_visit,
                         'construction_type'     => $request->construction_type,
-                        'construction_type_name'=> $request->construction_type_name,
+                        'construction_type_name' => $request->construction_type_name,
                         'stage_of_construction' => $request->stage_of_construction,
                         'lead_score'            => $request->lead_score,
                         'lead_source'           => $request->lead_source,
                         'source_name'           => $request->source_name,
-            'follow_up_date'        => $f_date,
+                        'follow_up_date'        => $f_date,
                         // remaining volume
                         'total_volume'          => $balanceVolume,
                         'total_quantity'        => $balanceVolume,
                         'dealer_id'             => $request->dealer_id,
-            
                         'status'                => 'Follow Up',
                         'notification_status'   => 'pending',
-            
                         'created_by'            => Auth::id(),
                     ]);
                 }
-            
+
                 // ⭐ FIX 3 — If full volume handled → create fresh OPENED lead
                 if ($handledVolume >= $totalDealVolume) {
-            
+
                     Lead::create([
                         'customer_type'     => $lead->customer_type,
                         'customer_name'     => $lead->customer_name,
@@ -878,38 +689,32 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                         'location'          => $lead->location,
                         'district_id'       => $lead->district_id,
                         'assigned_route_id' => $lead->assigned_route_id,
-            
                         'lead_chain_id'     => null, // new chain
-            
                         'status'            => 'Opened',
                         'total_volume'      => 0,
                         'total_quantity'    => 0,
-            
                         'created_by'        => Auth::id(),
                     ]);
-		}
-		// Send FCM notification to assigned Dealer
+                }
+                // Send FCM notification to assigned Dealer
                 try {
-		                   
-		   if( $orderDetails['dealer_id']!=null) {
-                        $dealer=Dealer::find($orderDetails['dealer_id']);
-                        $deviceToken=$dealer->fcm_token ?? null;
+
+                    if ($orderDetails['dealer_id'] != null) {
+                        $dealer = Dealer::find($orderDetails['dealer_id']);
+                        $deviceToken = $dealer->fcm_token ?? null;
 
                         if ($deviceToken) {
-                            $title ='Prabhus Steels Sales App Notification';
-                            $body = 'Lead ' . $lead->customer_name . '  has been marked as ' . $request->status ;
-               		    $fcm->sendNotification($deviceToken, $title, $body, 'dealers');
-			       
+                            $title = 'Prabhus Steels Sales App Notification';
+                            $body = 'Lead ' . $lead->customer_name . '  has been marked as ' . $request->status;
+                            $fcm->sendNotification($deviceToken, $title, $body, 'dealers');
                         }
                     }
                 } catch (\Exception $e) {
                 }
             }
 
-
-    
             DB::commit();
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
@@ -917,7 +722,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'data' => $lead,
                 'order_details' => $order,
             ], 200);
-    
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -925,7 +729,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'message' => 'Validation error',
                 'errors' => $e->errors(),
             ], 422);
-    
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -937,15 +740,17 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
     }
 
 
+   
+
     public function leadsList(Request $request)
     {
         try {
             $user = Auth::user();
             if ($user !== null) {
                 $leads = Lead::with('customerType')
-                            ->where('created_by', $user->id)
-                            ->orderBy('customer_name', 'asc')
-                            ->get();
+                    ->where('created_by', $user->id)
+                    ->orderBy('customer_name', 'asc')
+                    ->get();
                 if ($leads->isEmpty()) {
                     return response()->json([
                         'success' => true,
@@ -982,7 +787,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                     'message' => 'Leads retrieved successfully!',
                     'data' => $formattedLeads,
                 ], 200);
-
             } else {
                 return response()->json([
                     'success' => false,
@@ -1005,15 +809,15 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
             $user = Auth::user();
             if ($user !== null) {
                 $query = Lead::with('customerType')
-                            ->where('created_by', $user->id)
-                            ->where('customer_type', $customer_type_id);
+                    ->where('created_by', $user->id)
+                    ->where('customer_type', $customer_type_id);
 
                 if ($request->has('search_key') && !empty($request->search_key)) {
                     $searchKey = $request->search_key;
 
                     $query->where(function ($q) use ($searchKey) {
                         $q->where('customer_name', 'like', '%' . $searchKey . '%')
-                        ->orWhere('phone', 'like', '%' . $searchKey . '%');
+                            ->orWhere('phone', 'like', '%' . $searchKey . '%');
                     });
                 }
 
@@ -1030,7 +834,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
 
                 $formattedLeads = $leads->map(function ($lead) {
                     return [
-                       'id' => $lead->id,
+                        'id' => $lead->id,
                         'status' => $lead->status,
                         'customer_name' => $lead->customer_name,
                         'customer_type' => $lead->customerType ? [
@@ -1057,7 +861,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                     'message' => 'Leads retrieved successfully!',
                     'data' => $formattedLeads,
                 ], 200);
-
             } else {
                 return response()->json([
                     'success' => false,
@@ -1090,8 +893,8 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
             ]);
 
             $lead = Lead::where('id', $leadId)
-                        ->where('created_by', Auth::id())
-                        ->firstOrFail();
+                ->where('created_by', Auth::id())
+                ->firstOrFail();
 
             $lead->update([
                 'type_of_visit' => $validated['type_of_visit'],
@@ -1105,7 +908,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'total_quantity' => $validated['total_quantity'],
                 'status' => $validated['status'],
             ]);
-            
+
 
             return response()->json([
                 'success' => true,
@@ -1113,7 +916,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'message' => 'Lead updated successfully!',
                 'data' => $lead,
             ], 200);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -1133,15 +935,15 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
     {
         try {
             $validated = $request->validate([
-                'lost_volume' => 'required|numeric', 
+                'lost_volume' => 'required|numeric',
                 'lost_to_competitor' => 'required|string',
-                 'competitor_name' => 'nullable|string',
+                'competitor_name' => 'nullable|string',
                 'reason_for_lost' => 'required|string',
             ]);
 
             $lead = Lead::where('id', $leadId)
-                        ->where('created_by', Auth::id())
-                        ->firstOrFail();
+                ->where('created_by', Auth::id())
+                ->firstOrFail();
 
             $lead->update($validated);
 
@@ -1151,7 +953,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'message' => 'Lead updated successfully!',
                 'data' => $lead,
             ], 200);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -1167,7 +968,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
             ], 500);
         }
     }
-   
+
     public function createInfluencerVisit(Request $request)
     {
         try {
@@ -1201,7 +1002,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'won_volume'                    => 'nullable|numeric',
                 'order_details.order_items'     => 'nullable|array',
                 'order_details.dealer_id'       => 'nullable|exists:dealers,id',
-                'order_details.payment_terms_id'=> 'nullable|exists:payment_terms,id',
+                'order_details.payment_terms_id' => 'nullable|exists:payment_terms,id',
                 'order_details.total_amount'    => 'nullable|numeric',
             ]);
             $existingInfluencer = InfluencerVisit::where('phone', $request->phone)->first();
@@ -1289,7 +1090,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
             $balance = $total - ($won + $lost);
             // $visit->update(['balance_deal_volume' => $balance]);
 
-         
+
             if ($balance <= 0) {
                 $newVisit = InfluencerVisit::create([
                     'influencer_name'     => $visit->influencer_name,
@@ -1319,7 +1120,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'message'    => 'Influencer visit created successfully.',
                 'data'       => $visit
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -1397,17 +1197,17 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                         'influencer_visit_id' => $visit->id,
                         'dealer_id'           => $details['dealer_id'] ?? null,
                         'product_id'          => !empty($details['order_items'][0]['product_id'])
-                                                ? $details['order_items'][0]['product_id']
-                                                : null,
+                            ? $details['order_items'][0]['product_id']
+                            : null,
                         'payment_terms_id'    => $details['payment_terms_id'] ?? null,
                         'credit_days'         => $details['credit_days'] ?? null,
                         'scheme'              => $details['scheme'] ?? null,
                         'billing_date'        => !empty($details['billing_date'])
-                                                ? Carbon::createFromFormat('d/m/Y', $details['billing_date'])->format('Y-m-d')
-                                                : null,
+                            ? Carbon::createFromFormat('d/m/Y', $details['billing_date'])->format('Y-m-d')
+                            : null,
                         'delivery_date'       => !empty($details['delivery_date'])
-                                                ? Carbon::createFromFormat('d/m/Y', $details['delivery_date'])->format('Y-m-d')
-                                                : null,
+                            ? Carbon::createFromFormat('d/m/Y', $details['delivery_date'])->format('Y-m-d')
+                            : null,
                         'total_amount'        => $details['total_amount'] ?? null,
                         'vehicle_category_id' => $details['vehicle_category_id'] ?? null,
                         'source'              => 'influencer_won',
@@ -1417,12 +1217,12 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
 
                     foreach ($details['order_items'] as $item) {
                         $order->orderItems()->create($item);
-		    }
-		    // Send FCM notification to assigned Dealer
+                    }
+                    // Send FCM notification to assigned Dealer
                     try {
-                        if($details['dealer_id']!=null) {
-                            $dealer=Dealer::find($details['dealer_id']);
-                            $deviceToken=$dealer->fcm_token ?? null;
+                        if ($details['dealer_id'] != null) {
+                            $dealer = Dealer::find($details['dealer_id']);
+                            $deviceToken = $dealer->fcm_token ?? null;
 
                             if ($deviceToken) {
                                 $title = 'Prabhus Steels Sales App Notification';
@@ -1430,7 +1230,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                                 $fcm->sendNotification($deviceToken, $title, $body, 'dealers');
                             }
                         }
-                        } catch (\Exception $e) {
+                    } catch (\Exception $e) {
                     }
                 }
             }
@@ -1503,7 +1303,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'message' => 'Influencer visit updated successfully.',
                 'data'    => $visit
             ], 200);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -1527,13 +1326,13 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 ], 401);
             }
             $visits = InfluencerVisit::select(
-                    'id',
-                    'influencer_name',
-                    'purpose',
-                    'created_at',
-                    'follow_up_date',
-                    'status'
-                )
+                'id',
+                'influencer_name',
+                'purpose',
+                'created_at',
+                'follow_up_date',
+                'status'
+            )
                 ->where('created_by', $employee->id)
                 ->orderBy('created_at', 'desc')
                 ->get()
@@ -1542,19 +1341,19 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                         'id' => $visit->id,
                         'influencer_name' => $visit->influencer_name,
                         'purpose' => $visit->purpose,
-   //                     'created_at' => $visit->created_at ? $visit->created_at->format('d/m/Y') : null,
-      'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
-                        ? optional($visit->updated_at)->format('d/m/Y h:i A')
-			: optional($visit->created_at)->format('d/m/Y h:i A'),
-     			'follow_up_date' => $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
+                        //                     'created_at' => $visit->created_at ? $visit->created_at->format('d/m/Y') : null,
+                        'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
+                            ? optional($visit->updated_at)->format('d/m/Y h:i A')
+                            : optional($visit->created_at)->format('d/m/Y h:i A'),
+                        'follow_up_date' => $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
                         'status' => $visit->status,
                     ];
                 });
-   InfluencerVisitFollowUp::where('created_by', $employee->id)
-                    ->where('notification_status', 'pending')
-                    ->update([
-                        'notification_status' => 'opened'
-                    ]); 
+            InfluencerVisitFollowUp::where('created_by', $employee->id)
+                ->where('notification_status', 'pending')
+                ->update([
+                    'notification_status' => 'opened'
+                ]);
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
@@ -1576,7 +1375,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
     public function influencerWonList(Request $request)
     {
         $productId = $request->product_id;
-         return $this->getInfluencerVisitListByStatus(['Won'], $productId);
+        return $this->getInfluencerVisitListByStatus(['Won'], $productId);
     }
     public function influencerLostList()
     {
@@ -1596,13 +1395,13 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
         }
 
         $query = InfluencerVisit::select(
-                'id',
-                'influencer_name',
-                'purpose',
-                'created_at',
-                'follow_up_date',
-                'status'
-            )
+            'id',
+            'influencer_name',
+            'purpose',
+            'created_at',
+            'follow_up_date',
+            'status'
+        )
             ->where('created_by', $employee->id)
             ->whereIn('status', $statuses)
             ->orderBy('created_at', 'desc');
@@ -1617,12 +1416,12 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'id' => $visit->id,
                 'influencer_name' => $visit->influencer_name,
                 'purpose' => $visit->purpose,
-        //        'created_at' => $visit->updated_at?->format('d/m/Y h:i A'),
-		'created_at' =>($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
-	 	? optional($visit->updated_at)->format('d/m/Y h:i A')
-	    : optional($visit->created_at)->format('d/m/Y h:i A'),
-      	    'follow_up_date' =>
-                    $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
+                //        'created_at' => $visit->updated_at?->format('d/m/Y h:i A'),
+                'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
+                    ? optional($visit->updated_at)->format('d/m/Y h:i A')
+                    : optional($visit->created_at)->format('d/m/Y h:i A'),
+                'follow_up_date' =>
+                $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
                 'status' => $visit->status,
             ];
         });
@@ -1637,7 +1436,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
 
 
 
-    Public function influencerVisitDetails($visitId)
+    public function influencerVisitDetails($visitId)
     {
         try {
             $visit = InfluencerVisit::with([
@@ -1690,7 +1489,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
 
             $leadVisits = InfluencerVisit::where(function ($q) use ($leadParentId) {
                 $q->where('id', $leadParentId)
-                ->orWhere('chain_id', $leadParentId);
+                    ->orWhere('chain_id', $leadParentId);
             })->get();
 
             $data['won_volume'] = (float) $leadVisits->sum('won_volume');
@@ -1772,7 +1571,6 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 'message' => 'Influencer visit details fetched successfully.',
                 'data' => $data,
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1794,19 +1592,19 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                     'message' => 'Unauthorized access.',
                 ], 401);
             }
-    
+
             $leads = Lead::with('customerType')
                 ->where('created_by', $user->id)
                 ->where(function ($q) {
                     $q->where('status', '!=', 'Follow Up')
-                    ->orWhere(function ($q2) {
-                        $q2->where('status', 'Follow Up')
-                            ->whereNotNull('follow_up_date');
-                    });
+                        ->orWhere(function ($q2) {
+                            $q2->where('status', 'Follow Up')
+                                ->whereNotNull('follow_up_date');
+                        });
                 })->whereNotIn('status', ['Won', 'Lost'])
                 ->orderBy('created_at', 'desc')
                 ->get();
-    
+
             if ($leads->isEmpty()) {
                 return response()->json([
                     'success' => true,
@@ -1815,11 +1613,11 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                     'data' => [],
                 ], 200);
             }
-    
+
             // Format the leads
             $formattedLeads = $leads->map(function ($lead) {
                 $status = $lead->status === 'Follow Up' ? 'Follow Up' : 'Opened';
-    
+
                 return [
                     'id' => $lead->id,
                     'customer_type' => [
@@ -1834,20 +1632,19 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                     'lead_source' => $lead->lead_source,
                     'lead_score' => $lead->lead_score,
                     'created_by' => $lead->created_by,
-            'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
-                    ? optional($lead->updated_at)->format('d/m/Y h:i A')
-		    : optional($lead->created_at)->format('d/m/Y h:i A')
-		    //       'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+                    'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
+                        ? optional($lead->updated_at)->format('d/m/Y h:i A')
+                        : optional($lead->created_at)->format('d/m/Y h:i A')
+                    //       'created_at' => $lead->created_at->format('d/M/Y h:i A'),
                 ];
             });
-    
+
             return response()->json([
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Opened and Follow Up leads retrieved successfully!',
                 'data' => $formattedLeads,
             ], 200);
-    
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
@@ -1859,7 +1656,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
 
     public function LeadWonList(Request $request)
     {
-        $productId = $request->product_id; 
+        $productId = $request->product_id;
         return $this->getLeadsByStatus('Won', 'Won leads retrieved successfully!', $productId);
     }
 
@@ -1884,7 +1681,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
                 ], 401);
             }
 
-             $query = Lead::with(['customerType'])
+            $query = Lead::with(['customerType'])
                 ->where('created_by', $user->id)
                 ->where('status', $status);
 
@@ -1895,7 +1692,7 @@ public function updateLead(Request $request, $leadId, FirebasePushService $fcm)
             }
 
             $leads = $query->orderBy('updated_at', 'desc')->get();
-if ($status === 'Follow Up') {
+            if ($status === 'Follow Up') {
                 LeadFollowUp::where('created_by', $user->id)
                     ->where('notification_status', 'pending')
                     // ->whereIn('lead_id', $leads->pluck('id'))
@@ -1903,13 +1700,13 @@ if ($status === 'Follow Up') {
                         'notification_status' => 'opened'
                     ]);
             }
-            return $this->formatLeadsResponse($leads, $message);
+            return $this->formatLeadsResponse($leads, $message,$status); //push
         } catch (Exception $e) {
             return $this->handleException($e);
         }
     }
 
-    private function formatLeadsResponse($leads, $message)
+    private function formatLeadsResponse($leads, $message,$status) //push
     {
         if ($leads->isEmpty()) {
             return response()->json([
@@ -1920,13 +1717,26 @@ if ($status === 'Follow Up') {
             ], 200);
         }
 
-        $formattedLeads = $leads->map(function ($lead) {
+        $formattedLeads = $leads->map(function ($lead) use ($status) {
+            
+            if ($status === 'Follow Up') {
+                $lead_id = $lead->id;
+            } else {
+                $lead_last_id=Lead::where('customer_name',$lead->customer_name)
+                ->orderBy('created_at', 'desc')
+                ->where('status', "Follow Up")
+                ->first();
+                $lead_id = $lead_last_id->value('id');
+            }
+
+            
             return [
-                'id' => $lead->id,
+                'id' => $lead_id,
                 'customer_type' => [
                     'id' => $lead->customerType->id ?? null,
                     'name' => $lead->customerType->name ?? null,
                 ],
+                'lead_last_id' => $lead->customer_name,
                 'customer_name' => $lead->customer_name,
                 'phone' => $lead->phone,
                 'address' => $lead->address,
@@ -1935,10 +1745,10 @@ if ($status === 'Follow Up') {
                 'lead_score' => $lead->lead_score,
                 'location' => $lead->location,
                 'created_by' => $lead->created_by,
-             	'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
+                'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
                     ? optional($lead->updated_at)->format('d/m/Y h:i A')
-		    : optional($lead->created_at)->format('d/m/Y h:i A')
-		    //  'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+                    : optional($lead->created_at)->format('d/m/Y h:i A')
+                //  'created_at' => $lead->created_at->format('d/M/Y h:i A'),
             ];
         });
 
@@ -1958,7 +1768,7 @@ if ($status === 'Follow Up') {
             'message' => $e->getMessage(),
         ], 500);
     }
-public function influencerSearch(Request $request)
+    public function influencerSearch(Request $request)
     {
         $employee = Auth::user();
         if (!$employee) {
@@ -1970,10 +1780,10 @@ public function influencerSearch(Request $request)
         }
 
         $search = $request->search;
-        $status = $request->status; 
+        $status = $request->status;
         $productId = $request->product_id;
 
-        $query = InfluencerVisit::select('id','influencer_name','purpose','created_at','follow_up_date','status')
+        $query = InfluencerVisit::select('id', 'influencer_name', 'purpose', 'created_at', 'follow_up_date', 'status')
             ->where('created_by', $employee->id);
 
 
@@ -1986,9 +1796,9 @@ public function influencerSearch(Request $request)
         }
 
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('influencer_name', 'LIKE', "%$search%")
-                ->orWhere('purpose', 'LIKE', "%$search%");
+                    ->orWhere('purpose', 'LIKE', "%$search%");
             });
         }
 
@@ -2005,11 +1815,11 @@ public function influencerSearch(Request $request)
                 'id' => $visit->id,
                 'influencer_name' => $visit->influencer_name,
                 'purpose' => $visit->purpose,
-//                'created_at' => $visit->created_at?->format('d/m/Y h:i A'),
-		'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
-                        ? optional($visit->updated_at)->format('d/m/Y h:i A')
-			: optional($visit->created_at)->format('d/m/Y h:i A'),
-		'follow_up_date' => $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
+                //                'created_at' => $visit->created_at?->format('d/m/Y h:i A'),
+                'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
+                    ? optional($visit->updated_at)->format('d/m/Y h:i A')
+                    : optional($visit->created_at)->format('d/m/Y h:i A'),
+                'follow_up_date' => $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
                 'status' => $visit->status,
             ];
         });
@@ -2021,6 +1831,4 @@ public function influencerSearch(Request $request)
             'data' => $visits,
         ], 200);
     }
-
-
 }
