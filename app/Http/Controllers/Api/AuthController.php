@@ -48,7 +48,7 @@ class AuthController extends Controller
     $title = 'Hello';
     $body = 'This is a push from Laravel';
 
-    return $fcm->sendNotification($deviceToken, $title, $body);
+    return $fcm->sendNotification($deviceToken, $title, $body,"awd");
 	}
     public function login(Request $request)
     {
