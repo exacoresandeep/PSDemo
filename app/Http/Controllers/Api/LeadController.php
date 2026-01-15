@@ -1618,8 +1618,22 @@ class LeadController extends Controller
             $formattedLeads = $leads->map(function ($lead) {
                 $status = $lead->status === 'Follow Up' ? 'Follow Up' : 'Opened';
 
+                
+                $lead_id = $lead->id;
+
+                if ($lead->status === 'Won' || $lead->status === 'Lost') {
+
+                    $lead_last = Lead::where('customer_name', $lead->customer_name)
+                        ->where('status', 'Follow Up')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    if ($lead_last) {
+                        $lead_id = $lead_last->id;
+                    }
+                }    
                 return [
-                    'id' => $lead->id,
+                    'id' => $lead_id,
                     'customer_type' => [
                         'id' => $lead->customerType->id ?? null,
                         'name' => $lead->customerType->name ?? null,
