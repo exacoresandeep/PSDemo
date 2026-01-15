@@ -1092,6 +1092,10 @@ class LeadController extends Controller
 
 
           if ($balance <= 0 || in_array($visit->status, ['Lost', 'Won'], true)) {
+             $total_deal_volume=0;
+             if ($visit->status === 'Lost' || $visit->status === 'Won') {
+                $total_deal_volume = $request->total_deal_volume;
+             }
                 $newVisit = InfluencerVisit::create([
                     'influencer_name'     => $visit->influencer_name,
                     'phone'               => $visit->phone,
@@ -1105,7 +1109,7 @@ class LeadController extends Controller
                     'upcoming_project'    => $visit->upcoming_project,
                     'steel_used'          => $visit->steel_used,
                     'other_steels'        => $visit->other_steels,
-                    'total_deal_volume'   => 0,
+                    'total_deal_volume'   => $total_deal_volume,
                     'status'              => 'Opened',
                     'chain_id'            => null,
                     'created_by'          => $visit->created_by,
