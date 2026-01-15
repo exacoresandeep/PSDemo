@@ -125,7 +125,7 @@ class AuthController extends Controller
                 ->select('employees.*', 'employee_types.id as type_id', 'employee_types.type_name')
                 ->first();
             if ($employee && Hash::check($validated['password'], $employee->password)) {
-                $employee->tokens()->delete();
+               // $employee->tokens()->delete();
                 $token = $employee->createToken('Employee API Token')->plainTextToken;
 
                 return response()->json([
