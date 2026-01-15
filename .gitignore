@@ -2,16 +2,10 @@
 /node_modules
 /public/build
 /public/hot
-/public/storage
-/storage/*.key
-/storage/pail
+
 /vendor
 /.env
-<<<<<<< Updated upstream
 .htaccess
-=======
-/.htaccess
->>>>>>> Stashed changes
 .env.backup
 .env.production
 .phpactor.json
