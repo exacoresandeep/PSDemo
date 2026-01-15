@@ -1156,7 +1156,7 @@ class LeadController extends Controller
 
             DB::beginTransaction();
 
-            $total   = (float) $visit->total_deal_volume;
+            $total   = (float) ($visit->total_deal_volume ?? 0);
             $oldWon  = (float) ($visit->won_volume ?? 0);
             $oldLost = (float) ($visit->lost_volume ?? 0);
 
@@ -1252,7 +1252,7 @@ class LeadController extends Controller
             $rootChainId = $visit->chain_id ?? $visit->id;
 
             // Create next follow-up visit when there is remaining balance
-            if (in_array($request->status, ['Won', 'Lost']) && $balance > 0) {
+            if (in_array($request->status, ['Won', 'Lost']) && ($balance > 0 || empty($visit))) {
                 InfluencerVisit::create([
                     'influencer_name'   => $visit->influencer_name,
                     'phone'             => $visit->phone,
@@ -1623,7 +1623,7 @@ class LeadController extends Controller
 
                 if ($lead->status === 'Won' || $lead->status === 'Lost') {
 
-                    $lead_last = Lead::where('customer_name', $lead->customer_name)
+                    $lead_last = Lead::where('phone', $lead->phone)
                         ->where('status', 'Follow Up')
                         ->orderBy('created_at', 'desc')
                         ->first();
@@ -1738,7 +1738,7 @@ class LeadController extends Controller
             
             if ($status === 'Won' || $status === 'Lost') {
 
-                $lead_last = Lead::where('customer_name', $lead->customer_name)
+                $lead_last = Lead::where('phone', $lead->phone)
                     ->where('status', 'Follow Up')
                     ->orderBy('created_at', 'desc')
                     ->first();
