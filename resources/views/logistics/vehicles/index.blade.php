@@ -13,7 +13,7 @@
     </div>
     <div class="listing-sec">
         
-        <table class="table table-bordered table-striped w-100 table-responsive" id="vehiclesTable">
+        <table class="table table-bordered table-striped w-100" id="vehiclesTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>

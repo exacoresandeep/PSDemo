@@ -1447,7 +1447,8 @@ public function updateFcmToken(Request $request)
                     'data' => [],
                 ], 401);
             }
-            $productIds = $user->products;
+            $productIds = json_decode($user->products, true);
+
             // dd($productIds);
 
 

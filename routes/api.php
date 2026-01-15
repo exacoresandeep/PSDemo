@@ -32,9 +32,9 @@ use App\Http\Controllers\ExpenseController;
         Route::get('dealer-data', [HanaController::class, 'getDealerData']);
         Route::middleware('auth:sanctum')->post('reset-password', [AuthController::class, 'resetPassword']);
 
+        Route::post('loginCommon', [AuthController::class, 'loginCommon']);
         Route::prefix('dealer')->group(function () {
             Route::post('login', [DealerController::class, 'login']);
-            Route::post('loginCommon', [AuthController::class, 'loginCommon']);
             Route::post('getCreditNoteForInvoice', [HanaController::class, 'getCreditNoteForInvoice']);
             Route::post('invoice-layout', [HanaController::class, 'fetchInvoiceLayout']);
             Route::middleware('auth:sanctum')->group(function () {

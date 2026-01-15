@@ -21,7 +21,7 @@
                 <button id="exportFiltered" class="btn btn-primary">Export</button>
             </div>
         </div>
-        <table class="table table-bordered table-striped w-100 table-responsive" id="ordersTable">
+        <table class="table table-bordered table-striped w-100" id="ordersTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>
