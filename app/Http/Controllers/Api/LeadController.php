@@ -1331,6 +1331,7 @@ class LeadController extends Controller
                 'influencer_name',
                 'purpose',
                 'created_at',
+                'updated_at',
                 'follow_up_date',
                 'status'
             )
@@ -1400,6 +1401,7 @@ class LeadController extends Controller
             'influencer_name',
             'purpose',
             'created_at',
+            'updated_at',
             'follow_up_date',
             'status'
         )
