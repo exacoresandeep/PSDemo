@@ -1047,7 +1047,7 @@ class LeadController extends Controller
             }
 
             if ($visit->status === 'Won') {
-                $won = (float)$request->total_quantity;
+                $won = (float)$request->won_volume;
 
                 $visit->update(['won_volume' => $won]);
 
