@@ -1347,7 +1347,7 @@ class LeadController extends Controller
                         'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
                             ? optional($visit->updated_at)->format('d/m/Y h:i A')
                             : optional($visit->created_at)->format('d/m/Y h:i A'),
-                        'follow_up_date' => $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
+                        'follow_up_date' => optional($visit->follow_up_date)->format('d/m/Y h:i A') ?? null,
                         'status' => $visit->status,
                     ];
                 });
@@ -1423,8 +1423,7 @@ class LeadController extends Controller
                 'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
                     ? optional($visit->updated_at)->format('d/m/Y h:i A')
                     : optional($visit->created_at)->format('d/m/Y h:i A'),
-                'follow_up_date' =>
-                $visit->follow_up_date ? date('d/m/Y', strtotime($visit->follow_up_date)) : null,
+                'follow_up_date' => optional($visit->follow_up_date)->format('d/m/Y h:i A') ?? null,
                 'status' => $visit->status,
             ];
         });
