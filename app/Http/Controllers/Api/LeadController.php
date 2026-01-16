@@ -739,9 +739,6 @@ class LeadController extends Controller
         }
     }
 
-
-   
-
     public function leadsList(Request $request)
     {
         try {
@@ -1642,6 +1639,7 @@ class LeadController extends Controller
                         'id' => $lead->customerType->id ?? null,
                         'name' => $lead->customerType->name ?? null,
                     ],
+                    'view_lead_id' => $lead->id,
                     'customer_name' => $lead->customer_name,
                     'phone' => $lead->phone,
                     'address' => $lead->address,
@@ -1759,7 +1757,7 @@ class LeadController extends Controller
                     'id' => $lead->customerType->id ?? null,
                     'name' => $lead->customerType->name ?? null,
                 ],
-                'lead_last_id' => $lead->customer_name,
+                'view_lead_id' => $lead->id,
                 'customer_name' => $lead->customer_name,
                 'phone' => $lead->phone,
                 'address' => $lead->address,
