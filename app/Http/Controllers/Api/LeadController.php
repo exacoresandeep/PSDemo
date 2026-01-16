@@ -678,24 +678,24 @@ class LeadController extends Controller
                 }
 
                 // ⭐ FIX 3 — If full volume handled → create fresh OPENED lead
-                if ($handledVolume >= $totalDealVolume) {
+                // if ($handledVolume >= $totalDealVolume) {
 
-                    Lead::create([
-                        'customer_type'     => $lead->customer_type,
-                        'customer_name'     => $lead->customer_name,
-                        'phone'             => $lead->phone,
-                        'address'           => $lead->address,
-                        'city'              => $lead->city,
-                        'location'          => $lead->location,
-                        'district_id'       => $lead->district_id,
-                        'assigned_route_id' => $lead->assigned_route_id,
-                        'lead_chain_id'     => null, // new chain
-                        'status'            => 'Opened',
-                        'total_volume'      => 0,
-                        'total_quantity'    => 0,
-                        'created_by'        => Auth::id(),
-                    ]);
-                }
+                //     Lead::create([
+                //         'customer_type'     => $lead->customer_type,
+                //         'customer_name'     => $lead->customer_name,
+                //         'phone'             => $lead->phone,
+                //         'address'           => $lead->address,
+                //         'city'              => $lead->city,
+                //         'location'          => $lead->location,
+                //         'district_id'       => $lead->district_id,
+                //         'assigned_route_id' => $lead->assigned_route_id,
+                //         'lead_chain_id'     => null, // new chain
+                //         'status'            => 'Opened',
+                //         'total_volume'      => 0,
+                //         'total_quantity'    => 0,
+                //         'created_by'        => Auth::id(),
+                //     ]);
+                // }
                 // Send FCM notification to assigned Dealer
                 try {
 
