@@ -1648,9 +1648,15 @@ class LeadController extends Controller
                     'lead_source' => $lead->lead_source,
                     'lead_score' => $lead->lead_score,
                     'created_by' => $lead->created_by,
-                    'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
-                        ? optional($lead->updated_at)->format('d/m/Y h:i A')
-                        : optional($lead->created_at)->format('d/m/Y h:i A')
+                    'created_at' => $lead->status === 'Follow Up'
+                        ? optional($lead->follow_up_date)->format('d/m/Y h:i A')
+                        : (($lead->status === 'Won' || $lead->status === 'Lost')
+                            ? optional($lead->updated_at)->format('d/m/Y h:i A')
+                            : optional($lead->created_at)->format('d/m/Y h:i A')),
+
+                    // 'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
+                    //     ? optional($lead->updated_at)->format('d/m/Y h:i A')
+                    //     : optional($lead->created_at)->format('d/m/Y h:i A')
                     //       'created_at' => $lead->created_at->format('d/M/Y h:i A'),
                 ];
             });
