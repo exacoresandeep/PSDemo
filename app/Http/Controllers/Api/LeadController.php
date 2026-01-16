@@ -1649,7 +1649,7 @@ class LeadController extends Controller
                     'lead_score' => $lead->lead_score,
                     'created_by' => $lead->created_by,
                     'created_at' => $lead->status === 'Follow Up'
-                        ? optional($lead->follow_up_date)->format('d/m/Y h:i A')
+                        ? optional(Carbon::parse($lead->follow_up_date))->format('d/m/Y')
                         : (($lead->status === 'Won' || $lead->status === 'Lost')
                             ? optional($lead->updated_at)->format('d/m/Y h:i A')
                             : optional($lead->created_at)->format('d/m/Y h:i A')),
