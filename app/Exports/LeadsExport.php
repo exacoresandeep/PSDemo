@@ -66,11 +66,12 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
         $productName  = $orderItem ? optional($orderItem->product)->product_name : '';
         $previousBrandQty = optional($lead)->previous_brand_quantity ?? '';
 
-     	//   $productType  = $orderItem->product_details['type'] ?? '';  // if stored in JSON
-
-        $productType = $orderItem && $orderItem->product 
-        ? optional($orderItem->product->productTypes->first())->type_name 
-        : '';
+        // $productType = $orderItem && $orderItem->product 
+        // ? optional($orderItem->product->productTypes->first())->type_name 
+        // : '';
+        $productType = $orderItem && !empty($orderItem->product_details)
+            ? ($orderItem->product_details[0]['type_name'] ?? '')
+            : '';
        	$quantity     = $orderItem->total_quantity ?? '';
 
         $totalDealVolume = $this->getTotalDealVolume($lead);

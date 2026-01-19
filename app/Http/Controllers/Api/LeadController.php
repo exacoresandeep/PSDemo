@@ -1108,7 +1108,7 @@ class LeadController extends Controller
                     'other_steels'        => $visit->other_steels,
                     'total_deal_volume'   => $total_deal_volume,
                     'status'              => 'Opened',
-                    'chain_id'            => null,
+                    'chain_id'            => $visit->id,
                     'created_by'          => $visit->created_by,
                 ]);
             }
