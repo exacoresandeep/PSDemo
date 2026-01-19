@@ -860,8 +860,24 @@ public function updateFcmToken(Request $request)
         // })->values();
             $notifications = $notifications
                 ->filter(function ($item) {
-                    return isset($item->notification_message)
-                        && trim($item->notification_message) !== '';
+                    // return isset($item->notification_message)
+                    //     && trim($item->notification_message) !== '';
+                        // Remove empty messages
+                        if (!isset($item->notification_message) || trim($item->notification_message) === '') {
+                            return false;
+                        }
+
+                        // Normalize date
+                        $date = isset($item->date)
+                            ? Carbon::createFromFormat('d-m-Y', $item->date)
+                            : Carbon::today();
+
+                        // ❌ Remove read + older than today
+                        if (!empty($item->is_read) && $date->lt(Carbon::today())) {
+                            return false;
+                        }
+
+                        return true;
                 })
                 ->map(function ($item) {
 

@@ -285,6 +285,7 @@ class TargetController extends Controller
             $uniqueLeads = Lead::where('created_by', $employeeId)
                                 ->whereYear('created_at', $year)
                                 ->whereMonth('created_at', $monthNumber)
+                                ->distinct('phone')
                                 // ->whereHas('orders', function ($query) use ($productId) { 
                                 //     $query->where('product_id', $productId);
                                 // })

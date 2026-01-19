@@ -105,13 +105,13 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
                     if (!empty($item->product_details)) {
                         foreach ($item->product_details as $pd) {
 
-                            $typeName  = $pd['typeName'] ?? 'N/A';
+                            $typeName  = $pd['type_name'] ?? 'N/A';
                             $quantity  = $pd['quantity'] ?? 0;
-                            $amount    = $pd['totalAmount'] ?? 0;
+                            $amount    = $pd['rate'] ?? 0;
 
                             $totalOrderQty += $quantity;
 
-                            $details[] = "{$typeName}: Qty {$quantity} - Amt {$amount}";
+                            $details[] = "{$typeName}: Qty {$quantity} - Rate {$amount}";
                         }
                     }
                 }
