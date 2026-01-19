@@ -1567,7 +1567,7 @@ private function normalizeDate(?string $date): ?string
     
             // Load the order with all possible relationships
             $order = Order::with([
-                'createdBy:id,name,employee_code',
+                'createdBy:id,name,employee_code,designation',
                 'orderType:id,name',
                 'customerType:id,name',
                 'lead.customerType:id,name',
@@ -1600,7 +1600,7 @@ private function normalizeDate(?string $date): ?string
     
             if ($order->lead_id && optional($order->lead)->status === 'Won') {
                 // Lead-based order
-                $customerTypeName = $order->lead->customerType->name ?? ' ';
+                $customerTypeName = $order->customerType->name ?? '-';
                 $customerName = $order->lead->customer_name ?? ' ';
                 $phone = $order->lead->phone ?? ' ';
                 $address = $order->lead->address ?? ' ';
@@ -1614,6 +1614,7 @@ private function normalizeDate(?string $date): ?string
                 $address = $order->influencerVisit->address ?? ' ';
                 
             } else {
+
                 // Dealer-based order
                 $customerTypeName = $order->customerType->name ?? ' ';
                 $customerName = $order->dealers->dealer_name ?? ' ';
@@ -1626,7 +1627,7 @@ private function normalizeDate(?string $date): ?string
                 'order_placed_by' => [
                     'name' => $order->createdBy->name ?? ' ',
                     'employee_code' => $order->createdBy->employee_code ?? ' ',
-                    'designation' => 'Sales Executive',
+                    'designation' => $order->createdBy->designation ?? ' ',
                 ],
                 'order_date' => $order->created_at->format('d/m/Y'),
                 'order_type' => $order->orderType->name ?? ' ',
@@ -1657,6 +1658,7 @@ private function normalizeDate(?string $date): ?string
 
                             $pieces  = $pd['pieces'] ?? 0;
                             $tonnage = $pd['tonnage'] ?? 0;
+                            $quantity = $pd['quantity'] ?? 0;
 
                             $totalPieces += $pieces;
                             $totalTon += ($tonnage * $pieces);
@@ -1665,6 +1667,7 @@ private function normalizeDate(?string $date): ?string
                                 'product_type_id' => $pd['product_type_id'] ?? null,
                                 'pieces' => (float) $pieces,
                                 'tonnage' => (float) $tonnage,
+                                'quantity' => (float) $quantity,
                                 'rate' => $pd['rate'] ?? null,
                                 'product_type' => ProductType::where('id', $pd['product_type_id'] ?? null)
                                     ->value('type_name') ?? 'N/A',
@@ -2490,7 +2493,7 @@ private function normalizeDate(?string $date): ?string
                     'id' => $order->paymentTerm->id ?? null,
                     'name' => $order->paymentTerm->name ?? null,
                 ],
-                'billing_date' => optional($order->billing_date)->format('d/m/Y'),
+                'billing_date' => $order->billing_date ?? null,
 
                 'vehicle' => [
                     'category_id' => $order->vehicle_category_id,
