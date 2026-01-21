@@ -201,7 +201,7 @@ class DriverController extends Controller
                 'type' => 'required|string|in:Driver',
             ]);
 
-	    $driver = Driver::where('phone', $validated['username'])
+	    $driver = Driver::where('phone', $validated['phone'])
 		    ->where('status', '1')
             ->first();
 

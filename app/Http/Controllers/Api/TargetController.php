@@ -286,9 +286,6 @@ class TargetController extends Controller
                                 ->whereYear('created_at', $year)
                                 ->whereMonth('created_at', $monthNumber)
                                 ->distinct('phone')
-                                // ->whereHas('orders', function ($query) use ($productId) { 
-                                //     $query->where('product_id', $productId);
-                                // })
                                 ->count();
     
             // $customerVisitCount = RescheduledRoute::where('employee_id', $employeeId)

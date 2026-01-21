@@ -69,9 +69,13 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
         // $productType = $orderItem && $orderItem->product 
         // ? optional($orderItem->product->productTypes->first())->type_name 
         // : '';
-        $productType = $orderItem && !empty($orderItem->product_details)
-            ? ($orderItem->product_details[0]['type_name'] ?? '')
-            : '';
+        $productType = '';
+
+        if ($orderItem && !empty($orderItem->product_details)) {
+            $productType = collect($orderItem->product_details)
+                ->pluck('type_name')
+                ->implode(',');
+        }
        	$quantity     = $orderItem->total_quantity ?? '';
 
         $totalDealVolume = $this->getTotalDealVolume($lead);
@@ -94,6 +98,7 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
 
         return [
             $this->row++,
+            $lead->id,
             optional($lead->created_at)->format('Y-m-d'),
             optional($lead->created_at)->format('H:i:s'),
             optional($lead->customerType)->name,
@@ -166,6 +171,7 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
     {
         return [
 		    'Sl.No',
+		    'Lead ID',
 	       	'Date',
             'Time',
             'Customer Type',

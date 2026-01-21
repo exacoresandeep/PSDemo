@@ -244,6 +244,7 @@ class DashboardController extends Controller
                             ->whereHas('orders', function ($query) use ($productID) {  //push
                                 $query->where('product_id', $productID);
                             })
+                            ->distinct('phone') 
                             ->count();
 
         // $customerVisitCount = RescheduledRoute::whereYear('assign_date', $year)
