@@ -41,6 +41,8 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
             ->whereHas('orders', function ($query) use ($productID) {  //push
                                 $query->where('product_id', $productID);
                             })
+            
+            
             ->pluck('total', 'created_by')
             ->toArray();
 
@@ -49,8 +51,9 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
             ->whereHas('orders', function ($query) use ($productID) {  //push
                                 $query->where('product_id', $productID);
                             })
+            ->groupBy('phone')                
             ->whereMonth('created_at', $this->month)
-            ->get();
+            ->get()->unique('phone')->values();
     }
     protected function getTotalDealVolume($lead)
     {
@@ -146,6 +149,7 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
 
          return [
             $this->row++,
+             $lead->id,
             $lead->customer_name,
             optional($lead->customerType)->name,
             $lead->phone,
@@ -184,6 +188,7 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
     {
         return [
             'S.No',
+            'Lead id',
             'Customer Name',
             'Customer Type',
             'Phone',

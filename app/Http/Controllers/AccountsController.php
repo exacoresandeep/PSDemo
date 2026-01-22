@@ -308,7 +308,7 @@ class AccountsController extends Controller
 
         $details = [];
 
-        dd($order->orderItems);
+        // dd($order->orderItems);
         foreach ($order->orderItems as $orderItem) {
             foreach ($orderItem->product_details as $detail) {
                 $productType = ProductType::find($detail['product_type_id']);
@@ -438,7 +438,7 @@ class AccountsController extends Controller
                 $sender='dealers';
             }
             if ($deviceToken) {
-                $title = 'Order No. OD00' . $order->id . ' approved successfully';
+                $title = 'Order No. OD00' . $order->id . ' rejected successfully';
                 $body = 'Order No. OD00' . $order->id . ' approved successfully' . now()->format('d/m/Y');
                 $fcm->sendNotification($deviceToken, $title, $body,  $sender);
             }

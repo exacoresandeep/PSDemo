@@ -51,9 +51,10 @@ class PushNotificationCron extends Command
             /**
              * 1️⃣ Notify Employee (Route Owner)
              */
-            $employee = $dealer->assignRoute?->employee;
-
+            $employee = $commitment->outstandingPayment?->dealer->assignEmpRoute?->employee;
+            // dd($employee);
             if ($employee && $employee->fcm_token) {
+                dd($employee->fcm_token);
                 $pushService->sendNotification(
                     $employee->fcm_token,
                     'Payment Commitment Due',

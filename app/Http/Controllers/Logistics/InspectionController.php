@@ -46,7 +46,7 @@ class InspectionController extends Controller
 
             // Map type to employee_type_id
             $typeMapping = [
-                'Inspection' => 7,
+                'Inspection' => 8,
                 // add other mappings here if needed
             ];
 
@@ -65,7 +65,7 @@ class InspectionController extends Controller
                 ->where('employees.employee_type_id', $employeeTypeId)
                 ->select('employees.*', 'employee_types.id as type_id', 'employee_types.type_name')
                 ->first();
-            
+            // dd(Hash::make($validated['password']));
             if (!$employee || !Hash::check($validated['password'], $employee->password)) {
                 return response()->json([
                     'success' => false,

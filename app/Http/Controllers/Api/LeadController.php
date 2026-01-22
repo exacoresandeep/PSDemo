@@ -1744,16 +1744,23 @@ class LeadController extends Controller
 
             
             $lead_id = $lead->id;
-            
+            $orderstatus = "Pending";
             if ($status === 'Won' || $status === 'Lost') {
+                
+               
 
                 $lead_last = Lead::where('phone', $lead->phone)
                     ->where('status', 'Follow Up')
                     ->orderBy('created_at', 'desc')
                     ->first();
+                 
 
                 if ($lead_last) {
                     $lead_id = $lead_last->id;
+                    
+                }
+                if($status === 'Won'){
+                    $orderstatus = Order::where('lead_id', $lead_id)->value('status') ?? "Pending";
                 }
             }
 
@@ -1764,6 +1771,7 @@ class LeadController extends Controller
                     'id' => $lead->customerType->id ?? null,
                     'name' => $lead->customerType->name ?? null,
                 ],
+                'order_status' => $orderstatus,
                 'view_lead_id' => $lead->id,
                 'customer_name' => $lead->customer_name,
                 'phone' => $lead->phone,
