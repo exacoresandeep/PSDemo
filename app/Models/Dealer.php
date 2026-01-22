@@ -60,6 +60,14 @@ class Dealer extends Model
     //     return $this->belongsTo(AssignRoute::class, 'assign_route_id');
     // }
   
+    public function assignEmpRoute()
+    {
+        return $this->belongsTo(
+            AssignRoute::class,
+            'assigned_route_id', // FK in dealers table
+            'id'
+        );
+    }
     public function assignedRoutes()
     {
         return $this->belongsToMany(

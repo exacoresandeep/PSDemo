@@ -21,12 +21,14 @@ use DB;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Log;
 use App\Services\FirebasePushService;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx\Rels;
 
 class ActivityController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
+            
             $user = Auth::user();
 
             if ($user === null) {
@@ -38,10 +40,20 @@ class ActivityController extends Controller
             }
 
             $activities = Activity::where('employee_id', $user->id)
-                ->with(['activityType', 'dealer']) 
-	                ->orderBy('created_at', 'desc')
-                ->orderBy('assigned_date', 'desc')
-                ->get();
+            ->with(['activityType', 'dealer'])
+            ->orderBy('created_at', 'desc')
+            ->orderBy('assigned_date', 'desc');
+
+            $filter = $request->filter;
+
+            if (!empty($filter)) {
+                $activities->whereHas('activityType', function ($q) use ($filter) {
+                    $q->where('name', 'LIKE', "%{$filter}%");
+                });
+            }
+
+            $activities = $activities->get();
+            
             $activitiesData = $activities->map(function ($activity) {
                 $activity->assigned_date =\Carbon\Carbon::parse($activity->assigned_date)->format('d/m/Y');
                 $activity->completed_date = \Carbon\Carbon::parse($activity->completed_date)->format('d/m/Y');

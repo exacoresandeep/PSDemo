@@ -2409,7 +2409,7 @@ class OrderController extends Controller
                     ->when($productId, function ($q) use ($productId) {
                         $q->where('product_id', $productId);
                     });
-            })
+                })
                 ->orWhere(function ($query) use ($dealerIdsWithDue, $productId) {
                     $query->whereIn('created_by_dealer', $dealerIdsWithDue)
                         ->where('dealer_flag_order', '1')
@@ -2419,6 +2419,7 @@ class OrderController extends Controller
                 })
                 ->with(['createdBy', 'dealer', 'orderType', 'paymentTerm'])
                 ->orderBy('created_at', 'desc')
+                
                 ->get();
 
             if ($orders->isEmpty()) {

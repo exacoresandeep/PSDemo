@@ -200,10 +200,10 @@ class DriverController extends Controller
                 'password' => 'required|string',
                 'type' => 'required|string|in:Driver',
             ]);
-
-	    $driver = Driver::where('phone', $validated['phone'])
+            $driver = Driver::where('phone', $validated['username'])
 		    ->where('status', '1')
             ->first();
+            
 
             if (!$driver || !Hash::check($validated['password'], $driver->password)) {
                 return response()->json([
