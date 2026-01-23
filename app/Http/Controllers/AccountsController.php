@@ -334,16 +334,24 @@ class AccountsController extends Controller
         $orderType = $orderTypeMap[$orderTypeName] ?? null;
         // Get Employee Info
         
-        
-        
+        $today = Carbon::today();
+        if ($order->delivery_date) {
+            $deliveryDate = Carbon::parse($order->delivery_date);
+
+            if ($deliveryDate->lessThan($today)) {
+                $deliveryDate = $today;
+            }
+        } else {
+            $deliveryDate = $today->copy()->addDays(7);
+        }
         $sapPayload = [
             'CardCode'      => $order->dealer->dealer_code,
             'PaymentTerm'   => $paymentTermId,
             'BillTo'        => $order->dealer->dealer_name,
             'ShipTo'        => $order->dealer->dealer_name,
-            'SO_No'      => $order->id,
-            'SO_Date'       => $order->created_at->format('Y-m-d'),
-            'Delivery_Date' => optional($order->delivery_date)->format('Y-m-d') ?? now()->addDays(7)->format('Y-m-d'),
+            'SO_No'         => $order->id,
+            'SO_Date'       => $today->format('Y-m-d'),
+            'Delivery_Date' => $deliveryDate->format('Y-m-d'),
             'BPL_ID'        => "$sap_id",  //1,3,5,6  //push to live
             'Series'        => '1032',
             'OrderType'     => $orderType,
@@ -356,10 +364,12 @@ class AccountsController extends Controller
             "SapCode"   => "$emp_sap_id", //integer //push to live
             "Document_ApprovalRequests" => [], //static empty array 
             "DocType" => "dDocument_Items", //static item.      
-            "DocDueDate" => optional($order->delivery_date)->format('Y-m-d') ?? now()->addDays(7)->format('Y-m-d'),
+            "DocDueDate" => $deliveryDate->format('Y-m-d')
         ];
+        if($order->id=="47920"){
+        //dd($sapPayload); 
+        }
 
-        dd($sapPayload); //push to live
         try {
             // Log payload for debugging
         $response = Http::withHeaders([
