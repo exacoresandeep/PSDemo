@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\VehicleCategory;
+use App\Models\OutstandingPayment;
 use Carbon\Carbon;
 
 class Order extends Model
@@ -155,5 +156,9 @@ class Order extends Model
     {
         return $this->belongsTo(InfluencerVisit::class, 'influencer_visit_id');
     }
-    
+    public function latestOutstandingPayment()
+    {
+        return $this->hasOne(OutstandingPayment::class, 'order_id', 'id')
+                ->latestOfMany();
+    }
 }

@@ -201,7 +201,7 @@ class MaintenanceController extends Controller
             ]);
 
 	    $user = Employee::where('employee_code', $validated['username'])
-		    ->where('employee_type_id', '8')
+		    ->where('employee_type_id', '9')
             ->first();
             if (!$user || !Hash::check($validated['password'], $user->password)) {
                 return response()->json([

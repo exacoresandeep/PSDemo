@@ -2390,6 +2390,7 @@ class OrderController extends Controller
 
             $dealerIdsWithDue = OutstandingNew::where('due_balance', '>', 0)
                 ->pluck('dealer_id');
+            
 
             if ($dealerIdsWithDue->isEmpty()) {
                 return response()->json([
@@ -2401,10 +2402,15 @@ class OrderController extends Controller
 
             $employeeIds = Employee::whereIn('employee_type_id', [2, 3, 4])
                 ->pluck('id');
-
-            $orders = Order::where(function ($query) use ($employeeIds, $dealerIdsWithDue, $productId) {
-                $query->whereIn('created_by', $employeeIds)
-                    ->whereIn('dealer_id', $dealerIdsWithDue)
+                // dd($employeeIds);
+            $dueBeforeDate = Carbon::now()->subDays(25)->toDateString();
+            $orders = Order::with(['createdBy', 'dealer', 'orderType', 'paymentTerm', 'latestOutstandingPayment'])
+                ->whereHas('latestOutstandingPayment', function ($q) use ($dueBeforeDate) {
+                    $q->whereDate('due_date', '<=', $dueBeforeDate);
+                })
+                ->where(function ($query) use ($employeeIds, $dealerIdsWithDue, $productId) {
+                    $query->whereIn('created_by', $employeeIds)
+                     ->whereIn('dealer_id', $dealerIdsWithDue)
                     ->where('dealer_flag_order', '0')
                     ->when($productId, function ($q) use ($productId) {
                         $q->where('product_id', $productId);
@@ -2417,7 +2423,7 @@ class OrderController extends Controller
                             $q->where('product_id', $productId);
                         });
                 })
-                ->with(['createdBy', 'dealer', 'orderType', 'paymentTerm'])
+                
                 ->orderBy('created_at', 'desc')
                 
                 ->get();
@@ -2430,12 +2436,17 @@ class OrderController extends Controller
                 ], 404);
             }
 
-            $formattedOrders = $orders->map(function ($order) {
+            $formattedOrders = $orders->map(function ($order) use ($dueBeforeDate)    {
                 return [
                     'id'           => $order->id,
                     'created_at'   => Carbon::parse($order->created_at)->format('d/m/Y'),
                     'dealer_name'  => $order->dealer->dealer_name ?? 'N/A',
                     'product_id'   => $order->product_id,
+                    'created_by'   => $order->created_by,
+                    'due_date' => $order->latestOutstandingPayment?->due_date
+    ? Carbon::parse($order->latestOutstandingPayment->due_date)->format('d/m/Y')
+    : 'N/A',
+                    'dueBeforeDate' => $dueBeforeDate,
                     'order_status' => $order->status,
                     'total_amount' => (int) $order->total_amount,
                 ];
