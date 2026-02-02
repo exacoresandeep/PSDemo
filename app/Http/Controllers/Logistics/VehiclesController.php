@@ -266,9 +266,9 @@ class VehiclesController extends Controller
             'rc_file' => 'vehicles/rc_files',
             'tax_receipt_file' => 'vehicles/tax_receipts',
             'insurance_file' => 'vehicles/insurance_files',
-            'pollution_file' => 'vehicles/pollution_files',
+            'puc_file' => 'vehicles/pollution_files',
             'fitness_file' => 'vehicles/fitness_files',
-            'state_permit_file' => 'vehicles/state_permits',
+            'permit_file' => 'vehicles/state_permits',
             'national_permit_file' => 'vehicles/national_permits',
         ];
 
