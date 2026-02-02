@@ -37,7 +37,7 @@ Route::get('storage/drivers/photos/{filename}', function ($filename) {
 
     return response()->file($path);
 });
-Route::get('vehicles/{path}', function ($path) {
+Route::get('storage/vehicles/{path}', function ($path) {
     $fullPath = storage_path('app/public/vehicles/' . $path);
 
     if (!File::exists($fullPath)) {
