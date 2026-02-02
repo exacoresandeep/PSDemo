@@ -19,6 +19,15 @@ Route::get('storage/drivers/adhar/{filename}', function ($filename) {
 
     return response()->file($path);
 });
+Route::get('storage/drivers/license/{filename}', function ($filename) {
+    $path = storage_path('app/public/drivers/license/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path);
+});
 
 Route::get('/get-products', function () {
     $user = auth()->user();
