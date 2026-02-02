@@ -37,6 +37,16 @@ Route::get('storage/drivers/photos/{filename}', function ($filename) {
 
     return response()->file($path);
 });
+Route::get('vehicles/{path}', function ($path) {
+    $fullPath = storage_path('app/public/vehicles/' . $path);
+
+    if (!File::exists($fullPath)) {
+        abort(404);
+    }
+
+    return response()->file($fullPath);
+})->where('path', '.*');
+
 
 Route::get('/get-products', function () {
     $user = auth()->user();
