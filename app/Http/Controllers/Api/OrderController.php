@@ -54,6 +54,8 @@ class OrderController extends Controller
 
             $query = Order::where('created_by', $employee->id)
                 ->where('dealer_flag_order', "0")
+                ->where('lead_id', "")
+                ->where('influencer_visit_id', "")
                 ->with([
                     'dealer:id,dealer_name,dealer_code',
                     'orderItems:id,order_id,product_id,total_quantity' // optional, if you want to see products
@@ -264,7 +266,7 @@ class OrderController extends Controller
                 'paymentTerm:id,name',
                 'vehicleCategory:id,vehicle_category_name'
             ])->findOrFail($orderId);
-            if ($user->id == $order->created_by && $order->notification_status == "pending") {
+            if ($user->id == $order->created_by) {
                 $order->update(['notification_status' => 'opened']);
             }
             $order->vehicle_category_name = $order->vehicleCategory->vehicle_category_name ?? null;
@@ -1477,6 +1479,7 @@ class OrderController extends Controller
                     'outstanding_payment_id' => $outstandingPaymentId,
                     'committed_date' => $commitment['committed_date'],
                     'committed_amount' => $commitment['committed_amount'],
+                    'employee_id' => $employee->id,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
@@ -1533,6 +1536,8 @@ class OrderController extends Controller
             $product_id = $request->input('product_id');
 
             $totalSalesForPeriod = 0;
+            $totalQtyForPeriod = 0;
+            $totalQty="";
             $salesReport = collect([]);
 
             /**
@@ -1549,7 +1554,7 @@ class OrderController extends Controller
                     })
                     ->get();
 
-                $salesReport = $salesExecutives->map(function ($se) use ($month, $year, $product_id, &$totalSalesForPeriod) {
+                $salesReport = $salesExecutives->map(function ($se) use ($month, $year, $product_id, &$totalSalesForPeriod, &$totalQtyForPeriod) {
 
                     $orders = Order::with(['orderItems' => function ($q) use ($product_id) {
                         if ($product_id) {
@@ -1568,6 +1573,10 @@ class OrderController extends Controller
                         ->get();
                        
                     $totalSales =  $orders->sum('total_amount');
+                    $totalQty =  $orders->sum(function ($order) {
+                        return $order->orderItems->sum('total_quantity');
+                    });
+                    $totalQtyForPeriod += $totalQty;
                     $totalSalesForPeriod += $totalSales;
 
                     return [
@@ -1576,11 +1585,13 @@ class OrderController extends Controller
                         'employee_code' => $se->employee_code,
                         'employee_type_id' => $se->employee_type_id,
                         'total_sales_report' => (float) $totalSales,
-                        'orders' => $orders->map(function ($order) {
+                        'total_qty_report' => (float) $totalQty,
+                        'orders' => $orders->map(function ($order) use ($totalQty){
                             return [
                                 'order_id' => $order->id,
                                 'created_at' => optional($order->created_at)->format('d/m/Y'),
                                 'invoice_total' => $order->total_amount,
+                                'invoice_qty' => $totalQty,
                             ];
                         }),
                     ];
@@ -1606,7 +1617,7 @@ class OrderController extends Controller
                     })
                     ->get();
 
-                $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod) {
+                $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod, &$totalQtyForPeriod) {
 
                     $orders = Order::with(['orderItems' => function ($q) use ($product_id) {
                         if ($product_id) {
@@ -1625,7 +1636,10 @@ class OrderController extends Controller
                         ->get();
 
                     $totalSales =  $orders->sum('total_amount');
-                    
+                    $totalQty =  $orders->sum(function ($order) {
+                        return $order->orderItems->sum('total_quantity');
+                    });
+                    $totalQtyForPeriod += $totalQty;
                     $totalSalesForPeriod += $totalSales;
 
                     return [
@@ -1634,11 +1648,13 @@ class OrderController extends Controller
                         'employee_code' => $emp->employee_code,
                         'employee_type_id' => $emp->employee_type_id,
                         'total_sales_report' => (float) $totalSales,
-                        'orders' => $orders->map(function ($order) {
+                        'total_qty_report' => (float) $totalQty,
+                        'orders' => $orders->map(function ($order)  use ($totalQty){
                             return [
                                 'order_id' => $order->id,
                                 'created_at' => optional($order->created_at)->format('d/m/Y'),
                                 'invoice_total' => $order->total_amount,
+                                'invoice_qty' => $totalQty,
                             ];
                         }),
                     ];
@@ -1657,7 +1673,7 @@ class OrderController extends Controller
                     })
                     ->get();
 
-                $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod) {
+                $salesReport = $employees->map(function ($emp) use ($month, $year, $product_id, &$totalSalesForPeriod, &$totalQtyForPeriod) {
 
                     $orders = Order::with(['orderItems' => function ($q) use ($product_id) {
                         if ($product_id) {
@@ -1677,6 +1693,10 @@ class OrderController extends Controller
 
                     $totalSales = $orders->sum('total_amount');
                     $totalSalesForPeriod += $totalSales;
+                    $totalQty =  $orders->sum(function ($order) {
+                        return $order->orderItems->sum('total_quantity');
+                    });
+                    $totalQtyForPeriod += $totalQty;
 
                     return [
                         'employee_id' => $emp->id,
@@ -1684,11 +1704,13 @@ class OrderController extends Controller
                         'employee_code' => $emp->employee_code,
                         'employee_type_id' => $emp->employee_type_id,
                         'total_sales_report' => (float) $totalSales,
-                        'orders' => $orders->map(function ($order) {
+                        'total_qty_report' => (float) $totalQty,
+                        'orders' => $orders->map(function ($order)  use ($totalQty){
                             return [
                                 'order_id' => $order->id,
                                 'created_at' => optional($order->created_at)->format('d/m/Y'),
                                 'invoice_total' => $order->total_amount,
+                                'invoice_qty' => $totalQty,
                             ];
                         }),
                     ];

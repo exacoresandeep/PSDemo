@@ -336,7 +336,8 @@ class AccountsController extends Controller
         
         $today = Carbon::today();
         if ($order->delivery_date) {
-            $deliveryDate = Carbon::parse($order->delivery_date);
+            // $deliveryDate = Carbon::parse($order->delivery_date);
+            $deliveryDate = Carbon::createFromFormat('d/m/Y', $order->delivery_date);
 
             if ($deliveryDate->lessThan($today)) {
                 $deliveryDate = $today;
@@ -366,8 +367,8 @@ class AccountsController extends Controller
             "DocType" => "dDocument_Items", //static item.      
             "DocDueDate" => $deliveryDate->format('Y-m-d')
         ];
-        if($order->id=="47920"){
-        //dd($sapPayload); 
+        if($order->id=="47927"){
+        dd($sapPayload); 
         }
 
         try {

@@ -49,7 +49,9 @@ class ActivityController extends Controller
             if (!empty($filter)) {
                 $activities->whereHas('activityType', function ($q) use ($filter) {
                     $q->where('name', 'LIKE', "%{$filter}%");
-                });
+                }) ->orWhereHas('dealer', function ($q) use ($filter) {
+            $q->where('dealer_name', 'LIKE', "%{$filter}%");
+        });
             }
 
             $activities = $activities->get();

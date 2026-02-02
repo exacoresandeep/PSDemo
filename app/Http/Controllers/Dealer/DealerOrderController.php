@@ -1180,9 +1180,13 @@ private function normalizeDate(?string $date): ?string
 
             $outstandingPayments->each(function ($payment) {
                 $payment->commitments = OutstandingPaymentCommitment::where('outstanding_payment_id', $payment->id)
-                    ->select('id', 'committed_date', 'committed_amount')
+                    ->select('id', 'committed_date', 'committed_amount','notification_status')
                     ->orderBy('committed_date', 'asc')
                     ->get();
+
+                OutstandingPaymentCommitment::where('outstanding_payment_id', $payment->id)
+                    ->where('notification_status', '!=', 'opened')
+                    ->update(['notification_status' => 'opened']);
             });
             $payments = Payment::where('order_id', $order->id)
                 ->where('dealer_id', $user->id) 
@@ -2063,9 +2067,9 @@ private function normalizeDate(?string $date): ?string
     
             // Update notification status
             $notificationValue = match ($validatedData['status']) {
-                'Rejected' => 'rejected',
-                'Accepted' => 'approved',
-                default => 'pending',
+                'Rejected' => 'Rejected',
+                'Accepted' => 'Approved',
+                default => 'Pending',
             };
     
             $authController = new AuthController();
