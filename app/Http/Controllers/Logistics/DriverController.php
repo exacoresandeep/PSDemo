@@ -269,10 +269,22 @@ class DriverController extends Controller
                     'blood_group' => $driver->blood_group,
                     'address' => $driver->address,
                     'adhar_no' => $driver->adharcard_no,
-                    'adhar_attachment' => $driver->adhar_attachment,
+                    // 'adhar_attachment' => $driver->adhar_attachment,
                     'liscence_no' => $driver->liscence_no,
-                    'liscence_attachment' => $driver->liscence_attachment,
-                    'photo' => $driver->photo,
+                    // 'liscence_attachment' => $driver->liscence_attachment,
+                    // 'photo' => $driver->photo,
+
+                    'adhar_attachment' => $driver->adhar_attachment
+                                            ? asset('storage/' . $driver->adhar_attachment)
+                                            : null,
+
+                    'liscence_attachment' => $driver->liscence_attachment
+                                            ? asset('storage/' . $driver->liscence_attachment)
+                                            : null,
+
+                    'photo' => $driver->photo
+                                            ? asset('storage/' . $driver->photo)
+                                            : null,
                     'status' => $driver->status,
                 ],
             ], 200);

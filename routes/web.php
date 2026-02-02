@@ -10,6 +10,7 @@ Route::get('storage/uploads/{filename}', function ($filename) {
     $path = 'uploads/' . $filename;
 return response()->file(storage_path("app/public/$path")); 
 });
+
 Route::get('/get-products', function () {
     $user = auth()->user();
     $productIds = $user->product_ids ?? [];
