@@ -38,7 +38,7 @@ class PushNotificationCron extends Command
     private function sendPaymentCommitments($today, $pushService)
     {
         $commitments = OutstandingPaymentCommitment::with(
-            'outstandingPayment.dealer.assignRoute.employee'
+            'employee'
         )
         ->whereDate('committed_date', $today)
         ->get();
@@ -51,19 +51,20 @@ class PushNotificationCron extends Command
             /**
              * 1️⃣ Notify Employee (Route Owner)
              */
-            $employee = $commitment->outstandingPayment?->dealer->assignEmpRoute?->employee;
+            $employee = $commitment->employee;
             // dd($employee);
             if ($employee && $employee->fcm_token) {
-                dd($employee->fcm_token);
+                // dd($employee->fcm_token);
+                $amount = number_format($commitment->committed_amount, 2, '.', '');
                 $pushService->sendNotification(
                     $employee->fcm_token,
                     'Payment Commitment Due',
-                    'A dealer has a committed payment due today.',
+                    $dealer->dealer_name. ' has a committed payment of '. $amount . ' due today.',
                     'employees',
                     [
                         'commitment_id' => (string) $commitment->id,
                         'dealer_id'     => (string) $dealer->id,
-                        'amount'        => (string) $commitment->committed_amount,
+                        'amount'        => (string) $amount,
                     ]
                 );
             }

@@ -364,7 +364,7 @@ public function updateFcmToken(Request $request)
                     ->where('op.dealer_id', $dealerId)
                     ->selectRaw("
                         'commitments' as type,
-                        opc.id,
+                        op.order_id,
                         CASE
                             WHEN opc.notification_status = 'pending' AND DATE(opc.committed_date) = ? THEN CONCAT('Reminder: Commitment of ', FORMAT(opc.committed_amount, 0), ' is scheduled for today by ', (SELECT name FROM employees WHERE id = opc.employee_id))
                             WHEN opc.notification_status = 'pending' THEN CONCAT('New commitment of ', FORMAT(opc.committed_amount, 0), ' is created by ', (SELECT name FROM employees WHERE id = opc.employee_id), ' for ', DATE_FORMAT(opc.committed_date, '%d-%m-%Y'))
@@ -375,8 +375,8 @@ public function updateFcmToken(Request $request)
                         opc.notification_status,
                         IF(opc.notification_status IN ('opened','approved'),1,0) as is_read,
                         IF(opc.notification_status IN ('opened','approved'), 'read','unread') as read_class,
-                        DATE_FORMAT(opc.created_at,'%d-%m-%Y') as date,
-                        DATE_FORMAT(opc.created_at,'%h:%i %p') as time
+                        DATE_FORMAT(opc.committed_date,'%d-%m-%Y') as date,
+                        DATE_FORMAT(CONCAT(DATE(opc.committed_date),' 09:00:00'), '%h:%i %p') as time
                     ", [$today])
                     ->get()
                     ->map(function($item){
@@ -558,10 +558,10 @@ public function updateFcmToken(Request $request)
                     ->where('opc.employee_id', $employeeId)
                     ->selectRaw("
                         'commitments' as type,
-                        opc.id,
+                        op.order_id,
                         CASE
-                            WHEN opc.notification_status = 'pending' AND DATE(opc.committed_date) = ? THEN CONCAT('Reminder: Your commitment of ', FORMAT(opc.committed_amount, 0), ' is scheduled for today')
-                            WHEN opc.notification_status = 'pending' THEN 'Your commitment is under review'
+                            WHEN opc.notification_status = 'pending' AND DATE(opc.committed_date) = ? THEN CONCAT('Reminder: Your commitment of ', FORMAT(opc.committed_amount, 0),' with ',(SELECT dealer_name FROM dealers WHERE id = op.dealer_id), ' is scheduled for today')
+                            WHEN opc.notification_status = 'pending' THEN CONCAT('Your commitment of ', FORMAT(opc.committed_amount, 0),' with ',(SELECT dealer_name FROM dealers WHERE id = op.dealer_id), ' is under review')
                             WHEN opc.notification_status = 'approved' THEN CONCAT('Your commitment is approved by Dealer ', (SELECT dealer_name FROM dealers WHERE id = op.dealer_id))
                             WHEN opc.notification_status = 'rejected' THEN CONCAT('Your commitment is rejected by Dealer ', (SELECT dealer_name FROM dealers WHERE id = op.dealer_id))
                             ELSE ''
@@ -569,8 +569,8 @@ public function updateFcmToken(Request $request)
                         opc.notification_status,
                         IF(opc.notification_status IN ('opened','approved'),1,0) as is_read,
                         IF(opc.notification_status IN ('opened','approved'), 'read','unread') as read_class,
-                        DATE_FORMAT(opc.created_at,'%d-%m-%Y') as date,
-                        DATE_FORMAT(opc.created_at,'%h:%i %p') as time
+                        DATE_FORMAT(opc.committed_date,'%d-%m-%Y') as date,
+                        DATE_FORMAT(CONCAT(DATE(opc.committed_date),' 09:00:00'), '%h:%i %p') as time
                     ", [$today])
                     ->get()
                     ->map(function($item){
@@ -583,7 +583,7 @@ public function updateFcmToken(Request $request)
                         ->where('lead_follow_ups.created_by', $employeeId)
                         ->selectRaw("
                             'follow_up' as type,
-                            lead_follow_ups.id,
+                            leads.id,
                             CONCAT('Reminder: Today is the follow-up date for lead ', leads.customer_name) as notification_message,
                             lead_follow_ups.notification_status,
                             IF(lead_follow_ups.notification_status = 'opened', 1, 0) as is_read,
@@ -601,7 +601,7 @@ public function updateFcmToken(Request $request)
                         ->where('influencer_visit_follow_ups.created_by', $employeeId)
                         ->selectRaw("
                             'influencer_follow_up' as type,
-                            influencer_visit_follow_ups.id,
+                            influencer_visits.id,
                             CONCAT(
                                 'Reminder: Today is the follow-up date for influencer ',
                                 influencer_visits.influencer_name
