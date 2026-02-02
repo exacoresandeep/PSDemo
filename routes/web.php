@@ -10,6 +10,15 @@ Route::get('storage/uploads/{filename}', function ($filename) {
     $path = 'uploads/' . $filename;
 return response()->file(storage_path("app/public/$path")); 
 });
+Route::get('storage/drivers/adhar/{filename}', function ($filename) {
+    $path = storage_path('app/public/drivers/adhar/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path);
+});
 
 Route::get('/get-products', function () {
     $user = auth()->user();
