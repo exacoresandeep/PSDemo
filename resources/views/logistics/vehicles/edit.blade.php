@@ -214,7 +214,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Pollution Certificate Attachment</label>
-                    <input type="file" name="pollution_file" accept=".pdf,.jpg,.jpeg,.png" class="form-control">
+                    <input type="file" name="puc_file" accept=".pdf,.jpg,.jpeg,.png" class="form-control">
                     @if($vehicle->puc_file)
                         <small class="d-block mt-1">
                             Current File: 
@@ -246,7 +246,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">State Permit Certificate Attachment</label>
-                    <input type="file" name="state_permit_file" accept=".pdf,.jpg,.jpeg,.png" class="form-control">
+                    <input type="file" name="permit_file" accept=".pdf,.jpg,.jpeg,.png" class="form-control">
                     @if($vehicle->permit_file)
                         <small class="d-block mt-1">
                             Current File: 
