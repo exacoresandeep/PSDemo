@@ -28,6 +28,15 @@ Route::get('storage/drivers/license/{filename}', function ($filename) {
 
     return response()->file($path);
 });
+Route::get('storage/drivers/photo/{filename}', function ($filename) {
+    $path = storage_path('app/public/drivers/photo/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    return response()->file($path);
+});
 
 Route::get('/get-products', function () {
     $user = auth()->user();
