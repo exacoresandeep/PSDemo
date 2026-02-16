@@ -125,6 +125,7 @@
                         // Set Order Details
                         $('#vehicle_status').val(order.vehicle_status);
                         $('#vehicle_remarks').val(order.vehicle_remarks);
+                        $('#view_remarks').val(order.view_remarks);
                         $('#view_order_id').text(order.order_id);
                         $('#view_date').text(order.date);
                         $('#view_employee_type').text(order.employee_type);

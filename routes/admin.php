@@ -185,9 +185,20 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
             Route::get('/edit/{id}', [UserManagementController::class, 'edit'])->name('admin.users.edit');
             Route::post('/update/{id}', [UserManagementController::class, 'update'])->name('admin.users.update');
             Route::delete('/delete/{id}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+            
+            Route::get('/resetPassword/{id}', [UserManagementController::class, 'resetPassword'])->name('admin.users.resetPassword');
+            Route::get('/changePassword/{id}', [UserManagementController::class, 'changePassword'])->name('admin.users.changePassword');
+            Route::post('/updatePassword', [UserManagementController::class, 'updatePassword'])->name('admin.users.updatePassword');
+            
             Route::get('/check-username', [UserManagementController::class, 'checkUsername'])->name('admin.users.check-username');
 
             Route::get('/employees', [AdminController::class, 'employeeIndex'])->name('admin.users.employee-index');
+            Route::get('/dealers', [AdminController::class, 'dealersIndex'])->name('admin.users.dealers-index');
+            Route::get('/dealers/list', [AdminController::class, 'dealersList'])->name('admin.users.dealers-list');
+
+            Route::delete('/employees/resetEmployeePassword/{id}', [AdminController::class, 'resetEmployeePassword'])->name('admin.users.employee.resetPassword');
+            Route::delete('/dealers/resetDealerPassword/{id}', [AdminController::class, 'resetDealerPassword'])->name('admin.users.dealer.resetPassword');
+            
             Route::get('/employees/list', [AdminController::class, 'employeeList'])->name('admin.users.employee-list');
             Route::post('/employees/import', [AdminController::class, 'importEmployees'])->name('admin.users.import-employees');
         });

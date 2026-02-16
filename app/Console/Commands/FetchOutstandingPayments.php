@@ -79,11 +79,7 @@ class FetchOutstandingPayments extends Command
 
                     $this->info("Processing {$product->product_name} ($fromDate → $toDate)");
 
-                    $sql = "CALL \"PRABHU_NEW\".\"MobileApp_OutstandingPayment_Param_F\"(
-                        '$fromDate',
-                        '$toDate',
-                        {$product->sap_id}
-                    )";
+                    $sql = ".";
 
                     $result = odbc_exec($conn, $sql);
                     if (!$result) {

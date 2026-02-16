@@ -54,6 +54,10 @@
                         <div class="col-md-6"><strong>Driver name:</strong> <span id="view_driver_name"></span></div>
                         <div class="col-md-6"><strong>Instructions:</strong> <span id="view_instructions"></span></div>
                     </div>
+                    <div class="row mb-2">
+                       
+                        <div class="col-md-6"><strong>Remarks:</strong> <span id="view_remarks"></span></div>
+                    </div>
 
                     <h5 class="mt-3">Product Details</h5>
                     <table class="table table-bordered table-responsive">

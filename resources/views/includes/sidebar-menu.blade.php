@@ -20,10 +20,14 @@
                 </a>
                 <ul class="submenu">
                     <li>
-                        <a href="{{ route('admin.users.index') }}">Users <span class="icon-right"></span></a>
+                        <a href="{{ route('admin.users.index') }}">Backend Users <span class="icon-right"></span></a>
                     </li>
                     <li>
                         <a href="{{ route('admin.users.employee-index') }}">Employees <span class="icon-right"></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.users.dealers-index') }}">Dealers <span class="icon-right"></span>
                         </a>
                     </li>
                     

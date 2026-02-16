@@ -157,6 +157,7 @@ main {
 
 .dashboard-area {
   padding-top: 30px;
+  min-height: 500px;
 }
 
 .dash-item-box {

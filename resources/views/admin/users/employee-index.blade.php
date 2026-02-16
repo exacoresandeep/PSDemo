@@ -9,7 +9,7 @@
     </div>
 
     <div class="listing-sec">
-        <table class="table table-bordered table-striped w-100" id="employeesTable">
+        <table class="table table-bordered table-striped table-responsive w-100" id="employeesTable">
             <thead>
                 <tr>
                     <th>Sl.No</th>
@@ -23,6 +23,7 @@
                     <th>Reporting Manager</th>
                     <th>Address</th>
                     <th>Emergency Contact</th>
+                    <th>Reset Password</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -33,6 +34,51 @@
 
 @section('scripts')
 <script>
+    // ------------------- Reset User Password -------------------
+    function resetEmployeePassword(Id) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "Do you want to reset the password of this employee",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, Reset Password!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+
+                $.ajax({
+                    url: "{{ url('admin/users/employees/resetEmployeePassword') }}/" + Id,
+                    type: "DELETE",
+                    data: {
+                        _token: "{{ csrf_token() }}"
+                    },
+                    beforeSend: function() { Swal.showLoading(); },
+                    success: function(response) {
+                        Swal.close();
+                        window.table.ajax.reload();
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Reset Password!',
+                            text: response.message || 'User password resetted successfully.',
+                            showConfirmButton: false,
+                            timer: 1800
+                        });
+                    },
+                    error: function(xhr) {
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: xhr.responseJSON?.message || 'Something went wrong while resettig the user password.',
+                        });
+                    }
+                });
+            }
+        });
+    }
 $(document).ready(function() {
     $('#employeesTable').DataTable({
         processing: true,
@@ -56,6 +102,7 @@ $(document).ready(function() {
             { data: 'reporting_manager', name: 'reporting_manager' },
             { data: 'address', name: 'address' },
             { data: 'emergency_contact', name: 'emergency_contact' },
+            { data: 'reset_password', name: 'reset_password' },
         ]
     });
 
@@ -97,6 +144,9 @@ $(document).ready(function() {
             });
         }
     });
+
+    
+    
 });
 </script>
 @endsection

@@ -159,6 +159,12 @@ class Order extends Model
     public function latestOutstandingPayment()
     {
         return $this->hasOne(OutstandingPayment::class, 'order_id', 'id')
-                ->latestOfMany();
+            ->whereNotNull('due_date')
+            ->orderByDesc('due_date')   // latest due date
+            ->orderByDesc('id');        // tie-breaker
     }
+
+
+
+
 }
