@@ -336,7 +336,7 @@ function resetUserPassword(userId) {
 
             $.ajax({
                 url: "{{ url('admin/users/resetPassword') }}/" + userId,
-                type: "DELETE",
+                type: "GET",
                 data: {
                     _token: "{{ csrf_token() }}"
                 },

@@ -190,7 +190,7 @@ class UserManagementController extends Controller
     {
         try {
             $user = User::findOrFail($id);
-            $data['password'] = Hash::make("PSS".$user->username."@");
+            $data['password'] = Hash::make("PSS".$user->username."@123r");
             $user->update($data);
 
             return response()->json([
