@@ -48,12 +48,21 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
 
         return Lead::with("district")->with(['createdBy', 'followUps', 'orders.orderItems','customerType', 'assignRoute'])
             ->whereYear('created_at', $this->year)
-            ->whereHas('orders', function ($query) use ($productID) {  //push
-                                $query->where('product_id', $productID);
-                            })
-            ->groupBy('phone')                
+            // ->whereHas('orders', function ($query) use ($productID) {  //push
+            //     $query->where('product_id', $productID);
+            // })
+            // ->groupBy('phone')          
+            ->where(function ($q) {
+                                    $q->where('status', '!=', 'Follow Up')
+                                    ->orWhere(function ($q2) {
+                                        $q2->where('status', 'Follow Up')
+                                            ->whereNotNull('follow_up_date');
+                                    });
+                                })      
             ->whereMonth('created_at', $this->month)
             ->get()->unique('phone')->values();
+
+
     }
     protected function getTotalDealVolume($lead)
     {

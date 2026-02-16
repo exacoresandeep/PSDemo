@@ -40,6 +40,8 @@ use PDOException;
 use App\Services\FirebasePushService;
 use Carbon\Carbon;
 
+use Illuminate\Validation\Rules\Password;
+
 class AuthController extends Controller
 {
 	public function testPush(FirebasePushService $fcm)
@@ -443,8 +445,8 @@ public function updateFcmToken(Request $request)
                 $employeeOrders = DB::table('orders')
                     ->where('created_by', $employeeId)
                     ->where('dealer_flag_order', '0')
-		 //   ->where('status', '!=', 'Pending')
-	    ->whereIn('status', ['Accepted', 'Rejected'])
+		            //   ->where('status', '!=', 'Pending')
+	                ->whereIn('status', ['Accepted', 'Rejected'])
                     ->selectRaw("
                         'orders' as type, id,
                         CASE
@@ -618,7 +620,7 @@ public function updateFcmToken(Request $request)
                         });
 
               
-                if ($user->employee_type_id == 7) {
+                if ($user->employee_type_id == 8) {
                     $inspectionTypes = ['Pre Trip', 'Post Trip', 'Post Service'];
                     $inspectionNotifications = collect();
 
@@ -673,7 +675,7 @@ public function updateFcmToken(Request $request)
                         ->merge($targets)
                         ->merge($leads)
                         ->merge($inspectionNotifications);
-                } else if($user->employee_type_id == 8){
+                } else if($user->employee_type_id == 9){
                      $notifications = collect();
 
                         // 🔹 1. Assistance Notifications
@@ -855,9 +857,9 @@ public function updateFcmToken(Request $request)
 
                 $notifications = $notifications->merge($maintenanceNotifications)->merge($tripNotifications);
             }
-        // $notifications = $notifications->sortByDesc(function ($item) {
-        // return strtotime($item->date . ' ' . $item->time);
-        // })->values();
+                // $notifications = $notifications->sortByDesc(function ($item) {
+                // return strtotime($item->date . ' ' . $item->time);
+                // })->values();
             $notifications = $notifications
                 ->filter(function ($item) {
                     // return isset($item->notification_message)
@@ -2394,5 +2396,93 @@ public function updateFcmToken(Request $request)
             ],
         ], 200);
     }
-   
+                    
+    public function updateEmployeePassword(Request $request)
+    {
+        $employee = auth()->user(); // Sanctum authenticated employee
+
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 401,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $request->validate([
+            'new_password' => [
+                'required',
+                'confirmed',
+                Password::min(6)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
+        ]);
+
+        
+
+        // Prevent reuse
+        if (Hash::check($request->new_password, $employee->password)) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 400,
+                'message' => 'New password cannot be same as current password'
+            ], 422);
+        }
+
+        $employee->update([
+            'password' => Hash::make($request->new_password)
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => 'Password updated successfully'
+        ]);
+    }
+
+    public function updateDealerPassword(Request $request)
+    {
+        $dealer = auth()->user(); // Sanctum authenticated dealer
+
+        if (!$dealer) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 401,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $request->validate([
+            'new_password' => [
+                'required',
+                'confirmed',
+                Password::min(6)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
+        ]);
+
+        // Prevent reuse
+        if (Hash::check($request->new_password, $dealer->password)) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 400,
+                'message' => 'New password cannot be same as current password'
+            ], 422);
+        }
+
+        $dealer->update([
+            'password' => Hash::make($request->new_password)
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => 'Password updated successfully'
+        ]);
+    }
+
 }

@@ -20,7 +20,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Hash;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
-
+use App\Models\Dealer;
 class AdminController extends Controller
 {
 
@@ -197,6 +197,10 @@ class AdminController extends Controller
     {
         return view('admin.users.employee-index');
     }
+    public function dealersIndex()
+    {
+        return view('admin.users.dealers-index');
+    }
     public function employeeList(Request $request)
     {
         $productId = ProductHelper::getSelectedProductId(); 
@@ -212,6 +216,38 @@ class AdminController extends Controller
             ->addColumn('reporting_manager', function ($employee) {
                 return $employee->reportingManager ? $employee->reportingManager->name : 'N/A';
             })
+             ->addColumn('reset_password', function ($employee) {
+                return '<button onClick="resetEmployeePassword('.$employee->id.');" class="btn btn-sm btn-success">Reset</button>';
+            })
+             ->rawColumns(['reset_password'])
+            ->make(true);
+    }
+
+    public function dealersList(Request $request)
+    {
+        $productId = ProductHelper::getSelectedProductId();
+
+        $dealers = Dealer::with(['assignRoute', 'district'])
+            ->whereJsonContains('products', (string) $productId)
+            ->get();
+
+        return DataTables::of($dealers)
+
+            ->addColumn('route', function ($dealer) {
+                return $dealer->assignRoute 
+                    ? $dealer->assignRoute->route_name 
+                    : 'N/A';
+            })
+
+            ->addColumn('reset_password', function ($dealer) {
+                return '<button onclick="resetDealerPassword('.$dealer->id.')" 
+                            class="btn btn-sm btn-danger">
+                            Reset Password
+                        </button>';
+            })
+
+            ->rawColumns(['reset_password'])
+
             ->make(true);
     }
     public function importEmployees(Request $request)
@@ -299,6 +335,51 @@ class AdminController extends Controller
         }
     }
     
+
+    public function resetEmployeePassword($id)
+    {
+        try {
+            $employee = Employee::findOrFail($id);
+            $name = strtoupper(substr($employee->name, 0, 3));
+            $data['password'] = Hash::make($name.$employee->employee_code."@");
+            $employee->update($data);
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'User password resetted successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => 'Failed to reset pasword of user: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+     public function resetDealerPassword($id)
+    {
+        try {
+            $dealer = Dealer::findOrFail($id);
+            $data['password'] = Hash::make("D00".$dealer->dealer_code."@");
+            $dealer->update($data);
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Dealer password resetted successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => 'Failed to reset pasword of dealer: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+
+
     public function usersIndex(){
         return view('admin.users.user');
     }

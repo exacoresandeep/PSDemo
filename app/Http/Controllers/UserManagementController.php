@@ -7,6 +7,8 @@ use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\Password;
 class UserManagementController extends Controller
 {
     public function index()
@@ -21,6 +23,48 @@ class UserManagementController extends Controller
     {
         $roles = UserType::all();
         return view('users.create', compact('roles'));
+    }
+
+    public function changePassword()
+    {
+        return view('users.changepassword');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            
+            'new_password' => [
+                'required',
+                'confirmed', // automatically checks confirm field
+                Password::min(6)
+                    ->mixedCase()      // upper + lower
+                    ->numbers()        // at least one number
+                    ->symbols(),       // at least one special character
+            ],
+        ]);
+
+        
+        // ✅ Prevent same password reuse
+        if (Hash::check($request->new_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'New password cannot be same as current password'
+            ], 422);
+        }
+
+        // ✅ Update password
+        $user->update([
+            'password' => Hash::make($request->new_password)
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => 'Password Updated Successfully'
+        ]);
     }
 
     public function store(Request $request)
@@ -142,6 +186,27 @@ class UserManagementController extends Controller
         }
     }
 
+    public function resetPassword($id)
+    {
+        try {
+            $user = User::findOrFail($id);
+            $data['password'] = Hash::make("PSS".$user->username."@");
+            $user->update($data);
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'User password resetted successfully!'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => 'Failed to reset pasword of user: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function list()
     {
         $users = User::with('role')->get()->map(function($user) {
@@ -164,6 +229,7 @@ class UserManagementController extends Controller
                 'actions' => '
                     <button onClick="editUser('.$user->id.');" class="btn btn-sm btn-warning">Edit</button>
                     <button onClick="deleteUser('.$user->id.');" class="btn btn-sm btn-danger">Delete</button>
+                    <button onClick="resetUserPassword('.$user->id.');" class="btn btn-sm btn-success">Reset Password</button>
                 '
             ];
         });

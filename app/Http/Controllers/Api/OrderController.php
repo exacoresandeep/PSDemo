@@ -819,77 +819,6 @@ class OrderController extends Controller
         }
     }
 
-    public function outstandingPaymentsList($product_id)
-    {
-        try {
-            $employee = Auth::user();
-
-            if (!$employee) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 401,
-                    'message' => "User not Authenticated",
-                ], 401);
-            }
-
-            $assignedRoutes = AssignRoute::where('employee_id', $employee->id)
-                ->pluck('id')
-                ->toArray();
-
-            if (empty($assignedRoutes)) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => "No assigned routes found for this employee.",
-                ], 404);
-            }
-
-            $dealerIds = DealerRouteAssignment::whereIn('assign_route_id', $assignedRoutes)
-                ->pluck('dealer_id')
-                ->unique()
-                ->toArray();
-
-            if (empty($dealerIds)) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 404,
-                    'message' => "No dealers found for the assigned routes.",
-                ], 404);
-            }
-
-            $outstandingSummaries = OutstandingNew::whereIn('dealer_id', $dealerIds)
-                ->where('product_id', $product_id)
-                ->where('outstanding_amount', '>', 0)
-                ->with([
-                    'dealer:id,dealer_name,dealer_code',
-                    'product:id,product_name'
-                ])
-                ->get()
-                ->map(function ($item) {
-                    return [
-                        'dealer_id' => $item->dealer_id,
-                        'dealer_code' => $item->dealer->dealer_code ?? '',
-                        'dealer_name' => $item->dealer->dealer_name ?? '',
-                        'product_name' => $item->product->product_name ?? null,
-                        'total_outstanding_amount' => (float) $item->outstanding_amount,
-                    ];
-                });
-
-            return response()->json([
-                'success' => true,
-                'statusCode' => 200,
-                'message' => 'Dealer-wise outstanding amounts fetched successfully',
-                'data' => $outstandingSummaries,
-            ], 200);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'statusCode' => 500,
-                'message' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
     public function searchOutstandingPayments(Request $request)
     {
         try {
@@ -966,6 +895,77 @@ class OrderController extends Controller
                 'success' => true,
                 'statusCode' => 200,
                 'message' => 'Filtered outstanding payments fetched successfully.',
+                'data' => $outstandingSummaries,
+            ], 200);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function outstandingPaymentsList($product_id)
+    {
+        try {
+            $employee = Auth::user();
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => "User not Authenticated",
+                ], 401);
+            }
+
+            $assignedRoutes = AssignRoute::where('employee_id', $employee->id)
+                ->pluck('id')
+                ->toArray();
+
+            if (empty($assignedRoutes)) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => "No assigned routes found for this employee.",
+                ], 404);
+            }
+
+            $dealerIds = DealerRouteAssignment::whereIn('assign_route_id', $assignedRoutes)
+                ->pluck('dealer_id')
+                ->unique()
+                ->toArray();
+
+            if (empty($dealerIds)) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => "No dealers found for the assigned routes.",
+                ], 404);
+            }
+
+            $outstandingSummaries = OutstandingNew::whereIn('dealer_id', $dealerIds)
+                ->where('product_id', $product_id)
+                ->where('outstanding_amount', '>', 0)
+                ->with([
+                    'dealer:id,dealer_name,dealer_code',
+                    'product:id,product_name'
+                ])
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'dealer_id' => $item->dealer_id,
+                        'dealer_code' => $item->dealer->dealer_code ?? '',
+                        'dealer_name' => $item->dealer->dealer_name ?? '',
+                        'product_name' => $item->product->product_name ?? null,
+                        'total_outstanding_amount' => (float) $item->outstanding_amount,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Dealer-wise outstanding amounts fetched successfully',
                 'data' => $outstandingSummaries,
             ], 200);
         } catch (Exception $e) {
@@ -1852,14 +1852,18 @@ class OrderController extends Controller
              * =====================
              */
             $totalSalesAmount = $orders->flatMap->sum('total_amount');
-
+            $totalQty =  $orders->sum(function ($order) {
+                        return $order->orderItems->sum('total_quantity');
+                    });
+                    
             $ordersData = $orders->map(function ($order) {
                 return [
                     'order_id' => $order->id,
                     'status' => $order->status,
                     'created_at' => optional($order->created_at)->format('d/m/Y'),
                     'dealer_name' => optional($order->dealer)->dealer_name ?? 'N/A',
-                    'invoice_total' => $order->total_amount
+                    'invoice_total' => $order->total_amount,
+                    'invoice_qty' => $order->orderItems->sum('total_quantity')
                 ];
             });
 
@@ -1875,6 +1879,7 @@ class OrderController extends Controller
                         'email' => $salesEmployee->email,
                         'phone' => $salesEmployee->phone,
                         'total_sales_amount' => (float) $totalSalesAmount,
+                        'total_qty_report' => (float) $totalQty,
                     ],
                     'orders' => $ordersData,
                 ],
@@ -2394,8 +2399,134 @@ class OrderController extends Controller
             ], 500);
         }
     }
-
     public function orderApprovalList(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            if ($user->employee_type_id !== 5) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 403,
+                    'message' => 'Access denied. Only Sales Managers can view this list.'
+                ], 403);
+            }
+
+            $productId = $request->input('product_id');
+            $dueBeforeDate = Carbon::now()->subDays(25)->toDateString();
+
+            $dealerIdsWithDue = OutstandingNew::where('due_balance', '>', 0)
+                ->pluck('dealer_id');
+
+            if ($dealerIdsWithDue->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => 'No dealers found with due balance'
+                ], 404);
+            }
+
+            $employeeIds = Employee::whereIn('employee_type_id', [2, 3, 4])
+                ->pluck('id');
+
+            /**
+             * Subquery: latest due_date per order
+             */
+            $latestOutstanding = DB::table('outstanding_payments as op1')
+                ->select('op1.order_id', DB::raw('MAX(op1.due_date) as due_date'))
+                ->whereNotNull('op1.due_date')
+                ->groupBy('op1.order_id');
+           
+
+            /**
+             * Main query
+             */
+            $orders = DB::table('orders as o')
+                ->leftJoin('dealers as d', 'd.id', '=', 'o.dealer_id')
+                ->leftJoinSub($latestOutstanding, 'op', function ($join) {
+                    $join->on('op.order_id', '=', 'o.id');
+                })
+                ->whereNotNull('op.due_date')
+                ->whereMonth('o.created_at', Carbon::now()->month)
+                ->whereYear('o.created_at', Carbon::now()->year)
+                ->where(function ($main) use ($employeeIds, $dealerIdsWithDue, $productId) {
+                    $main->where(function ($q) use ($employeeIds, $dealerIdsWithDue, $productId) {
+                        $q->whereIn('o.created_by', $employeeIds)
+                        // ->whereIn('o.dealer_id', $dealerIdsWithDue)
+                        ->where('o.dealer_flag_order', '0');
+
+                        if ($productId) {
+                            $q->where('o.product_id', $productId);
+                        }
+                    })
+                    ->orWhere(function ($q) use ($dealerIdsWithDue, $productId) {
+                       // $q->whereIn('o.created_by_dealer', $dealerIdsWithDue)
+                        // ->where('o.dealer_flag_order', '1');
+
+                        if ($productId) {
+                            $q->where('o.product_id', $productId);
+                        }
+                    });
+                })
+                ->orderBy('o.created_at', 'desc')
+                ->select([
+                    'o.id',
+                    'o.created_at',
+                    'o.product_id',
+                    'o.created_by',
+                    'o.status',
+                    'o.total_amount',
+                    'd.dealer_name',
+                    'op.due_date'
+                ])
+                ->get();
+
+            if ($orders->isEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 404,
+                    'message' => 'No orders found for approval'
+                ], 404);
+            }
+
+            /**
+             * Format response
+             */
+            $formattedOrders = $orders->map(function ($order) use ($dueBeforeDate) {
+                return [
+                    'id'            => $order->id,
+                    'created_at'    => Carbon::parse($order->created_at)->format('d/m/Y'),
+                    'dealer_name'   => $order->dealer_name ?? 'N/A',
+                    'product_id'    => $order->product_id,
+                    'created_by'    => $order->created_by,
+                    'due_date'      => $order->due_date
+                                        ? Carbon::parse($order->due_date)->format('d/m/Y')
+                                        : 'N/A',
+                    // 'dueBeforeDate' => $dueBeforeDate,
+                    'order_status'  => $order->status,
+                    'total_amount'  => (int) $order->total_amount,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Order approval list retrieved successfully',
+                'data' => $formattedOrders
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => 'An error occurred while retrieving the order approval list.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+                
+    public function orderApprovalListWorked(Request $request)
     {
         try {
             $user = Auth::user();
@@ -2412,7 +2543,7 @@ class OrderController extends Controller
 
             $dealerIdsWithDue = OutstandingNew::where('due_balance', '>', 0)
                 ->pluck('dealer_id');
-            
+           
 
             if ($dealerIdsWithDue->isEmpty()) {
                 return response()->json([
@@ -2425,30 +2556,31 @@ class OrderController extends Controller
             $employeeIds = Employee::whereIn('employee_type_id', [2, 3, 4])
                 ->pluck('id');
                 // dd($employeeIds);
-            $dueBeforeDate = Carbon::now()->subDays(25)->toDateString();
-            $orders = Order::with(['createdBy', 'dealer', 'orderType', 'paymentTerm', 'latestOutstandingPayment'])
-                ->whereHas('latestOutstandingPayment', function ($q) use ($dueBeforeDate) {
-                    $q->whereDate('due_date', '<=', $dueBeforeDate);
-                })
-                ->where(function ($query) use ($employeeIds, $dealerIdsWithDue, $productId) {
+            $dueBeforeDate  = Carbon::now()->subDays(25)->toDateString();
+
+           $orders = Order::with([
+                'createdBy',
+                'dealer',
+                'orderType',
+                'paymentTerm',
+                'latestOutstandingPayment'
+            ])
+            ->where(function ($main) use ($employeeIds, $dealerIdsWithDue, $productId) {
+                $main->where(function ($query) use ($employeeIds, $dealerIdsWithDue, $productId) {
                     $query->whereIn('created_by', $employeeIds)
-                     ->whereIn('dealer_id', $dealerIdsWithDue)
-                    ->where('dealer_flag_order', '0')
-                    ->when($productId, function ($q) use ($productId) {
-                        $q->where('product_id', $productId);
-                    });
+                        ->whereIn('dealer_id', $dealerIdsWithDue)
+                        ->where('dealer_flag_order', '0')
+                        ->when($productId, fn ($q) => $q->where('product_id', $productId));
                 })
                 ->orWhere(function ($query) use ($dealerIdsWithDue, $productId) {
                     $query->whereIn('created_by_dealer', $dealerIdsWithDue)
                         ->where('dealer_flag_order', '1')
-                        ->when($productId, function ($q) use ($productId) {
-                            $q->where('product_id', $productId);
-                        });
-                })
-                
-                ->orderBy('created_at', 'desc')
-                
-                ->get();
+                        ->when($productId, fn ($q) => $q->where('product_id', $productId));
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
 
             if ($orders->isEmpty()) {
                 return response()->json([
@@ -2456,9 +2588,10 @@ class OrderController extends Controller
                     'statusCode' => 404,
                     'message' => 'No orders found for approval'
                 ], 404);
-            }
-
-            $formattedOrders = $orders->map(function ($order) use ($dueBeforeDate)    {
+            }      
+            $formattedOrders = $orders
+            
+            ->map(function ($order) use ($dueBeforeDate)    {
                 return [
                     'id'           => $order->id,
                     'created_at'   => Carbon::parse($order->created_at)->format('d/m/Y'),
@@ -2466,8 +2599,8 @@ class OrderController extends Controller
                     'product_id'   => $order->product_id,
                     'created_by'   => $order->created_by,
                     'due_date' => $order->latestOutstandingPayment?->due_date
-    ? Carbon::parse($order->latestOutstandingPayment->due_date)->format('d/m/Y')
-    : 'N/A',
+                                    ? Carbon::parse($order->latestOutstandingPayment->due_date)->format('d/m/Y')
+                                    : 'N/A',
                     'dueBeforeDate' => $dueBeforeDate,
                     'order_status' => $order->status,
                     'total_amount' => (int) $order->total_amount,
@@ -4111,6 +4244,13 @@ class OrderController extends Controller
 
         $totalInfluencerVisit = InfluencerVisit::whereYear('created_at', $year)
             ->whereMonth('created_at', $month)
+            ->where(function ($query) {
+                $query->where('status', '!=', 'Follow Up')
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'Follow Up')
+                            ->whereNotNull('follow_up_date');
+                    });
+            })
             ->count();
 
         return response()->json([

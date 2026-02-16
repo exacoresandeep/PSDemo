@@ -318,6 +318,53 @@ function deleteUser(userId) {
         }
     });
 }
+
+
+// ------------------- Reset User Password -------------------
+function resetUserPassword(userId) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "Do you want to reset the password of this user",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, Reset Password!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+
+            $.ajax({
+                url: "{{ url('admin/users/resetPassword') }}/" + userId,
+                type: "DELETE",
+                data: {
+                    _token: "{{ csrf_token() }}"
+                },
+                beforeSend: function() { Swal.showLoading(); },
+                success: function(response) {
+                    Swal.close();
+                    window.table.ajax.reload();
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Reset Password!',
+                        text: response.message || 'User password resetted successfully.',
+                        showConfirmButton: false,
+                        timer: 1800
+                    });
+                },
+                error: function(xhr) {
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: xhr.responseJSON?.message || 'Something went wrong while resettig the user password.',
+                    });
+                }
+            });
+        }
+    });
+}
 </script>
 <script>
   $('#product_ids').select2({

@@ -31,6 +31,13 @@ use App\Http\Controllers\ExpenseController;
         Route::get('outstanding-payment', [HanaController::class, 'getOutstandingPayments']);
         Route::get('dealer-data', [HanaController::class, 'getDealerData']);
         Route::middleware('auth:sanctum')->post('reset-password', [AuthController::class, 'resetPassword']);
+        Route::middleware('auth:sanctum')
+            ->post('employee/update-password', 
+                [AuthController::class, 'updateEmployeePassword']);
+
+        Route::middleware('auth:sanctum')
+            ->post('dealer/update-password', 
+                [AuthController::class, 'updateDealerPassword']);
 
         Route::post('loginCommon', [AuthController::class, 'loginCommon']);
         Route::prefix('dealer')->group(function () {

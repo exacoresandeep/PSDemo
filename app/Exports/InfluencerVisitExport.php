@@ -18,7 +18,7 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
 
     public function __construct($month, $year)
     {
-        $this->month = $month + 1; 
+        $this->month = $month + 1;
         $this->year = $year;
     }
 
@@ -37,12 +37,17 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
             ->whereHas('createdBy', function ($q) use ($productID) {
                 $q->whereJsonContains('products', (string) $productID);
             })
+             ->where(function ($query) {
+                $query->where('status', '!=', 'Follow Up')
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'Follow Up')
+                            ->whereNotNull('follow_up_date');
+                    });
+            })
             ->get()
             ->map(function ($visit) {
 
-                /**
-                 * 🔑 SAME SORT DATE LOGIC AS API
-                 */
+                // 🔑 SAME SORT DATE LOGIC AS API
                 if ($visit->status === 'Follow Up') {
                     $sortDate = $visit->follow_up_date
                         ? Carbon::parse($visit->follow_up_date)
@@ -50,7 +55,9 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
                 } else {
                     $sortDate = $visit->created_at;
                 }
-             $visit->_sort_date = $sortDate;
+
+                $visit->_sort_date = $sortDate;
+
                 return $visit;
             })
             ->filter(function ($visit) {
@@ -59,17 +66,13 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
                     return false;
                 }
 
-                /**
-                 * 📅 Month / Year filter (EXPORT)
-                 */
+                // 📅 Month / Year filter (EXPORT)
                 return $visit->_sort_date->year == $this->year
                     && $visit->_sort_date->month == $this->month;
             })
             ->sortByDesc('_sort_date')
             ->values();
     }
-
-   
 
     public function headings(): array
     {
@@ -83,23 +86,19 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
             'Influencer Type',
             'Visit Type',
             'Purpose',
-
             'District',
             'Lead Type',
             'Current Project',
             'Upcoming Project',
             'Steel Used',
-
             'Total Deal Volume',
             'Status',
             'Follow Up Date',
             'Follow Up Reason',
             'Dealer (Won)',
             'Payment Terms',
-
             'Product Details',
-
-            'Won Quantity', //notdone
+            'Won Quantity',
             'Balance Quantity',
             'Total Order Amount',
             'Lost Volume',
@@ -122,10 +121,10 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
 
                 $details = collect($item->product_details)->map(function ($detail) use (&$totalOrderedQty, &$totalOrderAmount) {
 
-                    $typeName = \App\Models\ProductType::find($detail['product_type_id'])->type_name ?? 'N/A';
+                    $typeName = ProductType::find($detail['product_type_id'])->type_name ?? 'N/A';
                     $qty = $detail['quantity'] ?? 0;
-                    $amt = $detail['quantity'] * $detail['rate'] ?? 0;
                     $rate = $detail['rate'] ?? 0;
+                    $amt = $qty * $rate;
 
                     // Add totals
                     $totalOrderedQty += $qty;
@@ -144,8 +143,10 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
 
         return [
             $this->row++,
+
             optional($visit->created_at)->format('Y-m-d'),
             optional($visit->created_at)->format('H:i:s'),
+
             $visit->influencer_name,
             $visit->phone,
             $visit->place,
@@ -159,21 +160,30 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
             $visit->upcoming_project,
             is_array($visit->steel_used) ? implode(', ', $visit->steel_used) : '',
 
-            $visit->total_deal_volume,              // TOTAL DEAL VOLUME (FROM DB)
+            $visit->total_deal_volume,
             $visit->status,
-            $visit->status === 'Follow Up' ? optional($visit->follow_up_date)->format('Y-m-d') : '',
-            $visit->status === 'Follow Up' ? optional($visit->followUps->first())->reason : '',
-            $visit->status === 'Won' ? optional(optional($order)->dealer)->dealer_name : '',
-            $visit->status === 'Won' ? optional(optional($order)->paymentTerm)->name : '',
+
+            $visit->status === 'Follow Up'
+                ? optional($visit->follow_up_date)->format('Y-m-d')
+                : '',
+
+            $visit->status === 'Follow Up'
+                ? optional($visit->followUps->first())->reason
+                : '',
+
+            $visit->status === 'Won'
+                ? optional(optional($order)->dealer)->dealer_name
+                : '',
+
+            $visit->status === 'Won'
+                ? optional(optional($order)->paymentTerm)->name
+                : '',
+
             $productSummary,
-            
-            
+
             $visit->status === 'Won' ? $visit->won_volume : '',
-            // $totalOrderedQty,                       // TOTAL ORDERED QTY
-            $balanceQty,                            // BALANCE QTY
-            $totalOrderAmount,                      // TOTAL ORDER AMOUNT
-
-
+            $balanceQty,
+            $totalOrderAmount,
 
             $visit->status === 'Lost' ? $visit->lost_volume : '',
             $visit->status === 'Lost' ? $visit->lost_to_competitor : '',

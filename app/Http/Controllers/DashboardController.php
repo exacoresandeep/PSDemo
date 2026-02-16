@@ -239,13 +239,28 @@ class DashboardController extends Controller
         ];
 
         // Sum achievements
+        // $uniqueLeads = Lead::whereYear('created_at', $year)
+        //                     ->whereMonth('created_at', $monthNumber+1)
+        //                     ->whereHas('orders', function ($query) use ($productID) {  //push
+        //                         $query->where('product_id', $productID);
+        //                     })
+        //                     ->distinct('phone') 
+        //                     ->count();
         $uniqueLeads = Lead::whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber+1)
-                            ->whereHas('orders', function ($query) use ($productID) {  //push
-                                $query->where('product_id', $productID);
-                            })
-                            ->distinct('phone') 
+                            // ->whereHas('orders', function ($query) use ($productID) {  //push
+                            //    $query->where('product_id', $productID);
+                            // })
+                            ->where(function ($q) {
+                                    $q->where('status', '!=', 'Follow Up')
+                                    ->orWhere(function ($q2) {
+                                        $q2->where('status', 'Follow Up')
+                                            ->whereNotNull('follow_up_date');
+                                    });
+                                })
+                            ->distinct('phone')
                             ->count();
+
 
         // $customerVisitCount = RescheduledRoute::whereYear('assign_date', $year)
         //                     ->whereMonth('assign_date', $monthNumber+1)
@@ -261,6 +276,13 @@ class DashboardController extends Controller
                                 $query->where('product_id', $productID);
                             })
             ->distinct('phone') 
+            ->where(function ($query) {
+                $query->where('status', '!=', 'Follow Up')
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'Follow Up')
+                            ->whereNotNull('follow_up_date');
+                    });
+            })
             ->count('phone');
 
 
@@ -558,53 +580,52 @@ class DashboardController extends Controller
             'totalDealerVisit' => $totalDealerVisit
         ]);
     }
-    public function getInfluencerVisitData(Request $request)
+ public function getInfluencerVisitData(Request $request)
 {
-    // Frontend sends 0–11 → convert once
     $month = (int) $request->month + 1;
     $year  = (int) $request->year;
 
     $productID = \App\Helpers\ProductHelper::getSelectedProductID();
 
-    $totalInfluencerVisit = \App\Models\InfluencerVisit::with('createdBy')
-        ->whereHas('createdBy', function ($q) use ($productID) {
+    $totalInfluencerVisit = \App\Models\InfluencerVisit::whereHas('createdBy', function ($q) use ($productID) {
             $q->whereJsonContains('products', (string) $productID);
         })
-        ->get()
-        ->map(function ($visit) {
 
-            /**
-             * 🔑 SAME SORT DATE LOGIC AS EXPORT
-             */
-            if ($visit->status === 'Follow Up') {
-                $sortDate = $visit->follow_up_date
-                    ? \Carbon\Carbon::parse($visit->follow_up_date)
-                    : $visit->updated_at;
-            } else {
-                $sortDate = $visit->created_at;
-            }
-
-            $visit->_sort_date = $sortDate;
-            return $visit;
+        // ✅ Follow Up must have follow_up_date
+        ->where(function ($query) {
+            $query->where('status', '!=', 'Follow Up')
+                ->orWhere(function ($q) {
+                    $q->where('status', 'Follow Up')
+                      ->whereNotNull('follow_up_date');
+                });
         })
-        ->filter(function ($visit) use ($year, $month) {
 
-            if (!$visit->_sort_date) {
-                return false;
-            }
+        // ✅ SAME dynamic date logic as export
+        ->where(function ($query) use ($year, $month) {
 
-            /**
-             * 📅 SAME Month / Year filter AS EXPORT
-             */
-            return $visit->_sort_date->year == $year
-                && $visit->_sort_date->month == $month;
+            // Non Follow Up → use created_at
+            $query->where(function ($q) use ($year, $month) {
+                $q->where('status', '!=', 'Follow Up')
+                  ->whereYear('created_at', $year)
+                  ->whereMonth('created_at', $month);
+            })
+
+            // Follow Up → use follow_up_date
+            ->orWhere(function ($q) use ($year, $month) {
+                $q->where('status', 'Follow Up')
+                  ->whereYear('follow_up_date', $year)
+                  ->whereMonth('follow_up_date', $month);
+            });
+
         })
+
         ->count();
 
     return response()->json([
         'totalInfluencerVisit' => $totalInfluencerVisit
     ]);
 }
+
     public function getInfluencerVisitDataOld(Request $request)
     {
         $month = $request->month; 

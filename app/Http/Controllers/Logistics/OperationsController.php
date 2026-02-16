@@ -369,7 +369,7 @@ class OperationsController extends Controller
             'scheme' => $order->scheme,
             'credit_days' => $order->credit_days,
             'reason_for_rejection' => $order->reason_for_rejection,
-            'remarks' => $order->order_remarks,
+            'remarks' => $order->order_remarks ?? "NA",
             'order_approved' => $order->order_approved, 
             'vehicle_remarks' => $order->vehicle_remarks, 
             'vehicle_status' => $order->vehicle_status, 
