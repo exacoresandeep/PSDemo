@@ -196,8 +196,8 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
             Route::get('/dealers', [AdminController::class, 'dealersIndex'])->name('admin.users.dealers-index');
             Route::get('/dealers/list', [AdminController::class, 'dealersList'])->name('admin.users.dealers-list');
 
-            Route::delete('/employees/resetEmployeePassword/{id}', [AdminController::class, 'resetEmployeePassword'])->name('admin.users.employee.resetPassword');
-            Route::delete('/dealers/resetDealerPassword/{id}', [AdminController::class, 'resetDealerPassword'])->name('admin.users.dealer.resetPassword');
+            Route::get('/employees/resetEmployeePassword/{id}', [AdminController::class, 'resetEmployeePassword'])->name('admin.users.employee.resetPassword');
+            Route::get('/dealers/resetDealerPassword/{id}', [AdminController::class, 'resetDealerPassword'])->name('admin.users.dealer.resetPassword');
             
             Route::get('/employees/list', [AdminController::class, 'employeeList'])->name('admin.users.employee-list');
             Route::post('/employees/import', [AdminController::class, 'importEmployees'])->name('admin.users.import-employees');

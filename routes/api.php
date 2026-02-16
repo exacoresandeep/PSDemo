@@ -32,7 +32,7 @@ use App\Http\Controllers\ExpenseController;
         Route::get('dealer-data', [HanaController::class, 'getDealerData']);
         Route::middleware('auth:sanctum')->post('reset-password', [AuthController::class, 'resetPassword']);
         Route::middleware('auth:sanctum')
-            ->post('employee/update-password', 
+            ->post('update-password', 
                 [AuthController::class, 'updateEmployeePassword']);
 
         Route::middleware('auth:sanctum')
