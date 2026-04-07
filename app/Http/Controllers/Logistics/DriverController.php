@@ -646,16 +646,16 @@ class DriverController extends Controller
                     'approx_km' => (float)$trip->approx_km,
                     'delivery_points_count' => $trip->orders->count(),
                     'points' => $points,
-                    'vehicle' => [
+                    'vehicle_informations' => [
                         'vehicle_id' => $trip->vehicle->id,
-                        'vehicle_no' => $trip->vehicle->vehicle_no,
+                        'vehicle_number' => $trip->vehicle->vehicle_no,
                         'type' => $trip->vehicle->vehicle_type_text,
                         'model' => $trip->vehicle->model,
-                        'rc_file' => $trip->vehicle->rc_file,
-                        'insurance_file' => $trip->vehicle->insurance_file,
-                        'puc_file' => $trip->vehicle->puc_file,
-                        'fitness_file' => $trip->vehicle->fitness_file,
-                        'permit_file' => $trip->vehicle->permit_file,
+                        'reg_certificate' => $trip->vehicle->rc_file,
+                        'insurance_certificate' => $trip->vehicle->insurance_file,
+                        'puc_certificate' => $trip->vehicle->puc_file,
+                        'fitness_certificate' => $trip->vehicle->fitness_file,
+                        'permit_certificate' => $trip->vehicle->permit_file,
                     ]
                 ]
             ]
@@ -1551,6 +1551,7 @@ class DriverController extends Controller
     
         $tripInfo = [
             'assign_date' => $trip->assign_date?->format('d/m/Y'),
+            'delivery_date' => $trip->delivery_date?->format('d/m/Y'),
             'from_location' => $trip->from_location,
             'to_location' => $trip->to_location,
             'total_quantity' => (float)$trip->total_quantity,

@@ -11,22 +11,29 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 class AashiyanaOrdersExport implements FromCollection, WithMapping, WithHeadings, ShouldAutoSize
 {
-    protected $year, $month, $row = 1;
+    protected $year, $month,$employee_type_id, $row = 1;
     protected $targetsByEmployee = [];
     protected $achievedByEmployee = [];
-
-    public function __construct($year, $month)
+    protected $product_id;
+    public function __construct($year, $month,$employee_type_id,$product_id)
     {
         $this->year = $year;
-        $this->month = $month + 1;
+        $this->month = $month;
+        $this->employee_type_id = $employee_type_id;
+        $this->product_id = $product_id;
     }
 
     public function collection()
     {
-        $productID= \App\Helpers\ProductHelper::getSelectedProductID(); 
+        $productID= $this->product_id;
         $orders = Order::with(['lead', 'dealer', 'createdBy'])
             ->whereYear('created_at', $this->year)
             ->whereMonth('created_at', $this->month)
+            ->when($this->employee_type_id != "", function ($query) {
+                $query->whereHas('createdBy', function ($q) {
+                    $q->where('employee_type_id', $this->employee_type_id);
+                });
+            })
             ->where('product_id', $productID) //push
             ->where('payment_terms_id', 3)
             ->get();
@@ -58,14 +65,15 @@ class AashiyanaOrdersExport implements FromCollection, WithMapping, WithHeadings
             $createdByDealerCode = $order->dealers->dealer_code;
             $createdByDealerName = $order->dealers->dealer_name;
         }
+        
          $empId = $order->created_by;
         $target = $this->targetsByEmployee[$empId] ?? 0;
         $achieved = $this->achievedByEmployee[$empId] ?? 0;
 
         return [
             $this->row++,
-            $order->invoice_number,
-            $order->invoice_total,
+            // $order->invoice_number,
+            $order->total_amount,
             optional($order->lead)->customer_name,
             optional($order->dealer)->dealer_code,
             optional($order->dealer)->dealer_name,
@@ -82,15 +90,15 @@ class AashiyanaOrdersExport implements FromCollection, WithMapping, WithHeadings
     {
         return [
             'S.No',
-            'Invoice No',
+            // 'Invoice No',
             'Invoice Total',
             'Lead Customer',
             'Dealer Code',
             'Dealer Name',
             'Created By',
             'Created Date',
-            'Created By Dealer Code',
-            'Created By Dealer Name',
+            'Created By ID',
+            'Created By Name',
             'Target',
             'Achieved',
         ];

@@ -456,6 +456,9 @@ class DealerController extends Controller
                 'statusCode' => 200,
                 'message' => 'Ledger fetched successfully',
                 'data' => [
+                    "dealer_code"=>$dealer->dealer_code, 
+                    "dealer_name"=>$dealer->dealer_name, 
+                    "gst_no"=>$dealer->gst_no, 
                     'opening_balance' => $openingBalance,
                     'closing_balance' => $closingBalance,
                     'ledger' => $ledgerData

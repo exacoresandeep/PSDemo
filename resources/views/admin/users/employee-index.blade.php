@@ -50,7 +50,7 @@
 
                 $.ajax({
                     url: "{{ url('admin/users/employees/resetEmployeePassword') }}/" + Id,
-                    type: "DELETE",
+                    type: "GET",
                     data: {
                         _token: "{{ csrf_token() }}"
                     },
@@ -67,6 +67,7 @@
                             timer: 1800
                         });
                     },
+                    
                     error: function(xhr) {
                         Swal.close();
                         Swal.fire({
@@ -80,7 +81,7 @@
         });
     }
 $(document).ready(function() {
-    $('#employeesTable').DataTable({
+   window.table = $('#employeesTable').DataTable({
         processing: true,
         serverSide: false,
         ajax: "{{ route('admin.users.employee-list') }}",

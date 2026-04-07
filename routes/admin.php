@@ -76,7 +76,16 @@ Route::post('/logout', [AdminController::class, 'logout'])->name('logout')->midd
         });
 
         Route::prefix('targets')->group(function () {
-            Route::get('/', [TargetController::class, 'index'])->name('sales.target.index');
+            
+            Route::get('/employee', [TargetController::class, 'index'])->name('sales.target.index');
+            Route::get('/dealer', [TargetController::class, 'dealer_index'])->name('sales.target.dealer_index');
+            Route::post('/dealer/store', [TargetController::class, 'dealerTargetStore'])->name('sales.target.dealer.store');
+            Route::post('/dealer/list', [TargetController::class, 'dealerTargetList'])->name('sales.target.dealer.list');
+            Route::delete('/dealer/delete/{id}', [TargetController::class, 'dealerTargetDelete'])->name('sales.target.dealer.delete');
+            Route::post('/dealer/update', [TargetController::class, 'dealerTargetUpdate'])->name('sales.target.dealer.update');
+            Route::get('/dealer/view/{id}', [TargetController::class, 'viewDealerTargets'])->name('sales.target.dealer.view');
+
+
             Route::post('/list', [TargetController::class, 'targetList'])->name('sales.target.list');
             Route::post('/store', [TargetController::class, 'store'])->name('sales.target.store');
             Route::post('/update', [TargetController::class, 'update'])->name('sales.target.update');

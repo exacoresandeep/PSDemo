@@ -10,7 +10,7 @@ use App\Models\Attendance;
 use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 use Maatwebsite\Excel\Facades\Excel;
-
+use App\Helpers\ProductHelper;
 use App\Exports\ExpenseExport;
 
 class ExpenseController extends Controller
@@ -212,16 +212,15 @@ class ExpenseController extends Controller
     {
         // $query = DayExpense::with(['employee.employeeType']);
         $user = Auth::user();
+        $productId = ProductHelper::getSelectedProductId(); 
         $product_ids = is_array($user->product_ids)? $user->product_ids : json_decode($user->product_ids, true);
         
        $query = DayExpense::with(['employee.employeeType'])
-            ->whereHas('employee', function ($sub) use ($product_ids) {
-                $sub->where(function ($q) use ($product_ids) {
-                    foreach ($product_ids as $pid) {
-                        $q->orWhereRaw("JSON_CONTAINS(employees.products, '\"$pid\"')");
-                    }
-                });
+            ->whereHas('employee', function ($q) use ($productId) {
+                $q->whereJsonContains('products', (string) $productId);
             });
+            
+            
         if (!empty($request->employee_type)) {
             $query->whereHas('employee', function ($q) use ($request) {
                 $q->where('employee_type_id', $request->employee_type);

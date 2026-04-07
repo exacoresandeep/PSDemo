@@ -39,44 +39,91 @@ class AccountsController extends Controller
         $productID = ProductHelper::getSelectedProductId();
         $statusFilter = $request->get('status');       
 
+        $dealerIdsWithDue = OutstandingNew::where('due_balance', '>', 0)
+                ->pluck('dealer_id');
+
+        $dueDealerData = DB::table('outstanding_payments as op1')
+                     ->select('op1.dealer_id', DB::raw('MAX(op1.due_date) as due_date'))
+                     ->join('orders as o', 'o.id', '=', 'op1.order_id')
+                     ->where('o.product_id', $productID)
+                     ->whereIn('op1.dealer_id', $dealerIdsWithDue)
+                    ->whereNotNull('op1.due_date')
+                    ->where('op1.status', 'open')
+                    ->whereDate('op1.due_date', '<', Carbon::now()->subDays(25))
+                    ->groupBy('op1.dealer_id')//            ->distinct()
+                    ->get();
+        $dueDealerMap = $dueDealerData->keyBy('dealer_id'); // for due_date
+        $dueDealerIds = $dueDealerData->pluck('dealer_id'); // for filtering
+      
+        // $latestOutstanding = DB::table('outstanding_payments as op1')
+        //     ->select('op1.order_id', DB::raw('MAX(op1.due_date) as due_date'))
+        //     ->whereNotNull('op1.due_date')
+        //     ->groupBy('op1.order_id');
+
         $orders = Order::select([
-        'id',
-        'dealer_id',
-        'created_by_dealer',
-        'created_by',
-        'dealer_flag_order',
-        'send_for_approval',
-        'send_for_approval_by',
-        'created_at',
-        'total_amount',
-        'status'
-    ])
-    ->with([
-        'orderItems:id,order_id,product_id',
-        'dealer:id,dealer_name,dealer_code',
-        'dealers:id,dealer_name,dealer_code',
-        'createdBy:id,name,employee_code,employee_type_id',
-        'createdBy.employeeType:id,type_name',
-        'sendForApprovalBy:id,name,employee_code'
-    ])
+                'orders.id',
+                'orders.dealer_id',
+                'orders.created_by_dealer',
+                'orders.created_by',
+                'orders.dealer_flag_order',
+                'orders.send_for_approval',
+                'orders.send_for_approval_by',
+                'orders.created_at',
+                'orders.total_amount',
+                'orders.status'
+            ])
+            // ->leftJoinSub($latestOutstanding, 'op', function ($join) {
+            //     $join->on('op.order_id', '=', 'orders.id');
+            // })
+
+            // ✅ REMOVE overdue orders (older than 25 days)
+            // ->where(function ($q) {
+            //     $q->whereNull('op.due_date')
+            //     ->orWhereDate('op.due_date', '>=', Carbon::now()->subDays(25));
+            // })
+
+            ->with([
+                'orderItems:id,order_id,product_id',
+                'dealer:id,dealer_name,dealer_code',
+                'dealers:id,dealer_name,dealer_code',
+                'createdBy:id,name,employee_code,employee_type_id',
+                'createdBy.employeeType:id,type_name',
+                'sendForApprovalBy:id,name,employee_code'
+            ])
             ->whereDate('created_at', '>=', now()->subDays(90))
             ->whereHas('orderItems', function ($q) use ($productID) {
                 $q->where('product_id', $productID);
             })
 
-            ->where(function ($query) {
-                $query->where(function ($subQuery) {
+            ->where(function ($query) use ($dueDealerIds) {
+                $query->where(function ($subQuery) use ($dueDealerIds){
                     $subQuery->where('dealer_flag_order', '1')
                         ->whereNotIn('status', ['Pending', 'Rejected'])
+                        ->where(function ($q) use ($dueDealerIds) {
+                            $q->whereNotIn('orders.dealer_id', $dueDealerIds)
+                            ->orWhere(function ($inner) use ($dueDealerIds) {
+                                $inner->whereIn('orders.dealer_id', $dueDealerIds)
+                                        ->where('status', 'Accepted');
+                            });
+                        })
                         ->where(function ($approvalQuery) {
                             $approvalQuery->where('send_for_approval', '0')
                                         ->orWhere('send_for_approval', '1');
                         });
                 })
-                ->orWhere(function ($subQuery) {
+                
+
+                ->orWhere(function ($subQuery) use ($dueDealerIds) {
                     $subQuery->whereHas('createdBy', function ($employeeQuery) {
                         $employeeQuery->whereIn('employee_type_id', [2, 3, 4, 5]);
                     })
+                    ->where(function ($q) use ($dueDealerIds) {
+                            $q->whereNotIn('orders.dealer_id', $dueDealerIds)
+                            ->orWhere(function ($inner) use ($dueDealerIds) {
+                                $inner->whereIn('orders.dealer_id', $dueDealerIds)
+                                        ->where('status', 'Accepted');
+                            });
+                        })
                     ->where('dealer_flag_order', '!=', '1')
                     ->where(function ($sourceQuery) {
                         $sourceQuery->whereNull('source')

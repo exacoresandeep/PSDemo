@@ -27,7 +27,12 @@ class AttendanceExport implements FromQuery, WithHeadings, WithMapping
     public function query()
     {
         $query = Attendance::with('employee');
-
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+        if ( $productID) {
+            $query->whereHas('employee', function ($q) use($productID) {
+                $q->whereJsonContains('products', (string) $productID);
+            });
+        }
         if ($this->from_date && $this->to_date) {
             $query->whereBetween('date', [$this->from_date, $this->to_date]);
         }

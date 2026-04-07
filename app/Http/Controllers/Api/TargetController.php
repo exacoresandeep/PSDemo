@@ -22,6 +22,10 @@ use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Log;
 use Exception;
 use App\Http\Controllers\Api\AuthController;
+
+use App\Models\Dealer;
+use App\Models\DealerTarget;
+
 class TargetController extends Controller
 {
     public function index()
@@ -545,8 +549,159 @@ class TargetController extends Controller
 
         $monthName = Carbon::createFromDate(null, $monthNumber, 1)->format('F');
 
+        $from = Carbon::create($year, $monthNumber, 1)->startOfMonth();
+        $to = Carbon::create($year, $monthNumber, 1)->endOfMonth();
+
+        /** EMPLOYEES */
         $employeeIds = Employee::where('employee_type_id', $employeeTypeId)
-            ->whereRaw('FIND_IN_SET(?, products)', [$productId])
+            ->whereJsonContains('products', (string) $productId)
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($employeeIds)) {
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'data' => [
+                    'month' => $monthName,
+                    'year' => (int) $year,
+                    'employee_type_id' => (int) $employeeTypeId,
+                    'targets' => [],
+                    'achievements' => [],
+                ]
+            ]);
+        }
+
+        /** TARGET TOTALS */
+        $targets = Target::whereIn('employee_id', $employeeIds)
+            ->where('month', $monthName)
+            ->where('year', $year)
+            ->where('product_id', $productId)
+            ->get();
+
+        $totalTargets = [
+            'unique_leads' => $targets->sum('unique_lead'),
+            'influencer_visits' => $targets->sum('customer_visit'),
+            'aashiyana_orders' => $targets->sum('aashiyana'),
+            'product_quantity' => $targets->sum('order_quantity'),
+        ];
+
+        /** UNIQUE LEADS */
+        $uniqueLeads = Lead::whereIn('created_by', $employeeIds)
+            ->whereBetween('created_at', [$from, $to])
+            ->where(function ($q) {
+                $q->where('status', '!=', 'Follow Up')
+                    ->orWhere(function ($q2) {
+                        $q2->where('status', 'Follow Up')
+                            ->whereNotNull('follow_up_date');
+                    });
+            })
+            ->distinct('phone')
+            ->count('phone');
+
+        /** INFLUENCER VISITS */
+      //  $influencerVisits = InfluencerVisit::whereIn('created_by', $employeeIds)
+        //    ->whereBetween('created_at', [$from, $to])
+            // ->distinct('phone')
+        //    ->count('phone');
+
+             $influencerVisits = InfluencerVisit::whereIn('created_by', $employeeIds)
+                ->whereBetween('created_at', [$from, $to])
+                ->whereHas('order', function ($query) use ($productId) {  //push
+                                $query->where('product_id', $productId);
+                            })
+		->where(function ($query) {
+                $query->where('status', '!=', 'Follow Up')
+                    ->orWhere(function ($q) {
+                        $q->where('status', 'Follow Up')
+                            ->whereNotNull('follow_up_date');
+                    });
+            })		->distinct('phone')   
+                ->count('phone');
+
+
+        $aashiyanaCount = Order::whereYear('created_at', $year)
+            ->whereMonth('created_at', $monthNumber)
+            ->where('product_id', $productId)
+            ->where('payment_terms_id', 3)
+            ->whereIn('created_by', $employeeIds)
+            ->count();
+
+        $orders = Order::whereYear('created_at', $year)
+            ->whereMonth('created_at', $monthNumber)
+            ->where('product_id', $productId)
+            ->where('order_approved', 1)
+            ->whereIn('created_by', $employeeIds)
+            ->pluck('id');
+
+        $achievedOrderQuantity = DB::table('order_items')
+            ->whereIn('order_id', $orders)
+            ->where('product_id', $productId)
+            ->sum('total_quantity');
+
+
+
+        $totalAchieved = [
+            'unique_leads' => $uniqueLeads,
+            'influencer_visits' => $influencerVisits,
+            'aashiyana_orders' => $aashiyanaCount,
+            'product_quantity' => (float) $achievedOrderQuantity,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => "Target vs Achievement summary fetched successfully.",
+            'data' => [
+                'month' => $monthName,
+                'year' => (int) $year,
+                'employee_type_id' => (int) $employeeTypeId,
+                'product_id' => (int) $productId,
+                'targets' => $totalTargets,
+                'achievements' => $totalAchieved,
+            ]
+        ]);
+    }
+    
+    public function getTotalTargetsAchievementsold(Request $request)
+    {
+        $employee = Auth::user();
+
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 401,
+                'message' => "User not authenticated.",
+            ], 401);
+        }
+
+        if ($employee->employee_type_id !== 5) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 403,
+                'message' => "Unauthorized. Only Sales Manager (SM) can access this summary.",
+            ], 403);
+        }
+
+        $request->validate([
+            'month' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer',
+            'employee_type_id' => 'required|integer',
+            'product_id' => 'required|integer',
+        ]);
+
+        $monthNumber = $request->month;
+        $year = $request->year;
+        $productId = $request->product_id;
+        $employeeTypeId = $request->employee_type_id;
+
+        $monthName = Carbon::createFromDate(null, $monthNumber, 1)->format('F');
+
+        $employeeIds = Employee::where('employee_type_id', $employeeTypeId)
+            //->whereRaw('FIND_IN_SET(?, products)', [$productId])
+            ->when($productId, function ($q) use ($productId) {
+                $q->whereJsonContains('products', (string) $productId);
+            })
             ->pluck('id')
             ->toArray();
 
@@ -593,7 +748,8 @@ class TargetController extends Controller
             $totalTargets['product_quantity'] += $target->order_quantity ?? 0;
         }
 
-    
+
+        
         foreach ($employeeIds as $empId) {
 
             $totalAchieved['unique_leads'] += Lead::where('created_by', $empId)
@@ -643,6 +799,301 @@ class TargetController extends Controller
         ]);
     }
 
+    public function dealer_index()
+    {
+        $targets = DealerTarget::all(); 
+        $productId = ProductHelper::getSelectedProductId(); 
+        $dealers = Dealer::whereJsonContains('products', (string) $productId)->get();
+        return view('sales.target.dealer_index', compact('targets','dealers'));
+    }
+    public function dealerTargetList(Request $request)
+    {
+        $productId = ProductHelper::getSelectedProductId(); 
 
+        $query = DealerTarget::with(['dealer'])
+            ->where('status', '1')
+            ->whereNotNull('dealer_id')
+            ->whereHas('dealer', function ($q) use ($productId) {
+                $q->whereJsonContains('products', (string) $productId);
+            })
+            ->withTrashed();
+
+        if ($request->has('dealer_id') && !empty($request->dealer_id)) {
+            $query->where('dealer_id', $request->dealer_id);
+        }
+
+        if ($request->has('year') && !empty($request->year)) {
+            $query->where('year', $request->year);
+        }
+
+        if ($request->has('month') && !empty($request->month)) {
+            $query->where('month', $request->month);
+        }
+
+        return DataTables::of($query)
+            ->filter(function ($query) use ($request, $productId) {
+
+                if (!empty($request->search['value'])) {
+                    $searchValue = $request->search['value'];
+
+                    $query->where(function ($subQuery) use ($searchValue) {
+                        $subQuery->whereHas('dealer', function ($q) use ($searchValue) {
+                                $q->where('dealer_name', 'like', "%{$searchValue}%");
+                            })
+                            ->orWhere('year', 'like', "%{$searchValue}%")
+                            ->orWhere('month', 'like', "%{$searchValue}%")
+                            ->orWhere('order_quantity', 'like', "%{$searchValue}%");
+                    });
+                }
+
+                // Ensure dealer exists + product filter stays applied
+                $query->whereHas('dealer', function ($q) use ($productId) {
+                    $q->whereJsonContains('products', (string) $productId);
+                });
+            })
+            ->addIndexColumn()
+            ->addColumn('dealer_name', function ($target) {
+                return optional($target->dealer)->dealer_name ?? '-';
+            })
+            ->addColumn('year', function ($target) {
+                return $target->year ?? '-';
+            })
+            ->addColumn('month', function ($target) {
+                return $target->month ?? '-';
+            })
+            ->addColumn('order_quantity', function ($target) {
+                return $target->order_quantity ?? '0';
+            })
+            ->addColumn('action', function ($target) {
+                return '
+                    <button class="btn btn-sm btn-warning" onclick="handleDealerAction(' . $target->id . ', \'edit\')" title="Edit">
+                        <i class="fa fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteDealerTarget(' . $target->id . ')" title="Delete">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                ';
+            })
+            ->rawColumns(['action'])
+            ->make(true);
+    }
+    public function dealerTargetStore(Request $request)
+    {
+        $request->validate([
+            'dealer_id'       => 'required|exists:dealers,id',
+            'year'            => 'required|digits:4',
+            'month'           => 'required',
+            'order_quantity' => 'required|numeric|min:0',
+        ]);
+
+        $productId = ProductHelper::getSelectedProductId();
+
+        // Optional: prevent duplicate entry for same dealer + year + month + product
+        $exists = DealerTarget::where('dealer_id', $request->dealer_id)
+            ->where('year', $request->year)
+            ->where('month', $request->month)
+            ->where('product_id', (int) $productId)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Target already exists for this dealer, month and product.'
+            ], 422);
+        }
+
+        $dealerTarget = DealerTarget::create([
+            'dealer_id'       => $request->dealer_id,
+            'year'            => $request->year,
+            'month'           => $request->month,
+            'order_quantity' => $request->order_quantity,
+            'product_id'      => $productId, // if column exists
+            'status'          => 1,
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Dealer target created successfully.',
+            'data'    => $dealerTarget
+        ]);
+    }
+    
+    public function dealerTargetDelete($id)
+    {
+        $dealerTarget = DealerTarget::withTrashed()->find($id);
+
+        if (!$dealerTarget) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Dealer target not found.'
+            ], 404);
+        }
+
+        $dealerTarget->forceDelete(); // 🔥 Permanently delete
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Dealer target permanently deleted successfully.'
+        ]);
+    }
+    public function viewDealerTargets($id)
+    {
+        $dealerTarget = DealerTarget::findOrFail($id);
+
+
+        if (!$dealerTarget) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Dealer target not found.'
+            ], 404);
+        }
+
+        return response()->json([
+            'status' => true,
+            'data' => $dealerTarget   // 👈 single object
+        ]);
+    }
+
+    public function dealerTargetUpdate(Request $request)
+    {
+        $request->validate([
+            'dealer_target_id' => 'required|exists:dealer_targets,id',
+            'dealer_id'        => 'required|exists:dealers,id',
+            'year'             => 'required',
+            'month'            => 'required',
+            'order_quantity'   => 'required|numeric|min:0',
+        ]);
+
+        $productId = (int) ProductHelper::getSelectedProductId();
+
+        $dealerTarget = DealerTarget::findOrFail($request->dealer_target_id);
+
+        // 🔥 Duplicate check (ignore current record)
+        $exists = DealerTarget::withTrashed()
+            ->where('dealer_id', $request->dealer_id)
+            ->where('year', $request->year)
+            ->where('month', $request->month)
+            ->where('product_id', $productId)
+            ->where('id', '!=', $dealerTarget->id)
+            ->exists();
+
+        if ($exists) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Target already exists for this dealer, month and product.'
+            ], 422);
+        }
+
+        $dealerTarget->update([
+            'dealer_id'      => $request->dealer_id,
+            'year'           => $request->year,
+            'month'          => $request->month,
+            'order_quantity' => $request->order_quantity,
+            'product_id'     => $productId,
+        ]);
+
+        return response()->json([
+            'status'  => true,
+            'message' => 'Dealer target updated successfully.'
+        ]);
+    }
+
+    public function getDealerTargets(Request $request)
+    {
+        try {
+
+            $dealerId = Auth::id();
+
+            if (!$dealerId) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 401,
+                    'message' => 'Unauthorized.'
+                ], 401);
+            }
+
+            $monthNo   = $request->month ?? Carbon::now()->month;
+            $year      = $request->year ?? Carbon::now()->year;
+            $productId = $request->product_id;
+
+            if (!$productId) {
+                return response()->json([
+                    'success' => false,
+                    'statusCode' => 400,
+                    'message' => 'Product id is required.'
+                ], 400);
+            }
+
+            $monthName = Carbon::createFromDate(null, $monthNo, 1)->format('F');
+
+            /*
+            |--------------------------------------------------------------------------
+            | 1️⃣ Dealer Target
+            |--------------------------------------------------------------------------
+            */
+
+            $target = DealerTarget::where('dealer_id', $dealerId)
+                ->where('month', $monthName)
+                ->where('year', $year)
+                ->where('product_id', $productId)
+                ->first();
+
+            $targetData = $target ? [
+                'order_quantity' => (float) $target->order_quantity,
+            ] : null;
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | 2️⃣ Dealer Achievement
+            |--------------------------------------------------------------------------
+            */
+
+            $orders = Order::where(function ($query) use ($dealerId) {
+                $query->where('dealer_id', $dealerId)
+                    ->orWhere('created_by_dealer', $dealerId);
+            })
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $monthNo)
+            ->pluck('id');
+
+
+            $achievedQty = DB::table('order_items')
+                ->whereIn('order_id', $orders)
+                ->where('product_id', $productId)
+                ->sum('total_quantity');
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | 3️⃣ Response
+            |--------------------------------------------------------------------------
+            */
+
+            return response()->json([
+                'success' => true,
+                'statusCode' => 200,
+                'message' => 'Dealer target data fetched successfully.',
+                'data' => [
+                    'dealer_id' => $dealerId,
+                    'month' => $monthName,
+                    'year' => (int) $year,
+                    'product_id' => (int) $productId,
+                    'target' => $targetData,
+                    'achieved' => [
+                        'order_quantity' => (float) $achievedQty,
+                    ],
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'statusCode' => 500,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 
 }

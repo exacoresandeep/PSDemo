@@ -2191,6 +2191,9 @@ public function updateFcmToken(Request $request)
 
                 case 5: 
                     break;
+                case 7: 
+                   // $query->where('id', $user->district_id);
+                    break;
 
                 default:
                     return response()->json([

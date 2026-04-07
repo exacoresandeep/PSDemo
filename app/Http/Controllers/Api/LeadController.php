@@ -739,6 +739,9 @@ class LeadController extends Controller
         }
     }
 
+
+   
+
     public function leadsList(Request $request)
     {
         try {
@@ -1313,102 +1316,107 @@ class LeadController extends Controller
         }
     }
 
-    public function influencerVisitListing(Request $request)
-    {
-        try {
-            $employee = Auth::user();
 
-            if (!$employee) {
-                return response()->json([
-                    'success' => false,
-                    'statusCode' => 401,
-                    'message' => "User not Authenticated",
-                ], 401);
-            }
+public function influencerVisitListing(Request $request)
+{
+    try {
+        $employee = Auth::user();
 
-            $visits = InfluencerVisit::select(
-                    'id',
-                    'influencer_name',
-                    'purpose',
-                    'created_at',
-                    'updated_at',
-                    'follow_up_date',
-                    'status'
-                )
-                ->where('created_by', $employee->id)
-                ->get();
+        if (!$employee) {
+            return response()->json([
+                'success' => false,
+                'statusCode' => 401,
+                'message' => "User not Authenticated",
+            ], 401);
+        }
 
-            $visits = $visits
-                ->map(function ($visit){
+        $visits = InfluencerVisit::select(
+                'id',
+                'influencer_name',
+                'purpose',
+                'created_at',
+                'updated_at',
+                'follow_up_date',
+                'status'
+            )
+            ->where('created_by', $employee->id)
+            ->get();
 
-                    /**
-                     * 1️⃣ Activity date (created / updated based on status)
-                     */
-                    $activityDate = in_array($visit->status, ['Follow Up', 'Won', 'Lost'])
-                        ? $visit->updated_at
-                        : $visit->created_at;
+        $visits = $visits
+            ->map(function ($visit) {
 
-                    /**
-                     * 2️⃣ Follow-up date
-                     */
-                    $followUpDate=null;
+                /**
+                 * 1️⃣ Activity date (created / updated based on status)
+                 */
+                $activityDate = in_array($visit->status, ['Follow Up', 'Won', 'Lost'])
+                    ? $visit->updated_at
+                    : $visit->created_at;
+
+                /**
+                 * 2️⃣ Follow-up date
+		 */
+		$followUpDate=null;
                     if($visit->status!="Won" && $visit->status!="Lost")
                     {
                         $followUpDate = $visit->follow_up_date
                             ? Carbon::parse($visit->follow_up_date)
                             : null;
                     }
-                    /**
-                     * 3️⃣ Combined date for sorting (latest wins)
-                     */
-                    $sortDate = collect([$activityDate, $followUpDate])
-                        ->filter()
-                        ->max();
+               // $followUpDate = $visit->follow_up_date
+                 //   ? Carbon::parse($visit->follow_up_date)
+                   // : null;
 
-                    return [
-                        'id' => $visit->id,
-                        'influencer_name' => $visit->influencer_name,
-                        'purpose' => $visit->purpose,
+                /**
+                 * 3️⃣ Combined date for sorting (latest wins)
+                 */
+                $sortDate = collect([$activityDate, $followUpDate])
+                    ->filter()
+                    ->max();
 
-                        // ✅ RETURN BOTH DATES
-                        'created_at' => optional($activityDate)->format('d/m/Y h:i A'),
-                        'follow_up_date' => optional($followUpDate)->format('d/m/Y h:i A'),
+                return [
+                    'id' => $visit->id,
+                    'influencer_name' => $visit->influencer_name,
+                    'purpose' => $visit->purpose,
 
-                        'status' => $visit->status,
+                    // ✅ RETURN BOTH DATES
+                    'created_at' => optional($activityDate)->format('d/m/Y h:i A'),
+                    'follow_up_date' => optional($followUpDate)->format('d/m/Y h:i A'),
 
-                        // internal field for sorting
-                        '_sort_date' => $sortDate,
-                    ];
-                })
-                ->sortByDesc('_sort_date')
-                ->values()
-                ->map(function ($visit) {
-                    unset($visit['_sort_date']);
-                    return $visit;
-                });
+                    'status' => $visit->status,
 
-            // 🔔 Mark notifications as opened
-            InfluencerVisitFollowUp::where('created_by', $employee->id)
-                ->where('notification_status', 'pending')
-                ->update([
-                    'notification_status' => 'opened'
-                ]);
+                    // internal field for sorting
+                    '_sort_date' => $sortDate,
+                ];
+            })
+            ->sortByDesc('_sort_date')
+            ->values()
+            ->map(function ($visit) {
+                unset($visit['_sort_date']);
+                return $visit;
+            });
 
-            return response()->json([
-                'success' => true,
-                'statusCode' => 200,
-                'message' => 'Influencer visit list fetched successfully.',
-                'data' => $visits,
-            ], 200);
+        // 🔔 Mark notifications as opened
+        InfluencerVisitFollowUp::where('created_by', $employee->id)
+            ->where('notification_status', 'pending')
+            ->update([
+                'notification_status' => 'opened'
+            ]);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'statusCode' => 500,
-                'message' => $e->getMessage(),
-            ], 500);
-        }
-    }                
+        return response()->json([
+            'success' => true,
+            'statusCode' => 200,
+            'message' => 'Influencer visit list fetched successfully.',
+            'data' => $visits,
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'statusCode' => 500,
+            'message' => $e->getMessage(),
+        ], 500);
+    }
+}
     public function influencerVisitListingOld(Request $request)
     {
         try {
@@ -1426,8 +1434,8 @@ class LeadController extends Controller
                 'influencer_name',
                 'purpose',
                 'created_at',
-                'updated_at',
-                'follow_up_date',
+		'updated_at',
+	       	'follow_up_date',
                 'status'
             )
                 ->where('created_by', $employee->id)
@@ -1442,8 +1450,8 @@ class LeadController extends Controller
                         'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
                             ? optional($visit->updated_at)->format('d/m/Y h:i A')
                             : optional($visit->created_at)->format('d/m/Y h:i A'),
-                        'follow_up_date' => optional($visit->follow_up_date)->format('d/m/Y h:i A') ?? null,
-                        'status' => $visit->status,
+			    'follow_up_date' => optional($visit->follow_up_date)->format('d/m/Y h:i A') ?? null,
+			    'status' => $visit->status,
                     ];
                 });
             InfluencerVisitFollowUp::where('created_by', $employee->id)
@@ -1478,10 +1486,9 @@ class LeadController extends Controller
     {
         return $this->getInfluencerVisitListByStatus(['Lost']);
     }
-
-    private function getInfluencerVisitListByStatus(array $statuses, $productId = null)
-    {
-         $employee = Auth::user();
+private function getInfluencerVisitListByStatus(array $statuses, $productId = null)
+{
+	 $employee = Auth::user();
 
         if (!$employee) {
             return response()->json([
@@ -1490,147 +1497,145 @@ class LeadController extends Controller
                 'message' => "User not Authenticated",
             ], 401);
         }
+    $query = InfluencerVisit::with('createdBy')
+	    ->where('created_by', $employee->id)
+	    ->whereIn('status', $statuses);
 
-        $query = InfluencerVisit::with('createdBy')
-            ->where('created_by', $employee->id)
-            ->whereIn('status', $statuses);
-            
-        if ($productId) {
-            $query->whereHas('createdBy', function ($q) use ($productId) {
-                $q->whereJsonContains('products', (string) $productId);
-            });
+    if ($productId) {
+        $query->whereHas('createdBy', function ($q) use ($productId) {
+            $q->whereJsonContains('products', (string) $productId);
+        });
+    }
+
+    $visits = $query->get();
+
+    $data = $visits->map(function ($visit) {
+
+        // 🔑 Decide sorting date
+        if ($visit->status === 'Follow Up') {
+            $sortDate = $visit->follow_up_date
+                ? Carbon::parse($visit->follow_up_date)
+                : $visit->updated_at;
+        } else {
+            $sortDate = $visit->created_at;
         }
 
-        $visits = $query->get();
-
-        $data = $visits->map(function ($visit) {
-
-            // 🔑 Decide sorting date
-            if ($visit->status === 'Follow Up') {
-                $sortDate = $visit->follow_up_date
-                    ? Carbon::parse($visit->follow_up_date)
-                    : $visit->updated_at;
-            } else {
-                $sortDate = $visit->created_at;
-            }
         return [
-                    'id'               => $visit->id,
-                    'influencer_name'  => $visit->influencer_name,
-                    'purpose'          => $visit->purpose,
-                    'created_at'       => $visit->created_at
-                                            ? $visit->created_at->format('d/m/Y h:i A')
-                                            : null,
-                    'follow_up_date'   => $visit->follow_up_date
-                                            ? Carbon::parse($visit->follow_up_date)->format('d/m/Y h:i A')
-                                            : Carbon::parse($sortDate)->format('d/m/Y h:i A'),
-                    'status'           => $visit->status,
+            'id'               => $visit->id,
+            'influencer_name'  => $visit->influencer_name,
+            'purpose'          => $visit->purpose,
+            'created_at'       => $visit->created_at
+                                    ? $visit->created_at->format('d/m/Y h:i A')
+                                    : null,
+            'follow_up_date'   => $visit->follow_up_date
+                                    ? Carbon::parse($visit->follow_up_date)->format('d/m/Y h:i A')
+                                    : Carbon::parse($sortDate)->format('d/m/Y h:i A'),
+            'status'           => $visit->status,
 
-                    // ⚠️ internal key only for sorting
-                    '_sort_date'       => $sortDate,
-                ];
-            });
+            // ⚠️ internal key only for sorting
+            '_sort_date'       => $sortDate,
+        ];
+    });
 
-            // 🔥 SORT BY COMBINED DATE (DESC)
-            $data = $data->sortByDesc('_sort_date')->values();
+    // 🔥 SORT BY COMBINED DATE (DESC)
+    $data = $data->sortByDesc('_sort_date')->values();
 
-            // remove internal field
-            $data = $data->map(function ($item) {
-                unset($item['_sort_date']);
-                return $item;
-            });
+    // remove internal field
+    $data = $data->map(function ($item) {
+        unset($item['_sort_date']);
+        return $item;
+    });
 
+    return response()->json([
+        'success'    => true,
+        'statusCode'=> 200,
+        'message'   => 'Influencer visit list fetched successfully.',
+        'data'      => $data
+    ]);
+}
+    private function getInfluencerVisitListByStatusReOld(array $statuses, $productId = null)
+{
+    $employee = Auth::user();
+
+    if (!$employee) {
         return response()->json([
-                'success'    => true,
-                'statusCode'=> 200,
-                'message'   => 'Influencer visit list fetched successfully.',
-                'data'      => $data
-            ]);
+            'success' => false,
+            'statusCode' => 401,
+            'message' => "User not Authenticated",
+        ], 401);
     }
 
-    private function getInfluencerVisitListByStatusOldcc(array $statuses, $productId = null)
-    {
-        $employee = Auth::user();
+    $query = InfluencerVisit::select(
+            'id',
+            'influencer_name',
+            'purpose',
+            'created_at',
+            'updated_at',
+            'follow_up_date',
+            'status'
+        )
+        ->where('created_by', $employee->id)
+        ->whereIn('status', $statuses);
 
-        if (!$employee) {
-            return response()->json([
-                'success' => false,
-                'statusCode' => 401,
-                'message' => "User not Authenticated",
-            ], 401);
-        }
-
-        $query = InfluencerVisit::select(
-                'id',
-                'influencer_name',
-                'purpose',
-                'created_at',
-                'updated_at',
-                'follow_up_date',
-                'status'
-            )
-            ->where('created_by', $employee->id)
-            ->whereIn('status', $statuses);
-
-        if ($productId) {
-            $query->whereHas('order', function ($q) use ($productId) {
-                $q->where('product_id', $productId);
-            });
-        }
-
-        $visits = $query->get()
-            ->map(function ($visit) use ($statuses) {
-
-                /**
-                 * 1️⃣ Activity date (status-based)
-                 */
-                $activityDate = in_array($visit->status, ['Follow Up', 'Won', 'Lost'])
-                    ? $visit->updated_at
-                    : $visit->created_at;
-
-                /**
-                 * 2️⃣ Follow-up date
-                 */
-               $followUpDate = $visit->status === 'Follow Up'
-                ? ($visit->follow_up_date ? Carbon::parse($visit->follow_up_date) : $visit->created_at)
-                : null;
-
-
-                /**
-                 * 3️⃣ Effective date for sorting
-                 */
-                $sortDate = collect([$activityDate, $followUpDate])
-                    ->filter()
-                    ->max();
-
-                return [
-                    'id' => $visit->id,
-                    'influencer_name' => $visit->influencer_name,
-                    'purpose' => $visit->purpose,
-
-                    // ✅ RETURN BOTH
-                    'created_at' => optional($activityDate)->format('d/m/Y h:i A'),
-                    'follow_up_date' => optional($followUpDate)->format('d/m/Y h:i A'),
-
-                    'status' => $visit->status,
-
-                    // internal helper
-                    '_sort_date' => $sortDate,
-                ];
-            })
-            ->sortByDesc('_sort_date')
-            ->values()
-            ->map(function ($visit) {
-                unset($visit['_sort_date']);
-                return $visit;
-            });
-
-        return response()->json([
-            'success' => true,
-            'statusCode' => 200,
-            'message' => 'Influencer visit list fetched successfully.',
-            'data' => $visits,
-        ], 200);
+    if ($productId) {
+        $query->whereHas('order', function ($q) use ($productId) {
+            $q->where('product_id', $productId);
+        });
     }
+
+    $visits = $query->get()
+        ->map(function ($visit) use ($statuses) {
+
+            /**
+             * 1️⃣ Activity date (status-based)
+             */
+            $activityDate = in_array($visit->status, ['Follow Up', 'Won', 'Lost'])
+                ? $visit->updated_at
+                : $visit->created_at;
+
+            /**
+             * 2️⃣ Follow-up date
+	     */
+	    $followUpDate = $visit->status === 'Follow Up'
+    ? ($visit->follow_up_date ? Carbon::parse($visit->follow_up_date) : $visit->updated_at)
+    : null;
+
+            /**
+             * 3️⃣ Effective date for sorting
+             */
+            $sortDate = collect([$activityDate, $followUpDate])
+                ->filter()
+                ->max();
+
+            return [
+                'id' => $visit->id,
+                'influencer_name' => $visit->influencer_name,
+                'purpose' => $visit->purpose,
+
+                // ✅ RETURN BOTH
+                'created_at' => optional($activityDate)->format('d/m/Y h:i A'),
+                'follow_up_date' => optional($followUpDate)->format('d/m/Y h:i A'),
+
+                'status' => $visit->status,
+
+                // internal helper
+                '_sort_date' => $sortDate,
+            ];
+        })
+        ->sortByDesc('_sort_date')
+        ->values()
+        ->map(function ($visit) {
+            unset($visit['_sort_date']);
+            return $visit;
+        });
+
+    return response()->json([
+        'success' => true,
+        'statusCode' => 200,
+        'message' => 'Influencer visit list fetched successfully.',
+        'data' => $visits,
+    ], 200);
+}
     private function getInfluencerVisitListByStatusOld(array $statuses, $productId = null)
     {
         $employee = Auth::user();
@@ -1648,8 +1653,8 @@ class LeadController extends Controller
             'influencer_name',
             'purpose',
             'created_at',
-            'updated_at',
-            'follow_up_date',
+	    'updated_at', 
+	    'follow_up_date',
             'status'
         )
             ->where('created_by', $employee->id)
@@ -1670,8 +1675,8 @@ class LeadController extends Controller
                 'created_at' => ($visit->status === 'Follow Up' || $visit->status === 'Won' || $visit->status === 'Lost')
                     ? optional($visit->updated_at)->format('d/m/Y h:i A')
                     : optional($visit->created_at)->format('d/m/Y h:i A'),
-                'follow_up_date' => optional($visit->follow_up_date)->format('d/m/Y h:i A') ?? null,
-                'status' => $visit->status,
+		    'follow_up_date' => optional($visit->created_at)->format('d/m/Y h:i A') ?? null,
+		                    'status' => $visit->status,
             ];
         });
 
@@ -1865,13 +1870,12 @@ class LeadController extends Controller
 
             // Format the leads
             $formattedLeads = $leads->map(function ($lead) {
+
                 $status = $lead->status === 'Follow Up' ? 'Follow Up' : 'Opened';
 
-                
                 $lead_id = $lead->id;
 
                 if ($lead->status === 'Won' || $lead->status === 'Lost') {
-
                     $lead_last = Lead::where('phone', $lead->phone)
                         ->where('status', 'Follow Up')
                         ->orderBy('created_at', 'desc')
@@ -1880,7 +1884,15 @@ class LeadController extends Controller
                     if ($lead_last) {
                         $lead_id = $lead_last->id;
                     }
-                }    
+                }
+
+                // determine actual date
+                $date = $lead->status === 'Follow Up'
+                    ? $lead->follow_up_date
+                    : (($lead->status === 'Won' || $lead->status === 'Lost')
+                        ? $lead->updated_at
+                        : $lead->created_at);
+
                 return [
                     'id' => $lead_id,
                     'customer_type' => [
@@ -1896,17 +1908,15 @@ class LeadController extends Controller
                     'lead_source' => $lead->lead_source,
                     'lead_score' => $lead->lead_score,
                     'created_by' => $lead->created_by,
-                    'created_at' => $lead->status === 'Follow Up'
-                        ? optional(Carbon::parse($lead->follow_up_date))->format('d/m/Y')
-                        : (($lead->status === 'Won' || $lead->status === 'Lost')
-                            ? optional($lead->updated_at)->format('d/m/Y h:i A')
-                            : optional($lead->created_at)->format('d/m/Y h:i A')),
-
-                    // 'created_at' => ($lead->status === 'Follow Up' || $lead->status === 'Won' || $lead->status === 'Lost')
-                    //     ? optional($lead->updated_at)->format('d/m/Y h:i A')
-                    //     : optional($lead->created_at)->format('d/m/Y h:i A')
-                    //       'created_at' => $lead->created_at->format('d/M/Y h:i A'),
+                    'sort_date' => $date, // for sorting
+                    'created_at' => optional(Carbon::parse($date))->format('d/m/Y h:i A'),
                 ];
+            })
+            ->sortByDesc('sort_date')   // SORT HERE
+            ->values()
+            ->map(function ($lead) {
+                unset($lead['sort_date']); // remove helper field
+                return $lead;
             });
 
             return response()->json([
@@ -1991,20 +2001,18 @@ class LeadController extends Controller
 
             
             $lead_id = $lead->id;
-            $orderstatus = "Pending";
+            $orderstatus="";   
             if ($status === 'Won' || $status === 'Lost') {
-  
+	
                 $lead_last = Lead::where('phone', $lead->phone)
                     ->where('status', 'Follow Up')
                     ->orderBy('created_at', 'desc')
                     ->first();
-                 
 
                 if ($lead_last) {
                     $lead_id = $lead_last->id;
-                    
-                }
-                if($status === 'Won'){
+		}
+		if($status === 'Won'){
                     $orderstatus = Order::where('lead_id', $lead->id)->value('status') ?? "Pending";
                 }
             }
@@ -2015,8 +2023,8 @@ class LeadController extends Controller
                 'customer_type' => [
                     'id' => $lead->customerType->id ?? null,
                     'name' => $lead->customerType->name ?? null,
-                ],
-                'order_status' => $orderstatus,
+		],
+		'order_status' => $orderstatus,
                 'view_lead_id' => $lead->id,
                 'customer_name' => $lead->customer_name,
                 'phone' => $lead->phone,
@@ -2090,8 +2098,8 @@ class LeadController extends Controller
          */
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('influencer_name', 'LIKE', "%{$search}%")
-                ->orWhere('purpose', 'LIKE', "%{$search}%");
+                $q->where('influencer_name', 'LIKE', "%{$search}%");
+      //          ->orWhere('purpose', 'LIKE', "%{$search}%");
             });
         }
 
@@ -2108,18 +2116,20 @@ class LeadController extends Controller
          * Fetch → combine dates → sort
          */
         $visits = $query->get()
-            ->map(function ($visit) {
+            ->map(function ($visit) use ($status) {
 
                 // 1️⃣ Activity date
                 $activityDate = in_array($visit->status, ['Follow Up', 'Won', 'Lost'])
                     ? $visit->updated_at
                     : $visit->created_at;
-
+ $followUpDate=null;
+                if($status!="Won" && $status!="Lost")
+                {
                 // 2️⃣ Follow-up date
                 $followUpDate = $visit->follow_up_date
                     ? Carbon::parse($visit->follow_up_date)
                     : null;
-
+		}
                 // 3️⃣ Effective date (latest)
                 $sortDate = collect([$activityDate, $followUpDate])
                     ->filter()
@@ -2153,7 +2163,6 @@ class LeadController extends Controller
             'data' => $visits,
         ], 200);
     }
-
     public function influencerSearchOld(Request $request)
     {
         $employee = Auth::user();
