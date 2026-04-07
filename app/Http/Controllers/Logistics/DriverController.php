@@ -651,11 +651,11 @@ class DriverController extends Controller
                         'vehicle_number' => $trip->vehicle->vehicle_no,
                         'type' => $trip->vehicle->vehicle_type_text,
                         'model' => $trip->vehicle->model,
-                        'reg_certificate' => asset('storage/vehicles/rc_files/' .$trip->vehicle->rc_file),
-                        'insurance_certificate' => asset('storage/vehicles/insurance_files/' .$trip->vehicle->insurance_file),
-                        'puc_certificate' => asset('storage/vehicles/pollution_files/' .$trip->vehicle->puc_file),
-                        'fitness_certificate' => asset('storage/vehicles/fitness_files/' .$trip->vehicle->fitness_file),
-                        'permit_certificate' => asset('storage/vehicles/state_permits/' .$trip->vehicle->permit_file),
+                        'reg_certificate' => asset('storage/' .$trip->vehicle->rc_file),
+                        'insurance_certificate' => asset('storage/' .$trip->vehicle->insurance_file),
+                        'puc_certificate' => asset('storage/' .$trip->vehicle->puc_file),
+                        'fitness_certificate' => asset('storage/' .$trip->vehicle->fitness_file),
+                        'permit_certificate' => asset('storage/' .$trip->vehicle->permit_file),
                     ]
                 ]
             ]
