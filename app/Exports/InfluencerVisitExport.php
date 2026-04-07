@@ -14,17 +14,20 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
 {
     protected $month;
     protected $year;
+    protected $product_id;
     protected $row = 1;
 
-    public function __construct($month, $year)
+    public function __construct($month, $year,$product_id)
     {
-        $this->month = $month + 1;
+        $this->month = $month;
         $this->year = $year;
+        $this->year = $year;
+        $this->product_id = $product_id;
     }
 
     public function collection()
     {
-        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+        $productID = $this->product_id ?? \App\Helpers\ProductHelper::getSelectedProductID();
 
         return InfluencerVisit::with([
                 'district',
@@ -104,6 +107,7 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
             'Lost Volume',
             'Lost To Competitor',
             'Reason For Lost',
+            'Created By',
         ];
     }
 
@@ -188,6 +192,7 @@ class InfluencerVisitExport implements FromCollection, WithHeadings, WithMapping
             $visit->status === 'Lost' ? $visit->lost_volume : '',
             $visit->status === 'Lost' ? $visit->lost_to_competitor : '',
             $visit->status === 'Lost' ? $visit->reason_for_lost : '',
+            optional($visit->createdBy)->name ?? '',
         ];
     }
 }

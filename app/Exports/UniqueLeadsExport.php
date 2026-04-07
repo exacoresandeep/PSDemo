@@ -13,56 +13,66 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, ShouldAutoSize
 {
-    protected $year, $month, $row = 1;
+    protected $year, $month,$employee_type_id, $row = 1;
     protected $targetsByEmployee = [];
     protected $achievedByEmployee = [];
-
-    public function __construct($year, $month)
+    protected $product_id;
+    public function __construct($year, $month,$employee_type_id,$product_id)
     {
+	    $this->employee_type_id = $employee_type_id;
         $this->year = $year;
-        $this->month = $month + 1;
+        $this->month = $month;
+        $this->product_id = $product_id;
         
     }
 
     public function collection()
     {
-        $productID= \App\Helpers\ProductHelper::getSelectedProductID(); //push
+	    $employeeIds = Employee::where('employee_type_id', $this->employee_type_id)
+                        ->pluck('id')
+			            ->toArray();
 
+	    $productID= $this->product_id;
         $this->targetsByEmployee = Target::where('month', $this->month)
             ->where('year', $this->year)
-            ->where('product_id', $productID)//push
-            ->pluck('unique_lead', 'employee_id')
+            ->when($this->employee_type_id, function ($q) use ($employeeIds) {
+                $q->whereIn('created_by', $employeeIds);
+            })
+	        ->pluck('unique_lead', 'employee_id')
+    	    ->where('product_id', $productID)
             ->toArray();
 
         $this->achievedByEmployee = Lead::whereYear('created_at', $this->year)
             ->whereMonth('created_at', $this->month)
             ->selectRaw('created_by, COUNT(*) as total')
-            ->groupBy('created_by')
+	        ->when($this->employee_type_id, function ($q) use ($employeeIds) {
+                $q->whereIn('created_by', $employeeIds);
+	        })
+	        ->groupBy('created_by')
             ->whereHas('orders', function ($query) use ($productID) {  //push
-                                $query->where('product_id', $productID);
-                            })
-            
-            
+                $query->where('product_id', $productID);
+            })
             ->pluck('total', 'created_by')
             ->toArray();
 
         return Lead::with("district")->with(['createdBy', 'followUps', 'orders.orderItems','customerType', 'assignRoute'])
-            ->whereYear('created_at', $this->year)
-            // ->whereHas('orders', function ($query) use ($productID) {  //push
-            //     $query->where('product_id', $productID);
-            // })
-            // ->groupBy('phone')          
-            ->where(function ($q) {
-                                    $q->where('status', '!=', 'Follow Up')
-                                    ->orWhere(function ($q2) {
-                                        $q2->where('status', 'Follow Up')
-                                            ->whereNotNull('follow_up_date');
-                                    });
-                                })      
-            ->whereMonth('created_at', $this->month)
-            ->get()->unique('phone')->values();
+                    ->whereYear('created_at', $this->year)
+  	                ->when($this->employee_type_id, function ($q) use ($employeeIds) {
+                        $q->whereIn('created_by', $employeeIds);
+	                })
+	                ->where(function ($q) {
+                        $q->where('status', '!=', 'Follow Up')
+                            ->orWhere(function ($q2) {
+                                $q2->where('status', 'Follow Up')
+                                    ->whereNotNull('follow_up_date');
+                        });
+                    })
+                     ->whereHas('createdBy', function ($q) use ($productID) {
+                        $q->whereJsonContains('products', (string)$productID);
+                    })
 
-
+                    ->whereMonth('created_at', $this->month)  
+                    ->get()->unique('phone')->values();
     }
     protected function getTotalDealVolume($lead)
     {
@@ -158,7 +168,6 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
 
          return [
             $this->row++,
-             $lead->id,
             $lead->customer_name,
             optional($lead->customerType)->name,
             $lead->phone,
@@ -177,10 +186,10 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
             $lead->source_name,
 
             /** NEW FIELDS */
-            $totalDealVolume,
+             (string)$totalDealVolume,
             $totalOrderQty,
             $totalOrderAmount,
-            // $balanceQuantity,
+           // $balanceQuantity,
 
             $lead->status,
             optional($lead->createdBy)->name,
@@ -197,7 +206,6 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
     {
         return [
             'S.No',
-            'Lead id',
             'Customer Name',
             'Customer Type',
             'Phone',
@@ -218,7 +226,7 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
             'Total Deal Volume',
             'Total Ordered Quantity',
             'Total Order Amount',
-            // 'Balance Quantity',
+           // 'Balance Quantity',
 
             'Status',
             'Created By',
@@ -231,4 +239,3 @@ class UniqueLeadsExport implements FromCollection, WithMapping, WithHeadings, Sh
         ];
     }
 }
-

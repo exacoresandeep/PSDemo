@@ -76,7 +76,7 @@ function resetDealerPassword(Id) {
 
                 $.ajax({
                     url: "{{ url('admin/users/dealers/resetDealerPassword') }}/" + Id,
-                    type: "DELETE",
+                    type: "GET",
                     data: {
                         _token: "{{ csrf_token() }}"
                     },

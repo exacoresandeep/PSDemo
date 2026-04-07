@@ -13,16 +13,28 @@ class DealerVisitExport implements FromCollection, WithHeadings, WithMapping, Sh
     protected $month;
     protected $year;
     protected $row = 1;
+    protected $product_id;
 
-    public function __construct($month, $year)
+    public function __construct($month, $year,$product_id)
     {
-        $this->month = $month + 1; 
+        $this->month = $month; 
         $this->year = $year;
+        $this->product_id = $product_id;
     }
 
+    public static function getDealerVisitQuery($month, $year, $productID)
+    {
+        return DealerVisit::with(['dealer', 'aso', 'creator', 'order.orderItems'])
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->whereHas('createdBy', function ($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            });
+    }
     public function collection()
     {
-        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+       $productID = $this->product_id ?? \App\Helpers\ProductHelper::getSelectedProductID();
+        
         return DealerVisit::with(['dealer', 'aso', 'creator', 'order.orderItems'])
             ->whereYear('created_at', $this->year)
             ->whereMonth('created_at', $this->month)

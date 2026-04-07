@@ -23,6 +23,9 @@ use App\Http\Controllers\Logistics\InspectionController;
 use App\Http\Controllers\Logistics\TyreManagementController;
 use App\Http\Controllers\ExpenseController;
 
+    Route::post('/sap/outstanding', [\App\Http\Controllers\SapController::class, 'fetchOutstanding']);
+    Route::post('/sap/creditnote', [\App\Http\Controllers\SapController::class, 'fetchCreditnote']);
+    Route::post('/sap/downloadLedger', [\App\Http\Controllers\SapController::class, 'downloadLedger']);
     Route::post('/SalesOrderDetails', [SAPController::class, 'sendSalesOrder']);
     Route::prefix('v1')->group(function () {
         Route::post('test-push', [AuthController::class, 'testPush']);
@@ -45,6 +48,7 @@ use App\Http\Controllers\ExpenseController;
             Route::post('getCreditNoteForInvoice', [HanaController::class, 'getCreditNoteForInvoice']);
             Route::post('invoice-layout', [HanaController::class, 'fetchInvoiceLayout']);
             Route::middleware('auth:sanctum')->group(function () {
+                Route::post('target', [TargetController::class, 'getDealerTargets']);
                 Route::post('store', [DealerController::class, 'store']);
                 Route::get('profile', [DealerController::class, 'getDealerProfile']);
                 Route::get('notificationList', [AuthController::class, 'notificationList']);
@@ -60,7 +64,7 @@ use App\Http\Controllers\ExpenseController;
     
                 Route::prefix('orders')->group(function () {
                     Route::post('/', [DealerOrderController::class, 'store']); // Store  order
-                    Route::post('/', [DealerOrderController::class, 'index']); // List orders by current user ID
+                    Route::get('/', [DealerOrderController::class, 'index']); // List orders by current user ID
                     Route::get('/{orderId}', [DealerOrderController::class, 'show']); // order details
                     // Route::post('/filter', [DealerOrderController::class, 'orderFilter']);
                     Route::post('/track-order', [DealerOrderController::class, 'trackOrder']);
@@ -81,7 +85,7 @@ use App\Http\Controllers\ExpenseController;
                 Route::get('credit-days', [DealerOrderController::class, 'getCreditDays']);
                 Route::post('/product-price', [AuthController::class, 'getPriceByProduct']);
         	    // Route::get('/product-price/{product_type_id}', [AuthController::class, 'getPriceByProductType']);
-        	    Route::post('ledger/download', [DealerController::class, 'downloadLedgerF']);
+        	    // Route::post('ledger/download', [DealerController::class, 'downloadLedgerF']);
         	    Route::post('ledger/downloadNew', [DealerController::class, 'downloadLedgerNew']);
         	    
                 Route::post('logout', [DealerController::class, 'logout']);
@@ -162,7 +166,9 @@ use App\Http\Controllers\ExpenseController;
                 // Route::post('/list', [TargetController::class, 'indexList']);
                 Route::post('/', [TargetController::class, 'getTargets']);
                 Route::post('/getTotalTargetsAchievements', [TargetController::class, 'getTotalTargetsAchievements']);
-    
+
+                
+                
             });
             Route::prefix('route')->group(function () {
                 Route::get('/todays-routes', [RouteController::class, 'getTodaysTrip']);
@@ -285,6 +291,7 @@ use App\Http\Controllers\ExpenseController;
             Route::get('influencer-visit-details', [OrderController::class, 'getInfluencerVisitDetails']);
             Route::post('dealer-visit-data', [OrderController::class, 'getDealerVisitData']);
             Route::post('influencer-visit-data', [OrderController::class, 'getInfluencerVisitData']);
+            Route::post('dealer-influencer-visit-data', [OrderController::class, 'getDealerInfluencerVisitData']);
             
     
         });

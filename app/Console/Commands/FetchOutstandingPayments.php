@@ -55,8 +55,35 @@ class FetchOutstandingPayments extends Command
         Log::info('FetchOutstandingPayments started');
 
         try {
-            $start = Carbon::createFromFormat('Ymd', '20210101');
-            $end   = Carbon::now();
+		// $start = Carbon::createFromFormat('Ymd', '20210101');
+	$lastRecord = OutstandingPayment::orderBy('updated_at', 'desc')->first();
+
+if ($lastRecord) {
+
+    $lastUpdated = Carbon::parse($lastRecord->updated_at);
+
+    if ($lastUpdated->isToday()) {
+
+        // Get last record updated today
+        $todayLastRecord = OutstandingPayment::whereDate('updated_at', Carbon::today())
+            ->orderBy('updated_at', 'desc')
+            ->first();
+
+        $start = Carbon::parse($todayLastRecord->invoice_date)->startOfDay();
+
+    } else {
+
+        // Resume from last invoice date
+        $start = Carbon::parse($lastRecord->invoice_date)->startOfDay();
+    }
+
+} else {
+
+    // First time run
+    $start = Carbon::createFromFormat('Ymd', '20250101');
+    }
+    $start = Carbon::createFromFormat('Ymd', '20250101');
+            $end   = Carbon::createFromFormat('Ymd', '20260101'); // $end   = Carbon::now();
 
             $products = Product::whereNotNull('sap_id')->get();
             if ($products->isEmpty()) {
@@ -79,7 +106,11 @@ class FetchOutstandingPayments extends Command
 
                     $this->info("Processing {$product->product_name} ($fromDate → $toDate)");
 
-                    $sql = ".";
+                    $sql = "CALL \"PRABHU_NEW\".\"MobileApp_OutstandingPayment_Param_F\"(
+                        '$fromDate',
+                        '$toDate',
+                        {$product->sap_id}
+                    )";
 
                     $result = odbc_exec($conn, $sql);
                     if (!$result) {
@@ -115,13 +146,14 @@ class FetchOutstandingPayments extends Command
     {
         $groupedInvoices = collect($response)->groupBy('Invoice Number');
 
-        DB::beginTransaction();
+        //DB::beginTransaction();
 
-        try {
+       
 
             foreach ($groupedInvoices as $invoiceNumber => $rows) {
-
-                $first = $rows->first();
+		DB::beginTransaction();
+		try {
+	       		$first = $rows->first();
 
                 $dealer = Dealer::where('dealer_code', $first['Customer Code'])->first();
                 if (!$dealer) continue;
@@ -165,17 +197,6 @@ class FetchOutstandingPayments extends Command
                     ];
                 }
 
-                // OrderItem::updateOrCreate(
-                //     [
-                //         'order_id'   => $order->id,
-                //         'product_id' => $product->id,
-                //     ],
-                //     [
-                //         'total_quantity'   => $totalQuantity,
-                //         'balance_quantity' => 0,
-                //         'product_details'  => $productDetails, // ✅ JSON stored
-                //     ]
-                // );
                 $orderItem = OrderItem::where('order_id', $order->id)
                     ->where('product_id', $product->id)
                     ->lockForUpdate()
@@ -201,8 +222,8 @@ class FetchOutstandingPayments extends Command
 
                 OutstandingPayment::updateOrCreate(
                     ['invoice_number' => $invoiceNumber],
-                    [
-                        'dealer_id'          => $dealer->id,
+		    [
+	      		    'dealer_id'          => $dealer->id,
                         'order_id'           => $order->id,
                         'invoice_total'      => $this->cleanNumber($first['Invoice Total']),
                         'invoice_date'       => $this->safeParseDate($first['Invoice Date']),
@@ -235,13 +256,14 @@ class FetchOutstandingPayments extends Command
                         );
                     }
                 }
-            }
+            
 
-            DB::commit();
+            	DB::commit();
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
+        	} catch (\Exception $e) {
+            		DB::rollBack();
+            		throw $e;
+		}
+	}
     }
 }

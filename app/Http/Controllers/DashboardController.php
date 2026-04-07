@@ -30,7 +30,6 @@ use App\Exports\AashiyanaOrdersExport;
 use App\Exports\TisconOrdersExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Helpers\ProductHelper;
-
 class DashboardController extends Controller
 {
     public function salesDashboard()
@@ -217,20 +216,19 @@ class DashboardController extends Controller
         $monthNumber = $request->month;
         $monthName = \DateTime::createFromFormat('!m', $monthNumber)->format('F');
         $year = $request->year;
-        $nextMonthNumber = $monthNumber + 1;
+        $nextMonthNumber = $monthNumber;
         if ($nextMonthNumber > 12) {
             $nextMonthNumber = 1;
             $year += 1; 
         }
 
         $productID= \App\Helpers\ProductHelper::getSelectedProductID();
-
         $nextMonthName = \DateTime::createFromFormat('!m', $nextMonthNumber)->format('F');
         $targets = Target::where('month', $nextMonthName)
                         ->where('year', $year)
                         ->where('product_id', $productID)
                         ->get();
-        // dd($targets->sum('order_quantity'));
+
         $totalTargets = [
             'unique_leads' => $targets->sum('unique_lead'),
             'customer_visit' => $targets->sum('customer_visit'),
@@ -239,28 +237,24 @@ class DashboardController extends Controller
         ];
 
         // Sum achievements
-        // $uniqueLeads = Lead::whereYear('created_at', $year)
-        //                     ->whereMonth('created_at', $monthNumber+1)
-        //                     ->whereHas('orders', function ($query) use ($productID) {  //push
-        //                         $query->where('product_id', $productID);
-        //                     })
-        //                     ->distinct('phone') 
-        //                     ->count();
         $uniqueLeads = Lead::whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber+1)
-                            // ->whereHas('orders', function ($query) use ($productID) {  //push
-                            //    $query->where('product_id', $productID);
-                            // })
-                            ->where(function ($q) {
+                            //->whereHas('orders', function ($query) use ($productID) {  //push
+                           //     $query->where('product_id', $productID);
+		    // })
+		  ->where(function ($q) {
                                     $q->where('status', '!=', 'Follow Up')
                                     ->orWhere(function ($q2) {
                                         $q2->where('status', 'Follow Up')
                                             ->whereNotNull('follow_up_date');
                                     });
                                 })
-                            ->distinct('phone')
-                            ->count();
+                                 ->whereHas('createdBy', function ($q) use ($productID) {
+                        $q->whereJsonContains('products', (string)$productID);
+                    })
 
+			    ->distinct('phone')
+			    ->count();
 
         // $customerVisitCount = RescheduledRoute::whereYear('assign_date', $year)
         //                     ->whereMonth('assign_date', $monthNumber+1)
@@ -270,25 +264,23 @@ class DashboardController extends Controller
         //                         return $customers->where('scheduled', true)->where('status', 'Completed')->count();
         //                     });
         $customerVisitCount = InfluencerVisit::whereYear('created_at', $year)
-            ->whereMonth('created_at', $monthNumber + 1)
-            
-            ->whereHas('order', function ($query) use ($productID) {  //push
+                ->whereMonth('created_at', $monthNumber)
+                ->whereHas('order', function ($query) use ($productID) {  //push
                                 $query->where('product_id', $productID);
                             })
-            ->distinct('phone') 
-            ->where(function ($query) {
+		->where(function ($query) {
                 $query->where('status', '!=', 'Follow Up')
                     ->orWhere(function ($q) {
                         $q->where('status', 'Follow Up')
                             ->whereNotNull('follow_up_date');
                     });
-            })
-            ->count('phone');
+            })		->distinct('phone')   
+                ->count('phone');
 
 
         $aashiyanaCount = Order::whereYear('created_at', $year)
                             ->whereMonth('created_at', $monthNumber+1)
-                             ->where('product_id', $productID)
+                            ->where('product_id', $productID)
                             ->where('payment_terms_id', 3)
                             ->count();
 
@@ -298,17 +290,10 @@ class DashboardController extends Controller
                         ->where('order_approved', '1')
                         ->pluck('id');
 
-        // $achievedOrderQuantity = DB::table('order_items')
-        //     ->whereIn('order_id', $orders)
-        //     ->where('product_id', $productID)
-        //     ->sum('total_quantity');
-        $achievedOrderQuantity = DB::table('orders')
-            ->join('order_items', 'orders.id', '=', 'order_items.order_id')
-            ->whereYear('orders.created_at', $year)
-            ->whereMonth('orders.created_at', $monthNumber + 1)
-            ->where('orders.product_id', $productID)
-            ->where('orders.order_approved', '1')
-            ->sum('order_items.total_quantity');
+        $achievedOrderQuantity = DB::table('order_items')
+                        ->whereIn('order_id', $orders)
+                    ->where('product_id', $productID)
+                    ->sum('total_quantity');
 
         return response()->json([
             'target' => $totalTargets,
@@ -506,8 +491,8 @@ class DashboardController extends Controller
                 ->whereBetween('orders.created_at', [$fromDate, $toDate])
                 ->sum('order_items.total_quantity');
             $totalAmount = Order::where('created_by', $employee->id)
-                ->where('order_approved', '1')    
-                ->whereBetween('created_at', [$fromDate, $toDate])
+		->where('order_approved', '1')  
+		    ->whereBetween('created_at', [$fromDate, $toDate])
                 ->sum('total_amount');
             $result[] = [
                 'region' => $employee->region?->name ?? 'N/A',
@@ -564,23 +549,82 @@ class DashboardController extends Controller
             'sales_performance.xlsx'
         );
     }
+    public static function getDealerVisitQuery($month, $year, $productID)
+    {
+        return \App\Models\DealerVisit::with(['dealer', 'aso', 'creator', 'order.orderItems'])
+            ->whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->whereHas('createdBy', function ($q) use ($productID) {
+                $q->whereJsonContains('products', (string)$productID);
+            });
+    }
     public function getDealerVisitData(Request $request)
     {
         $month = $request->month; 
         $year = $request->year;
         $productID= \App\Helpers\ProductHelper::getSelectedProductID();
-        $totalDealerVisit = \App\Models\DealerVisit::with(["createdBy"])->whereYear('created_at', $year)
-            ->whereMonth('created_at', $month + 1) 
-            ->whereHas('createdBy', function($q) use ($productID) {
-                $q->whereJsonContains('products', (string)$productID);
-            })
-            ->count();
+     $totalDealerVisit =  $this->getDealerVisitQuery($month+1, $year, $productID)->count();
+     
+//	$totalDealerVisit = \App\Models\DealerVisit::with(["createdBy"])->whereYear('created_at', $year)
+  //          ->whereMonth('created_at', $month + 1) 
+    //        ->whereHas('createdBy', function($q) use ($productID) {
+      //          $q->whereJsonContains('products', (string)$productID);
+        //    })
+          //  ->count();
 
         return response()->json([
             'totalDealerVisit' => $totalDealerVisit
         ]);
     }
- public function getInfluencerVisitData(Request $request)
+    public static function getInfluencerVisitQuery($month, $year, $productID)
+    {
+        return \App\Models\InfluencerVisit::whereHas('createdBy', function ($q) use ($productID) {
+            $q->whereJsonContains('products', (string) $productID);
+        })
+
+        // ✅ Follow Up must have follow_up_date
+        ->where(function ($query) {
+            $query->where('status', '!=', 'Follow Up')
+                ->orWhere(function ($q) {
+                    $q->where('status', 'Follow Up')
+                      ->whereNotNull('follow_up_date');
+                });
+        })
+
+        // ✅ SAME dynamic date logic as export
+        ->where(function ($query) use ($year, $month) {
+
+            // Non Follow Up → use created_at
+            $query->where(function ($q) use ($year, $month) {
+                $q->where('status', '!=', 'Follow Up')
+                  ->whereYear('created_at', $year)
+                  ->whereMonth('created_at', $month);
+            })
+
+            // Follow Up → use follow_up_date
+            ->orWhere(function ($q) use ($year, $month) {
+                $q->where('status', 'Follow Up')
+                  ->whereYear('follow_up_date', $year)
+                  ->whereMonth('follow_up_date', $month);
+            });
+
+        });
+
+    }
+    public function getInfluencerVisitData(Request $request)
+    {
+        $month = (int) $request->month + 1;
+        $year  = (int) $request->year;
+
+        $productID = \App\Helpers\ProductHelper::getSelectedProductID();
+
+        $totalInfluencerVisit = $this->getInfluencerVisitQuery( $month, $year,$productID)->count();
+
+        return response()->json([
+            'totalInfluencerVisit' => $totalInfluencerVisit
+        ]);
+    }
+    public function getInfluencerVisitDataOld(Request $request)
 {
     $month = (int) $request->month + 1;
     $year  = (int) $request->year;
@@ -626,66 +670,71 @@ class DashboardController extends Controller
     ]);
 }
 
-    public function getInfluencerVisitDataOld(Request $request)
-    {
-        $month = $request->month; 
-        $year = $request->year;
-        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
+  public function getInfluencerVisitDataOld1(Request $request)
+{
+    // Frontend sends 0–11 → convert once
+    $month = (int) $request->month + 1;
+    $year  = (int) $request->year;
 
-        $totalInfluencerVisit = \App\Models\InfluencerVisit::with('createdBy')
-            ->whereHas('createdBy', function ($q) use ($productID) {
-                $q->whereJsonContains('products', (string) $productID);
-            })
-            ->get()
-            ->filter(function ($visit) use ($year, $month) {
+    $productID = \App\Helpers\ProductHelper::getSelectedProductID();
 
-                // 1️⃣ Activity date (status-based)
-                $activityDate = in_array($visit->status, ['Follow Up', 'Won', 'Lost'])
-                    ? $visit->updated_at
-                    : $visit->created_at;
+    $totalInfluencerVisit = \App\Models\InfluencerVisit::with('createdBy')
+        ->whereHas('createdBy', function ($q) use ($productID) {
+            $q->whereJsonContains('products', (string) $productID);
+        })
+        ->get()
+        ->map(function ($visit) {
 
-                // 2️⃣ Follow-up date
-                $followUpDate = $visit->follow_up_date
-                    ? Carbon::parse($visit->follow_up_date)
-                    : null;
+            /**
+             * 🔑 SAME SORT DATE LOGIC AS EXPORT
+             */
+            if ($visit->status === 'Follow Up') {
+                $sortDate = $visit->follow_up_date
+                    ? \Carbon\Carbon::parse($visit->follow_up_date)
+                    : $visit->updated_at;
+            } else {
+                $sortDate = $visit->created_at;
+            }
 
-                // 3️⃣ Effective date = latest
-                $effectiveDate = collect([$activityDate, $followUpDate])
-                    ->filter()
-                    ->max();
+            $visit->_sort_date = $sortDate;
+            return $visit;
+        })
+        ->filter(function ($visit) use ($year, $month) {
 
-                if (!$effectiveDate) {
-                    return false;
-                }
+            if (!$visit->_sort_date) {
+                return false;
+            }
 
-                // ⚠️ month + 1 preserved as per your logic
-                return $effectiveDate->year == $year
-                    && $effectiveDate->month == ($month + 1);
-            })
-            ->count();
+            /**
+             * 📅 SAME Month / Year filter AS EXPORT
+             */
+            return $visit->_sort_date->year == $year
+                && $visit->_sort_date->month == $month;
+        })
+        ->count();
 
-        return response()->json([
-            'totalInfluencerVisit' => $totalInfluencerVisit
-        ]);
-    }
-    public function exportDealerVisit(Request $request){
+    return response()->json([
+        'totalInfluencerVisit' => $totalInfluencerVisit
+    ]);
+}
+public function exportDealerVisit(Request $request){
         $month = $request->month;
         $year = $request->year;
-
-        return Excel::download(new DealerVisitExport($month, $year), 'dealer_visit_export.xlsx');
+	$productID=ProductHelper::getSelectedProductID();
+        return Excel::download(new DealerVisitExport($month+1, $year,$productID), 'dealer_visit_export.xlsx');
     }
     public function exportInfluencerVisit(Request $request){
         $month = $request->month;
         $year = $request->year;
-
-        return Excel::download(new InfluencerVisitExport($month, $year), 'influencer_visit_export.xlsx');
+	$productID=ProductHelper::getSelectedProductID();
+        return Excel::download(new InfluencerVisitExport($month+1, $year,$productID), 'influencer_visit_export.xlsx');
     }
     public function exportUniqueLeads(Request $request)
     {
         $month = $request->month;
         $year = $request->year;
-
-        return Excel::download(new UniqueLeadsExport($year, $month), 'unique_leads_export.xlsx');
+        $productID=ProductHelper::getSelectedProductID();
+        return Excel::download(new UniqueLeadsExport($year, $month+1,"",$productID), 'unique_leads_export.xlsx');
     }
 
 
@@ -694,28 +743,27 @@ class DashboardController extends Controller
         $month = $request->month;
         $year = $request->year;
 
-        $exportMonth = $month + 1;
+        $exportMonth = $month;
 
         $monthFormatted = str_pad($exportMonth, 2, '0', STR_PAD_LEFT);
 
         $fileName = "influencer_visits_{$monthFormatted}_{$year}.xlsx";
-
-        return Excel::download(new InfluencerVisitsExport($year, $month), $fileName);
+        $productID=ProductHelper::getSelectedProductId();
+        return Excel::download(new InfluencerVisitsExport($year, $month+1,"",$productID), $fileName);
     }
     public function exportAashiyanaOrders(Request $request)
     {
         $month = $request->month;
         $year = $request->year;
-
-        return Excel::download(new AashiyanaOrdersExport($year, $month), 'aashiyana_orders_export.xlsx');
+        $productID=ProductHelper::getSelectedProductId();
+        return Excel::download(new AashiyanaOrdersExport($year, $month+1,"",$productID), 'aashiyana_orders_export.xlsx');
     }
     public function exportTisconOrders(Request $request)
     {
         $month = $request->month;
         $year = $request->year;
         $productID = ProductHelper::getSelectedProductId(); 
-
-        return Excel::download(new TisconOrdersExport($year, $month, $productID), 'orders_export.xlsx');
+        return Excel::download(new TisconOrdersExport($year, $month+1,"", $productID), 'Orders_export.xlsx');
     }
     
 
@@ -793,7 +841,7 @@ class DashboardController extends Controller
                 })
                 ->count();
 
-            $customerVisit = RescheduledRoute::with("employee")
+            /*$customerVisit = RescheduledRoute::with("employee")
                 ->whereBetween('assign_date', [$from, $to])
                 ->whereHas('employee', function ($q) use ($productID) {
                     $q->whereJsonContains('products', (string)$productID);
@@ -803,7 +851,13 @@ class DashboardController extends Controller
                     $customers = collect(json_decode($route->customers ?? '[]', true));
                     return $customers->where('scheduled', true)->where('status', 'Completed')->count();
                 });
-
+	     */
+	    $customerVisit = InfluencerVisit::whereBetween('created_at', [$from, $to])
+             ->whereHas('createdBy', function ($q) use ($productID) {
+                    $q->whereJsonContains('products', (string)$productID);
+                })
+            ->distinct('phone')
+            ->count('phone');
             $aashiyanaCount = Order::with("orderItems")
                 ->whereBetween('created_at', [$from, $to])
                 ->whereHas('orderItems', function ($q) use ($productID) {

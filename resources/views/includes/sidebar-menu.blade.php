@@ -106,11 +106,18 @@
                 </ul>
             </li>
             <li>
-                <a class="menu-title"  href="{{ route('sales.target.index') }}">
+                <a class="menu-title">
                     <i class="fa fa-bullseye" aria-hidden="true"></i>
-                    Target Management <span class="icon-right"></span>
+                    Target Management <span class="icon-right"><i class="fa fa-solid fa-angle-down"></i></span>
                 </a>
-                
+                <ul class="submenu">
+                    <li>
+                        <a href="{{ route('sales.target.index') }}">Employee <span class="icon-right"></span></a>
+                    </li>
+                    <li>
+                        <a href="{{ route('sales.target.dealer_index') }}">Dealer <span class="icon-right"></span></a>
+                    </li>
+                </ul>
             </li>
 		    <li>
                 <a class="menu-title"  href="{{ route('sales.scheme.index') }}">

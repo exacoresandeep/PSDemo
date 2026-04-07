@@ -7,14 +7,15 @@ use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
-
+use App\Helpers\ProductHelper;
 
 class ExpenseExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
 {
-    protected $from_date, $to_date, $employee_type, $employee_id, $travel_method;
+    protected $from_date, $to_date, $employee_type, $employee_id, $travel_method,$productId;
 
     public function __construct($from_date, $to_date, $employee_type, $employee_id, $travel_method)
     {
+        $this->productId = ProductHelper::getSelectedProductId(); 
         $this->from_date = $from_date;
         $this->to_date = $to_date;
          $this->employee_type = $employee_type;
@@ -24,13 +25,19 @@ class ExpenseExport implements FromCollection, WithHeadings, WithMapping, Should
 
     public function collection()
     {
+        $productId=$this->productId;
         return DayExpense::with('employee')
             ->when($this->from_date && $this->to_date, function ($query) {
                 $query->whereBetween('created_at', [$this->from_date, $this->to_date]);
             })
+            ->whereHas('employee', function ($q) use ($productId) {
+                $q->whereJsonContains('products', (string) $productId);
+            })
             ->when($this->employee_type, function ($query) {
                 $query->whereHas('employee', function ($q) {
-                    $q->where('employee_type_id', $this->employee_type);
+                    $q->where('employee_type_id', $this->employee_type)
+                    ->whereJsonContains('products',  $this->productId);
+;
                 });
             })
             ->when($this->employee_id, function ($query) {

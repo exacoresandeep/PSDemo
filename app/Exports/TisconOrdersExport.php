@@ -12,25 +12,27 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 class TisconOrdersExport implements FromCollection, WithMapping, WithHeadings, ShouldAutoSize
 {
-    protected $year, $month, $row = 1, $productID;
+    protected $year, $month,$employee_type_id, $row = 1, $productID;
     protected $targetsByEmployee = [];
     protected $achievedByEmployee = [];
+     protected $product_id;
 
-    public function __construct($year, $month, $productID)
+    public function __construct($year, $month,$employee_type_id, $productID)
     {
         $this->year = $year;
-        $this->month = $month + 1;
-        $this->productID = $productID;
+        $this->month = $month;
+	$this->productID = $productID;
+	$this->employee_type_id = $employee_type_id;
     }
 
     public function collection()
     {
-        $productID= \App\Helpers\ProductHelper::getSelectedProductID(); //push
+        $productID= \App\Helpers\ProductHelper::getSelectedProductID();
         // Get all employees who have target
         $this->targetsByEmployee = Target::where('month', $this->month)
-            ->where('year', $this->year)
+	        ->where('year', $this->year)
+            ->where('product_id', $productID)
             ->pluck('order_quantity', 'employee_id')
-            ->where('product_id', $productID)//push
             ->toArray();
 
         $targetedEmployeeIds = array_keys(
@@ -38,7 +40,10 @@ class TisconOrdersExport implements FromCollection, WithMapping, WithHeadings, S
         );
 
         // 👉 Get employees whose products JSON contains productID
-        $productEmployees = Employee::whereJsonContains('products', (string)$this->productID)
+        $productEmployees = Employee::when($this->employee_type_id != "", function ($query) {
+        $query->where('employee_type_id', $this->employee_type_id);
+    })
+    ->whereJsonContains('products', (string)$this->productID)
             ->pluck('id')
             ->toArray();
 
@@ -58,7 +63,9 @@ class TisconOrdersExport implements FromCollection, WithMapping, WithHeadings, S
             ->toArray();
 
         // 👉 Return only employees matching target or product
-        return Employee::whereIn('id', $finalEmployeeIds)->get();
+        return Employee::whereIn('id', $finalEmployeeIds)->when($this->employee_type_id != "", function ($query) {
+        $query->where('employee_type_id', $this->employee_type_id);
+    })->get();
     }
 
     public function map($employee): array

@@ -106,13 +106,13 @@ class FetchDealerData extends Command
                     }
                 }
 
-                $generatedPassword = 'D00' . $dealerCode;
-                $hashedPassword = Hash::make($generatedPassword);
+                // $generatedPassword = 'D00' . $dealerCode;
+                // $hashedPassword = Hash::make($generatedPassword);
 
              
                 $dealer = Dealer::updateOrCreate(
                     ['dealer_code' => $dealerCode],
-                    [
+                    collect([
                         'dealer_name'       => $first['Name'] ?? 'unknown',
                         'phone'             => $first['Phone'] ?? null,
                         'email'             => $first['Email'] ?? null,
@@ -127,11 +127,15 @@ class FetchDealerData extends Command
                         'district'          => $districtName,
                         'assigned_route_id' => $assignedRouteId,
                         'location'          => $location,
-                        'password'          => $hashedPassword,
                         'address_id'        => $first['AddressID'] ?? null,
-
                         'products'          => $products,
-                    ]
+                    ])->when(
+                        !Dealer::where('dealer_code', $dealerCode)->exists(),
+                        function ($collection) use ($dealerCode) {
+                            $collection['password'] = Hash::make('D00' . $dealerCode);
+                            return $collection;
+                        }
+                    )->toArray()
                 );
 
                 foreach ($rows as $addr) {
