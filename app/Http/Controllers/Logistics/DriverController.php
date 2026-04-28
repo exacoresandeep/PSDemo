@@ -1650,7 +1650,7 @@ class DriverController extends Controller
             'request' => request(),
             'tripId' => $trip->id
         ]);
-        $tripLogData = $tripLog->getData(true)['data'] ?? [];
+        $tripLogData = $tripLog->getData(true)['data']['logs'] ?? [];
     
         // --- Support Details ---
         $support = app()->call('App\Http\Controllers\Logistics\AssistanceController@getAssistanceList', [
