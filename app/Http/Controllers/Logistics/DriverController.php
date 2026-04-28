@@ -1670,6 +1670,7 @@ class DriverController extends Controller
                 'points'               => $points, // ✅ Added here
                 'expense_details'      => $expenses,
                 'trip_log_details'     => $tripLogData,
+                'trip_log'     => $tripLog,
                 'support_details'      => $supportData,
             ]
         ]);
